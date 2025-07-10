@@ -1,1 +1,0 @@
-// (Esta función fue eliminada porque ya no se usa y causaba advertencia de compilación)

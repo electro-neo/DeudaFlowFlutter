@@ -32,13 +32,13 @@ class DashboardStats extends StatelessWidget {
       totalSaldo = totalDeuda - totalAbonado;
     }
     // LOGS TEMPORALES PARA DEPURACIÓN
-    debugPrint('[DashboardStats] Clientes: ' + clients.length.toString());
+    debugPrint('[DashboardStats] Clientes: ${clients.length}');
     debugPrint(
-      '[DashboardStats] Transacciones: ' + transactions.length.toString(),
+      '[DashboardStats] Transacciones: ${transactions.length}',
     );
-    debugPrint('[DashboardStats] totalDeuda: ' + totalDeuda.toString());
-    debugPrint('[DashboardStats] totalAbonado: ' + totalAbonado.toString());
-    debugPrint('[DashboardStats] totalSaldo: ' + totalSaldo.toString());
+    debugPrint('[DashboardStats] totalDeuda: $totalDeuda');
+    debugPrint('[DashboardStats] totalAbonado: $totalAbonado');
+    debugPrint('[DashboardStats] totalSaldo: $totalSaldo');
     // Navegación igual que el botón de la barra inferior usando Provider
     void goToClientsTab() {
       Provider.of<TabProvider>(context, listen: false).setTab(1);

@@ -116,11 +116,11 @@ class _ClientCardActionsFABState extends State<ClientCardActionsFAB>
           FloatingActionButton(
             heroTag: 'menu',
             onPressed: _toggle,
+            tooltip: 'Acciones',
             child: AnimatedIcon(
               icon: AnimatedIcons.menu_close,
               progress: _controller,
             ),
-            tooltip: 'Acciones',
           ),
         ],
       ),

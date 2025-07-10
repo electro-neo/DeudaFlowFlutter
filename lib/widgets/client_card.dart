@@ -8,6 +8,7 @@ import 'client_details_modal.dart';
 
 class ClientCard extends StatelessWidget {
   final Client client;
+  final String userId;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final VoidCallback? onAddTransaction;
@@ -16,6 +17,7 @@ class ClientCard extends StatelessWidget {
   const ClientCard({
     super.key,
     required this.client,
+    required this.userId,
     this.onEdit,
     this.onDelete,
     this.onAddTransaction,
@@ -59,6 +61,7 @@ class ClientCard extends StatelessWidget {
             context: context,
             builder: (_) => ClientDetailsModal(
               client: client,
+              userId: userId,
               onEdit: onEdit,
               onDelete: onDelete,
               onAddTransaction: onAddTransaction,

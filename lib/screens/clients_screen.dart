@@ -8,6 +8,7 @@ import '../widgets/client_form.dart';
 import '../widgets/client_card.dart';
 import '../widgets/general_receipt_modal.dart';
 import '../widgets/transaction_form.dart';
+import 'transactions_screen.dart';
 
 class ClientsScreen extends StatefulWidget {
   final String userId;
@@ -505,121 +506,112 @@ class _ClientsScreenState extends State<ClientsScreen> {
                                     const SizedBox(height: 10),
                                 itemBuilder: (context, index) {
                                   final client = clientsWithBalance[index];
-                                  return Row(
-                                    children: [
-                                      Expanded(
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius: BorderRadius.circular(
-                                              16,
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(16),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.03),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ClientCard(
+                                      client: client,
+                                      userId: widget.userId,
+                                      onEdit: () => _showClientForm(client),
+                                      onDelete: () async {
+                                        final provider =
+                                            Provider.of<ClientProvider>(
+                                              context,
+                                              listen: false,
+                                            );
+                                        final txProvider =
+                                            Provider.of<TransactionProvider>(
+                                              context,
+                                              listen: false,
+                                            );
+                                        final userTransactions = txProvider
+                                            .transactions
+                                            .where(
+                                              (tx) => tx.clientId == client.id,
+                                            )
+                                            .toList();
+                                        String warning = '';
+                                        if (userTransactions.isNotEmpty) {
+                                          warning =
+                                              '\n\nADVERTENCIA: Este cliente tiene ${userTransactions.length} transacción(es) asociada(s). Se eliminarán TODAS las transacciones de este cliente.';
+                                        }
+                                        final confirm = await showDialog<bool>(
+                                          context: context,
+                                          builder: (_) => AlertDialog(
+                                            title: const Text(
+                                              'Eliminar Cliente',
                                             ),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.black.withOpacity(
-                                                  0.03,
-                                                ),
-                                                blurRadius: 8,
-                                                offset: const Offset(0, 2),
+                                            content: Text(
+                                              '¿Estás seguro de eliminar a ${client.name}?$warning',
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.of(
+                                                  context,
+                                                ).pop(false),
+                                                child: const Text('Cancelar'),
+                                              ),
+                                              TextButton(
+                                                onPressed: () => Navigator.of(
+                                                  context,
+                                                ).pop(true),
+                                                child: const Text('Eliminar'),
                                               ),
                                             ],
                                           ),
-                                          child: ClientCard(
-                                            client: client,
-                                            onEdit: () =>
-                                                _showClientForm(client),
-                                            onDelete: () async {
-                                              final provider =
-                                                  Provider.of<ClientProvider>(
-                                                    context,
-                                                    listen: false,
-                                                  );
-                                              final txProvider =
-                                                  Provider.of<
-                                                    TransactionProvider
-                                                  >(context, listen: false);
-                                              final userTransactions =
-                                                  txProvider.transactions
-                                                      .where(
-                                                        (tx) =>
-                                                            tx.clientId ==
-                                                            client.id,
-                                                      )
-                                                      .toList();
-                                              String warning = '';
-                                              if (userTransactions.isNotEmpty) {
-                                                warning =
-                                                    '\n\nADVERTENCIA: Este cliente tiene ${userTransactions.length} transacción(es) asociada(s). Se eliminarán TODAS las transacciones de este cliente.';
-                                              }
-                                              final confirm =
-                                                  await showDialog<bool>(
-                                                    context: context,
-                                                    builder: (_) => AlertDialog(
-                                                      title: const Text(
-                                                        'Eliminar Cliente',
-                                                      ),
-                                                      content: Text(
-                                                        '¿Estás seguro de eliminar a ${client.name}?$warning',
-                                                      ),
-                                                      actions: [
-                                                        TextButton(
-                                                          onPressed: () =>
-                                                              Navigator.of(
-                                                                context,
-                                                              ).pop(false),
-                                                          child: const Text(
-                                                            'Cancelar',
-                                                          ),
-                                                        ),
-                                                        TextButton(
-                                                          onPressed: () =>
-                                                              Navigator.of(
-                                                                context,
-                                                              ).pop(true),
-                                                          child: const Text(
-                                                            'Eliminar',
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  );
-                                              if (confirm == true) {
-                                                await provider.deleteClient(
-                                                  client.id,
-                                                  widget.userId,
-                                                );
-                                              }
-                                            },
-                                            onAddTransaction: () =>
-                                                _showTransactionForm(client),
-                                            onViewMovements:
-                                                null, // Puedes implementar si lo necesitas
-                                            onReceipt: () {
-                                              final clientData = [
-                                                {
-                                                  'client': client,
-                                                  'transactions': txProvider
-                                                      .transactions
-                                                      .where(
-                                                        (tx) =>
-                                                            tx.clientId ==
-                                                            client.id,
-                                                      )
-                                                      .toList(),
-                                                },
-                                              ];
-                                              showDialog(
-                                                context: context,
-                                                builder: (_) =>
-                                                    GeneralReceiptModal(
-                                                      clientData: clientData,
-                                                    ),
-                                              );
-                                            },
+                                        );
+                                        if (confirm == true) {
+                                          await provider.deleteClient(
+                                            client.id,
+                                            widget.userId,
+                                          );
+                                        }
+                                      },
+                                      onAddTransaction: () =>
+                                          _showTransactionForm(client),
+                                      onViewMovements: () {
+                                        Navigator.of(
+                                          context,
+                                          rootNavigator: true,
+                                        ).push(
+                                          MaterialPageRoute(
+                                            builder: (_) => TransactionsScreen(
+                                              userId: widget.userId,
+                                              initialClientId: client.id,
+                                            ),
                                           ),
-                                        ),
-                                      ),
-                                    ],
+                                        );
+                                      },
+                                      onReceipt: () {
+                                        final clientData = [
+                                          {
+                                            'client': client,
+                                            'transactions': txProvider
+                                                .transactions
+                                                .where(
+                                                  (tx) =>
+                                                      tx.clientId == client.id,
+                                                )
+                                                .toList(),
+                                          },
+                                        ];
+                                        showDialog(
+                                          context: context,
+                                          builder: (_) => GeneralReceiptModal(
+                                            clientData: clientData,
+                                          ),
+                                        );
+                                      },
+                                    ),
                                   );
                                 },
                               ),

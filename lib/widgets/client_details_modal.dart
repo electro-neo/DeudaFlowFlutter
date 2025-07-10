@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import '../models/client.dart';
+import 'package:provider/provider.dart';
+import '../providers/transaction_filter_provider.dart';
+import '../screens/transactions_screen.dart';
 
 class ClientDetailsModal extends StatelessWidget {
   final Client client;
+  final String userId;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final VoidCallback? onAddTransaction;
@@ -12,6 +16,7 @@ class ClientDetailsModal extends StatelessWidget {
   const ClientDetailsModal({
     super.key,
     required this.client,
+    required this.userId,
     this.onEdit,
     this.onDelete,
     this.onAddTransaction,
@@ -66,10 +71,8 @@ class ClientDetailsModal extends StatelessWidget {
               ),
             const SizedBox(height: 18),
             // Botones de acción SIEMPRE visibles, sin hamburguesa, responsivos
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 8,
-              runSpacing: 4,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 IconButton(
                   icon: const Icon(Icons.receipt_long),
@@ -94,7 +97,29 @@ class ClientDetailsModal extends StatelessWidget {
                 IconButton(
                   icon: const Icon(Icons.list),
                   tooltip: 'Ver movimientos',
-                  onPressed: onViewMovements,
+                  onPressed: () {
+                    Navigator.of(context, rootNavigator: true).pop();
+                    if (onViewMovements != null) {
+                      Future.delayed(Duration.zero, onViewMovements!);
+                    } else {
+                      final filterProvider =
+                          Provider.of<TransactionFilterProvider>(
+                            context,
+                            listen: false,
+                          );
+                      filterProvider.setClientId(client.id);
+                      Future.delayed(Duration.zero, () {
+                        Navigator.of(context, rootNavigator: true).push(
+                          MaterialPageRoute(
+                            builder: (_) => TransactionsScreen(
+                              userId: userId,
+                              initialClientId: client.id,
+                            ),
+                          ),
+                        );
+                      });
+                    }
+                  },
                 ),
               ],
             ),

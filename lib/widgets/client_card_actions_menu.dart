@@ -70,8 +70,10 @@ class _ClientCardActionsMenuState extends State<ClientCardActionsMenu> {
             leading: const Icon(Icons.list),
             title: const Text('Ver movimientos'),
             onTap: () {
-              Navigator.pop(context);
-              widget.onViewMovements?.call();
+              Navigator.of(context, rootNavigator: true).pop();
+              if (widget.onViewMovements != null) {
+                Future.delayed(Duration.zero, widget.onViewMovements!);
+              }
             },
           ),
         ),

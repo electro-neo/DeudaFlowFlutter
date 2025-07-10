@@ -203,10 +203,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                             labelText: 'Filtrar por cliente',
                                             border: InputBorder.none,
                                             isDense: false,
-                                            contentPadding: EdgeInsets.symmetric(
-                                              vertical: 16,
-                                              horizontal: 12,
-                                            ),
+                                            contentPadding:
+                                                EdgeInsets.symmetric(
+                                                  vertical: 16,
+                                                  horizontal: 12,
+                                                ),
                                           ),
                                           items: [
                                             const DropdownMenuItem(
@@ -238,10 +239,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                             labelText: 'Tipo',
                                             border: InputBorder.none,
                                             isDense: false,
-                                            contentPadding: EdgeInsets.symmetric(
-                                              vertical: 16,
-                                              horizontal: 12,
-                                            ),
+                                            contentPadding:
+                                                EdgeInsets.symmetric(
+                                                  vertical: 16,
+                                                  horizontal: 12,
+                                                ),
                                           ),
                                           items: const [
                                             DropdownMenuItem(
@@ -406,32 +408,45 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                           return Container(
                                             decoration: BoxDecoration(
                                               color: Colors.white,
-                                              borderRadius: BorderRadius.circular(16),
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
                                               boxShadow: [
                                                 BoxShadow(
-                                                  color: Colors.black.withOpacity(0.07),
+                                                  color: Colors.black
+                                                      .withOpacity(0.07),
                                                   blurRadius: 8,
                                                   offset: const Offset(0, 2),
                                                 ),
                                               ],
                                             ),
                                             child: Padding(
-                                              padding: const EdgeInsets.symmetric(
-                                                horizontal: 10,
-                                                vertical: 6,
-                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 10,
+                                                    vertical: 6,
+                                                  ),
                                               child: Row(
-                                                crossAxisAlignment: CrossAxisAlignment.center,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.center,
                                                 children: [
                                                   // Ícono
                                                   CircleAvatar(
-                                                    backgroundColor: t.type == 'debt'
-                                                        ? const Color(0xFFFFE5E5)
-                                                        : const Color(0xFFE5FFE8),
+                                                    backgroundColor:
+                                                        t.type == 'debt'
+                                                        ? const Color(
+                                                            0xFFFFE5E5,
+                                                          )
+                                                        : const Color(
+                                                            0xFFE5FFE8,
+                                                          ),
                                                     radius: 22,
                                                     child: Icon(
-                                                      t.type == 'debt' ? Icons.arrow_downward : Icons.arrow_upward,
-                                                      color: t.type == 'debt' ? Colors.red : Colors.green,
+                                                      t.type == 'debt'
+                                                          ? Icons.arrow_downward
+                                                          : Icons.arrow_upward,
+                                                      color: t.type == 'debt'
+                                                          ? Colors.red
+                                                          : Colors.green,
                                                       size: 24,
                                                     ),
                                                   ),
@@ -439,7 +454,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                                   // Info principal
                                                   Expanded(
                                                     child: Column(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
                                                       children: [
                                                         Row(
                                                           children: [
@@ -447,42 +464,60 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                                               child: Text(
                                                                 t.description,
                                                                 style: const TextStyle(
-                                                                  fontWeight: FontWeight.bold,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
                                                                   fontSize: 16,
                                                                 ),
-                                                                overflow: TextOverflow.ellipsis,
+                                                                overflow:
+                                                                    TextOverflow
+                                                                        .ellipsis,
                                                               ),
                                                             ),
-                                                            const SizedBox(width: 8),
+                                                            const SizedBox(
+                                                              width: 8,
+                                                            ),
                                                             Text(
                                                               format(t.amount),
                                                               style: const TextStyle(
-                                                                color: Colors.red,
-                                                                fontWeight: FontWeight.bold,
+                                                                color:
+                                                                    Colors.red,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
                                                                 fontSize: 18,
                                                               ),
                                                             ),
                                                           ],
                                                         ),
-                                                        const SizedBox(height: 2),
+                                                        const SizedBox(
+                                                          height: 2,
+                                                        ),
                                                         Row(
                                                           children: [
                                                             Expanded(
                                                               child: Text(
                                                                 'Cliente: ${client.name}',
                                                                 style: const TextStyle(
-                                                                  fontSize: 13.5,
-                                                                  color: Colors.black54,
+                                                                  fontSize:
+                                                                      13.5,
+                                                                  color: Colors
+                                                                      .black54,
                                                                 ),
-                                                                overflow: TextOverflow.ellipsis,
+                                                                overflow:
+                                                                    TextOverflow
+                                                                        .ellipsis,
                                                               ),
                                                             ),
                                                             Text(
                                                               '${t.date.year}-${t.date.month.toString().padLeft(2, '0')}-${t.date.day.toString().padLeft(2, '0')}',
-                                                              style: const TextStyle(
-                                                                fontSize: 12.5,
-                                                                color: Colors.black45,
-                                                              ),
+                                                              style:
+                                                                  const TextStyle(
+                                                                    fontSize:
+                                                                        12.5,
+                                                                    color: Colors
+                                                                        .black45,
+                                                                  ),
                                                             ),
                                                           ],
                                                         ),
@@ -496,9 +531,46 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                                       size: 22,
                                                     ),
                                                     onPressed: () async {
-                                                      final txProvider = Provider.of<TransactionProvider>(context, listen: false);
-                                                      await txProvider.deleteTransaction(t.id, widget.userId);
-                                                      if (mounted) setState(() {});
+                                                      final txProvider =
+                                                          Provider.of<
+                                                            TransactionProvider
+                                                          >(
+                                                            context,
+                                                            listen: false,
+                                                          );
+                                                      try {
+                                                        await txProvider
+                                                            .deleteTransaction(
+                                                              t.id,
+                                                              widget.userId,
+                                                            );
+                                                        if (mounted)
+                                                          setState(() {});
+                                                        ScaffoldMessenger.of(
+                                                          context,
+                                                        ).showSnackBar(
+                                                          const SnackBar(
+                                                            content: Text(
+                                                              'Transacción eliminada correctamente',
+                                                            ),
+                                                            backgroundColor:
+                                                                Colors.green,
+                                                          ),
+                                                        );
+                                                      } catch (e) {
+                                                        ScaffoldMessenger.of(
+                                                          context,
+                                                        ).showSnackBar(
+                                                          SnackBar(
+                                                            content: Text(
+                                                              'Error al eliminar: '
+                                                              '${e.toString()}',
+                                                            ),
+                                                            backgroundColor:
+                                                                Colors.red,
+                                                          ),
+                                                        );
+                                                      }
                                                     },
                                                     tooltip: 'Eliminar',
                                                   ),
@@ -570,74 +642,100 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                     Row(
                                       children: [
                                         Expanded(
-                                          child:
-                                              DropdownButtonFormField<String>(
-                                                value: _selectedClientId,
-                                                decoration:
-                                                    const InputDecoration(
-                                                      labelText:
-                                                          'Filtrar por cliente',
-                                                      border: InputBorder.none,
-                                                      isDense: true,
-                                                      contentPadding:
-                                                          EdgeInsets.symmetric(
-                                                            vertical: 0,
-                                                          ),
-                                                    ),
-                                                items: [
-                                                  const DropdownMenuItem(
-                                                    value: null,
-                                                    child: Text('Todos'),
+                                          child: SizedBox(
+                                            height: isMobile ? 52 : 64,
+                                            child:
+                                                DropdownButtonFormField<String>(
+                                                  value: _selectedClientId,
+                                                  decoration: InputDecoration(
+                                                    labelText:
+                                                        'Filtrar por cliente',
+                                                    border: InputBorder.none,
+                                                    isDense: false,
+                                                    contentPadding:
+                                                        EdgeInsets.symmetric(
+                                                          vertical: isMobile
+                                                              ? 16
+                                                              : 22,
+                                                          horizontal: isMobile
+                                                              ? 12
+                                                              : 20,
+                                                        ),
                                                   ),
-                                                  ...clients.map(
-                                                    (c) => DropdownMenuItem(
-                                                      value: c.id,
-                                                      child: Text(c.name),
-                                                    ),
+                                                  style: TextStyle(
+                                                    fontSize: isMobile
+                                                        ? 16
+                                                        : 20,
+                                                    fontWeight: FontWeight.w500,
                                                   ),
-                                                ],
-                                                onChanged: (value) {
-                                                  setState(() {
-                                                    _selectedClientId = value;
-                                                  });
-                                                },
-                                              ),
+                                                  items: [
+                                                    const DropdownMenuItem(
+                                                      value: null,
+                                                      child: Text('Todos'),
+                                                    ),
+                                                    ...clients.map(
+                                                      (c) => DropdownMenuItem(
+                                                        value: c.id,
+                                                        child: Text(c.name),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                  onChanged: (value) {
+                                                    setState(() {
+                                                      _selectedClientId = value;
+                                                    });
+                                                  },
+                                                ),
+                                          ),
                                         ),
                                         const SizedBox(width: 8),
                                         Expanded(
-                                          child:
-                                              DropdownButtonFormField<String>(
-                                                value: _selectedType,
-                                                decoration:
-                                                    const InputDecoration(
-                                                      labelText: 'Tipo',
-                                                      border: InputBorder.none,
-                                                      isDense: true,
-                                                      contentPadding:
-                                                          EdgeInsets.symmetric(
-                                                            vertical: 0,
-                                                          ),
+                                          child: SizedBox(
+                                            height: isMobile ? 52 : 64,
+                                            child:
+                                                DropdownButtonFormField<String>(
+                                                  value: _selectedType,
+                                                  decoration: InputDecoration(
+                                                    labelText: 'Tipo',
+                                                    border: InputBorder.none,
+                                                    isDense: false,
+                                                    contentPadding:
+                                                        EdgeInsets.symmetric(
+                                                          vertical: isMobile
+                                                              ? 16
+                                                              : 22,
+                                                          horizontal: isMobile
+                                                              ? 12
+                                                              : 20,
+                                                        ),
+                                                  ),
+                                                  style: TextStyle(
+                                                    fontSize: isMobile
+                                                        ? 16
+                                                        : 20,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                  items: const [
+                                                    DropdownMenuItem(
+                                                      value: null,
+                                                      child: Text('Todos'),
                                                     ),
-                                                items: const [
-                                                  DropdownMenuItem(
-                                                    value: null,
-                                                    child: Text('Todos'),
-                                                  ),
-                                                  DropdownMenuItem(
-                                                    value: 'debt',
-                                                    child: Text('Deuda'),
-                                                  ),
-                                                  DropdownMenuItem(
-                                                    value: 'payment',
-                                                    child: Text('Abono'),
-                                                  ),
-                                                ],
-                                                onChanged: (value) {
-                                                  setState(() {
-                                                    _selectedType = value;
-                                                  });
-                                                },
-                                              ),
+                                                    DropdownMenuItem(
+                                                      value: 'debt',
+                                                      child: Text('Deuda'),
+                                                    ),
+                                                    DropdownMenuItem(
+                                                      value: 'payment',
+                                                      child: Text('Abono'),
+                                                    ),
+                                                  ],
+                                                  onChanged: (value) {
+                                                    setState(() {
+                                                      _selectedType = value;
+                                                    });
+                                                  },
+                                                ),
+                                          ),
                                         ),
                                         const SizedBox(width: 8),
                                         Container(
@@ -874,7 +972,47 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                                           size: 22,
                                                         ),
                                                         onPressed: () async {
-                                                          // Implementar lógica de eliminación si se desea
+                                                          final txProvider =
+                                                              Provider.of<
+                                                                TransactionProvider
+                                                              >(
+                                                                context,
+                                                                listen: false,
+                                                              );
+                                                          try {
+                                                            await txProvider
+                                                                .deleteTransaction(
+                                                                  t.id,
+                                                                  widget.userId,
+                                                                );
+                                                            if (mounted)
+                                                              setState(() {});
+                                                            ScaffoldMessenger.of(
+                                                              context,
+                                                            ).showSnackBar(
+                                                              const SnackBar(
+                                                                content: Text(
+                                                                  'Transacción eliminada correctamente',
+                                                                ),
+                                                                backgroundColor:
+                                                                    Colors
+                                                                        .green,
+                                                              ),
+                                                            );
+                                                          } catch (e) {
+                                                            ScaffoldMessenger.of(
+                                                              context,
+                                                            ).showSnackBar(
+                                                              SnackBar(
+                                                                content: Text(
+                                                                  'Error al eliminar: '
+                                                                  '${e.toString()}',
+                                                                ),
+                                                                backgroundColor:
+                                                                    Colors.red,
+                                                              ),
+                                                            );
+                                                          }
                                                         },
                                                         tooltip: 'Eliminar',
                                                       ),

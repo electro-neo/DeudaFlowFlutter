@@ -22,15 +22,7 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
         .map((entry) {
           final c = entry['client'] as Client;
           final txs = entry['transactions'] as List<dynamic>?;
-          if (txs == null || txs.isEmpty) {
-            return {
-              'client': c,
-              'balance': 0.0,
-              'hasMovements': false,
-              'filteredTxs': <dynamic>[],
-            };
-          }
-          final filteredTxs = txs.where((tx) {
+          final filteredTxs = (txs ?? []).where((tx) {
             final txDate = tx.date;
             if (fromDate != null && toDate != null) {
               final from = DateTime(
@@ -75,13 +67,15 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
             }
             return true;
           }).toList();
-          final balance = filteredTxs.fold<double>(0, (sum, tx) {
-            if (tx.type == 'deuda') {
-              return sum - (tx.amount as num).toDouble();
-            } else {
-              return sum + (tx.amount as num).toDouble();
-            }
-          });
+          final balance = filteredTxs.isEmpty
+              ? 0.0
+              : filteredTxs.fold<double>(0, (sum, tx) {
+                  if (tx.type == 'deuda') {
+                    return sum - (tx.amount as num).toDouble();
+                  } else {
+                    return sum + (tx.amount as num).toDouble();
+                  }
+                });
           return {
             'client': c,
             'balance': balance,
@@ -89,7 +83,7 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
             'filteredTxs': filteredTxs,
           };
         })
-        .where((e) => e['hasMovements'] as bool)
+        .where((e) => true)
         .toList();
   }
 

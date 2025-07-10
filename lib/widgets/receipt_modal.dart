@@ -96,7 +96,11 @@ class ReceiptModal extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text('Saldo actual: ${client.balance.toStringAsFixed(2)}'),
+                  // Si el cliente no tiene transacciones filtradas, saldo 0
+                  Text(
+                    'Saldo actual: '
+                    '${filteredTransactions.isEmpty ? '0.00' : client.balance.toStringAsFixed(2)}',
+                  ),
                   const SizedBox(height: 8),
                   Builder(
                     builder: (context) {

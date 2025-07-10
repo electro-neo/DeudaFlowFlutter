@@ -177,23 +177,28 @@ class _ClientFormState extends State<ClientForm> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isMobile = MediaQuery.of(context).size.width < 600;
+    final viewInsets = MediaQuery.of(context).viewInsets;
     return Center(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: isMobile ? 380 : 400,
-          minWidth: isMobile ? 320 : 340,
-        ),
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            vertical: isMobile ? 4.0 : 8.0,
-            horizontal: isMobile ? 0.0 : 2.0,
+      child: SingleChildScrollView(
+        padding: EdgeInsets.only(bottom: viewInsets.bottom),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: isMobile ? 380 : 400,
+            minWidth: isMobile ? 320 : 340,
           ),
-          child: Material(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
-              child: SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              vertical: isMobile ? 4.0 : 8.0,
+              horizontal: isMobile ? 0.0 : 2.0,
+            ),
+            child: Material(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 22,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../providers/transaction_provider.dart';
 import '../models/client.dart';
 import '../utils/currency_utils.dart';
 import '../providers/currency_provider.dart';
@@ -29,7 +30,12 @@ class ClientCard extends StatelessWidget {
         Theme.of(context).platform == TargetPlatform.iOS;
 
     // Mostrar todos los datos relevantes del cliente
-    final balance = client.balance;
+    // Si el cliente no tiene transacciones, el balance debe ser 0
+    final txProvider = Provider.of<TransactionProvider>(context, listen: false);
+    final hasTransactions = txProvider.transactions.any(
+      (tx) => tx.clientId == client.id,
+    );
+    final balance = hasTransactions ? client.balance : 0.0;
     final isDeuda = balance < 0;
     final balanceColor = isDeuda ? Colors.red : Colors.green;
     final balanceText = isDeuda
@@ -42,7 +48,7 @@ class ClientCard extends StatelessWidget {
         : 'Saldo a favor del cliente';
 
     final symbol = CurrencyUtils.symbol(context);
-    final formatted = CurrencyUtils.format(context, client.balance);
+    final formatted = CurrencyUtils.format(context, balance);
     final saldo = '$symbol$formatted';
 
     Widget card = Container(
@@ -220,7 +226,9 @@ class _ClientCardActionsState extends State<_ClientCardActions>
 
   @override
   Widget build(BuildContext context) {
-    // Centrar los botones de acción en todas las plataformas (móvil y web)
+    final isMobile =
+        Theme.of(context).platform == TargetPlatform.android ||
+        Theme.of(context).platform == TargetPlatform.iOS;
     return Stack(
       children: [
         if (_open)
@@ -231,90 +239,173 @@ class _ClientCardActionsState extends State<_ClientCardActions>
               child: Container(),
             ),
           ),
-        // Permite scroll horizontal y evita overflow
+        // Solución: en móvil, el botón hamburguesa y las acciones estarán siempre centrados y sin overflow
         SizedBox(
           width: double.infinity,
           height: 48,
-          child: Center(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: AnimatedBuilder(
-                animation: _controller,
-                builder: (context, child) {
-                  List<Widget> actions = [];
-                  if (_open) {
-                    actions = [
-                      _ActionBtn(
-                        icon: Icons.receipt_long,
-                        tooltip: 'Recibo',
-                        onTap: () {
-                          widget.onReceipt?.call();
-                          _close();
+          child: isMobile
+              ? Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: AnimatedBuilder(
+                        animation: _controller,
+                        builder: (context, child) {
+                          List<Widget> actions = [];
+                          if (_open) {
+                            actions = [
+                              _ActionBtn(
+                                icon: Icons.receipt_long,
+                                tooltip: 'Recibo',
+                                onTap: () {
+                                  widget.onReceipt?.call();
+                                  _close();
+                                },
+                                delay: 0,
+                              ),
+                              _ActionBtn(
+                                icon: Icons.edit,
+                                tooltip: 'Editar',
+                                onTap: () {
+                                  widget.onEdit?.call();
+                                  _close();
+                                },
+                                delay: 40,
+                              ),
+                              _ActionBtn(
+                                icon: Icons.delete,
+                                tooltip: 'Eliminar',
+                                onTap: () {
+                                  widget.onDelete?.call();
+                                  _close();
+                                },
+                                delay: 80,
+                              ),
+                              _ActionBtn(
+                                icon: Icons.add,
+                                tooltip: 'Agregar deuda/abono',
+                                onTap: () {
+                                  widget.onAddTransaction?.call();
+                                  _close();
+                                },
+                                delay: 120,
+                              ),
+                              _ActionBtn(
+                                icon: Icons.list,
+                                tooltip: 'Ver movimientos',
+                                onTap: () {
+                                  widget.onViewMovements?.call();
+                                  _close();
+                                },
+                                delay: 160,
+                              ),
+                              IconButton(
+                                key: const ValueKey('close'),
+                                icon: const Icon(Icons.close),
+                                tooltip: 'Cerrar',
+                                onPressed: _toggle,
+                              ),
+                            ];
+                          } else {
+                            actions = [
+                              IconButton(
+                                key: const ValueKey('menu'),
+                                icon: const Icon(Icons.menu),
+                                tooltip: 'Acciones',
+                                onPressed: _toggle,
+                              ),
+                            ];
+                          }
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: actions,
+                          );
                         },
-                        delay: 0,
                       ),
-                      _ActionBtn(
-                        icon: Icons.edit,
-                        tooltip: 'Editar',
-                        onTap: () {
-                          widget.onEdit?.call();
-                          _close();
-                        },
-                        delay: 40,
-                      ),
-                      _ActionBtn(
-                        icon: Icons.delete,
-                        tooltip: 'Eliminar',
-                        onTap: () {
-                          widget.onDelete?.call();
-                          _close();
-                        },
-                        delay: 80,
-                      ),
-                      _ActionBtn(
-                        icon: Icons.add,
-                        tooltip: 'Agregar deuda/abono',
-                        onTap: () {
-                          widget.onAddTransaction?.call();
-                          _close();
-                        },
-                        delay: 120,
-                      ),
-                      _ActionBtn(
-                        icon: Icons.list,
-                        tooltip: 'Ver movimientos',
-                        onTap: () {
-                          widget.onViewMovements?.call();
-                          _close();
-                        },
-                        delay: 160,
-                      ),
-                      IconButton(
-                        key: const ValueKey('close'),
-                        icon: const Icon(Icons.close),
-                        tooltip: 'Cerrar',
-                        onPressed: _toggle,
-                      ),
-                    ];
-                  } else {
-                    actions = [
-                      IconButton(
-                        key: const ValueKey('menu'),
-                        icon: const Icon(Icons.menu),
-                        tooltip: 'Acciones',
-                        onPressed: _toggle,
-                      ),
-                    ];
-                  }
-                  return Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: actions,
-                  );
-                },
-              ),
-            ),
-          ),
+                    ),
+                  ],
+                )
+              : Center(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: AnimatedBuilder(
+                      animation: _controller,
+                      builder: (context, child) {
+                        List<Widget> actions = [];
+                        if (_open) {
+                          actions = [
+                            _ActionBtn(
+                              icon: Icons.receipt_long,
+                              tooltip: 'Recibo',
+                              onTap: () {
+                                widget.onReceipt?.call();
+                                _close();
+                              },
+                              delay: 0,
+                            ),
+                            _ActionBtn(
+                              icon: Icons.edit,
+                              tooltip: 'Editar',
+                              onTap: () {
+                                widget.onEdit?.call();
+                                _close();
+                              },
+                              delay: 40,
+                            ),
+                            _ActionBtn(
+                              icon: Icons.delete,
+                              tooltip: 'Eliminar',
+                              onTap: () {
+                                widget.onDelete?.call();
+                                _close();
+                              },
+                              delay: 80,
+                            ),
+                            _ActionBtn(
+                              icon: Icons.add,
+                              tooltip: 'Agregar deuda/abono',
+                              onTap: () {
+                                widget.onAddTransaction?.call();
+                                _close();
+                              },
+                              delay: 120,
+                            ),
+                            _ActionBtn(
+                              icon: Icons.list,
+                              tooltip: 'Ver movimientos',
+                              onTap: () {
+                                widget.onViewMovements?.call();
+                                _close();
+                              },
+                              delay: 160,
+                            ),
+                            IconButton(
+                              key: const ValueKey('close'),
+                              icon: const Icon(Icons.close),
+                              tooltip: 'Cerrar',
+                              onPressed: _toggle,
+                            ),
+                          ];
+                        } else {
+                          actions = [
+                            IconButton(
+                              key: const ValueKey('menu'),
+                              icon: const Icon(Icons.menu),
+                              tooltip: 'Acciones',
+                              onPressed: _toggle,
+                            ),
+                          ];
+                        }
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: actions,
+                        );
+                      },
+                    ),
+                  ),
+                ),
         ),
       ],
     );

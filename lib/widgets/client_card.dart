@@ -239,173 +239,87 @@ class _ClientCardActionsState extends State<_ClientCardActions>
               child: Container(),
             ),
           ),
-        // Solución: en móvil, el botón hamburguesa y las acciones estarán siempre centrados y sin overflow
+        // Centrado absoluto del botón hamburguesa y acciones
         SizedBox(
           width: double.infinity,
           height: 48,
-          child: isMobile
-              ? Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Flexible(
-                      child: AnimatedBuilder(
-                        animation: _controller,
-                        builder: (context, child) {
-                          List<Widget> actions = [];
-                          if (_open) {
-                            actions = [
-                              _ActionBtn(
-                                icon: Icons.receipt_long,
-                                tooltip: 'Recibo',
-                                onTap: () {
-                                  widget.onReceipt?.call();
-                                  _close();
-                                },
-                                delay: 0,
-                              ),
-                              _ActionBtn(
-                                icon: Icons.edit,
-                                tooltip: 'Editar',
-                                onTap: () {
-                                  widget.onEdit?.call();
-                                  _close();
-                                },
-                                delay: 40,
-                              ),
-                              _ActionBtn(
-                                icon: Icons.delete,
-                                tooltip: 'Eliminar',
-                                onTap: () {
-                                  widget.onDelete?.call();
-                                  _close();
-                                },
-                                delay: 80,
-                              ),
-                              _ActionBtn(
-                                icon: Icons.add,
-                                tooltip: 'Agregar deuda/abono',
-                                onTap: () {
-                                  widget.onAddTransaction?.call();
-                                  _close();
-                                },
-                                delay: 120,
-                              ),
-                              _ActionBtn(
-                                icon: Icons.list,
-                                tooltip: 'Ver movimientos',
-                                onTap: () {
-                                  widget.onViewMovements?.call();
-                                  _close();
-                                },
-                                delay: 160,
-                              ),
-                              IconButton(
-                                key: const ValueKey('close'),
-                                icon: const Icon(Icons.close),
-                                tooltip: 'Cerrar',
-                                onPressed: _toggle,
-                              ),
-                            ];
-                          } else {
-                            actions = [
-                              IconButton(
-                                key: const ValueKey('menu'),
-                                icon: const Icon(Icons.menu),
-                                tooltip: 'Acciones',
-                                onPressed: _toggle,
-                              ),
-                            ];
-                          }
-                          return Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: actions,
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                )
-              : Center(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: AnimatedBuilder(
-                      animation: _controller,
-                      builder: (context, child) {
-                        List<Widget> actions = [];
-                        if (_open) {
-                          actions = [
-                            _ActionBtn(
-                              icon: Icons.receipt_long,
-                              tooltip: 'Recibo',
-                              onTap: () {
-                                widget.onReceipt?.call();
-                                _close();
-                              },
-                              delay: 0,
-                            ),
-                            _ActionBtn(
-                              icon: Icons.edit,
-                              tooltip: 'Editar',
-                              onTap: () {
-                                widget.onEdit?.call();
-                                _close();
-                              },
-                              delay: 40,
-                            ),
-                            _ActionBtn(
-                              icon: Icons.delete,
-                              tooltip: 'Eliminar',
-                              onTap: () {
-                                widget.onDelete?.call();
-                                _close();
-                              },
-                              delay: 80,
-                            ),
-                            _ActionBtn(
-                              icon: Icons.add,
-                              tooltip: 'Agregar deuda/abono',
-                              onTap: () {
-                                widget.onAddTransaction?.call();
-                                _close();
-                              },
-                              delay: 120,
-                            ),
-                            _ActionBtn(
-                              icon: Icons.list,
-                              tooltip: 'Ver movimientos',
-                              onTap: () {
-                                widget.onViewMovements?.call();
-                                _close();
-                              },
-                              delay: 160,
-                            ),
-                            IconButton(
-                              key: const ValueKey('close'),
-                              icon: const Icon(Icons.close),
-                              tooltip: 'Cerrar',
-                              onPressed: _toggle,
-                            ),
-                          ];
-                        } else {
-                          actions = [
-                            IconButton(
-                              key: const ValueKey('menu'),
-                              icon: const Icon(Icons.menu),
-                              tooltip: 'Acciones',
-                              onPressed: _toggle,
-                            ),
-                          ];
-                        }
-                        return Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: actions,
-                        );
+          child: Center(
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                List<Widget> actions = [];
+                if (_open) {
+                  actions = [
+                    _ActionBtn(
+                      icon: Icons.receipt_long,
+                      tooltip: 'Recibo',
+                      onTap: () {
+                        widget.onReceipt?.call();
+                        _close();
                       },
+                      delay: 0,
                     ),
-                  ),
-                ),
+                    _ActionBtn(
+                      icon: Icons.edit,
+                      tooltip: 'Editar',
+                      onTap: () {
+                        widget.onEdit?.call();
+                        _close();
+                      },
+                      delay: 40,
+                    ),
+                    _ActionBtn(
+                      icon: Icons.delete,
+                      tooltip: 'Eliminar',
+                      onTap: () {
+                        widget.onDelete?.call();
+                        _close();
+                      },
+                      delay: 80,
+                    ),
+                    _ActionBtn(
+                      icon: Icons.add,
+                      tooltip: 'Agregar deuda/abono',
+                      onTap: () {
+                        widget.onAddTransaction?.call();
+                        _close();
+                      },
+                      delay: 120,
+                    ),
+                    _ActionBtn(
+                      icon: Icons.list,
+                      tooltip: 'Ver movimientos',
+                      onTap: () {
+                        widget.onViewMovements?.call();
+                        _close();
+                      },
+                      delay: 160,
+                    ),
+                    IconButton(
+                      key: const ValueKey('close'),
+                      icon: const Icon(Icons.close),
+                      tooltip: 'Cerrar',
+                      onPressed: _toggle,
+                    ),
+                  ];
+                } else {
+                  actions = [
+                    IconButton(
+                      key: const ValueKey('menu'),
+                      icon: const Icon(Icons.menu),
+                      tooltip: 'Acciones',
+                      onPressed: _toggle,
+                    ),
+                  ];
+                }
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: actions,
+                );
+              },
+            ),
+          ),
         ),
       ],
     );

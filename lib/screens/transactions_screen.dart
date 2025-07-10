@@ -406,45 +406,32 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                           return Container(
                                             decoration: BoxDecoration(
                                               color: Colors.white,
-                                              borderRadius:
-                                                  BorderRadius.circular(16),
+                                              borderRadius: BorderRadius.circular(16),
                                               boxShadow: [
                                                 BoxShadow(
-                                                  color: Colors.black
-                                                      .withOpacity(0.07),
+                                                  color: Colors.black.withOpacity(0.07),
                                                   blurRadius: 8,
                                                   offset: const Offset(0, 2),
                                                 ),
                                               ],
                                             ),
                                             child: Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 10,
-                                                    vertical: 6,
-                                                  ),
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 10,
+                                                vertical: 6,
+                                              ),
                                               child: Row(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.center,
+                                                crossAxisAlignment: CrossAxisAlignment.center,
                                                 children: [
                                                   // Ícono
                                                   CircleAvatar(
-                                                    backgroundColor:
-                                                        t.type == 'debt'
-                                                        ? const Color(
-                                                            0xFFFFE5E5,
-                                                          )
-                                                        : const Color(
-                                                            0xFFE5FFE8,
-                                                          ),
+                                                    backgroundColor: t.type == 'debt'
+                                                        ? const Color(0xFFFFE5E5)
+                                                        : const Color(0xFFE5FFE8),
                                                     radius: 22,
                                                     child: Icon(
-                                                      t.type == 'debt'
-                                                          ? Icons.arrow_downward
-                                                          : Icons.arrow_upward,
-                                                      color: t.type == 'debt'
-                                                          ? Colors.red
-                                                          : Colors.green,
+                                                      t.type == 'debt' ? Icons.arrow_downward : Icons.arrow_upward,
+                                                      color: t.type == 'debt' ? Colors.red : Colors.green,
                                                       size: 24,
                                                     ),
                                                   ),
@@ -452,9 +439,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                                   // Info principal
                                                   Expanded(
                                                     child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
                                                       children: [
                                                         Row(
                                                           children: [
@@ -462,60 +447,42 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                                               child: Text(
                                                                 t.description,
                                                                 style: const TextStyle(
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .bold,
+                                                                  fontWeight: FontWeight.bold,
                                                                   fontSize: 16,
                                                                 ),
-                                                                overflow:
-                                                                    TextOverflow
-                                                                        .ellipsis,
+                                                                overflow: TextOverflow.ellipsis,
                                                               ),
                                                             ),
-                                                            const SizedBox(
-                                                              width: 8,
-                                                            ),
+                                                            const SizedBox(width: 8),
                                                             Text(
                                                               format(t.amount),
                                                               style: const TextStyle(
-                                                                color:
-                                                                    Colors.red,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .bold,
+                                                                color: Colors.red,
+                                                                fontWeight: FontWeight.bold,
                                                                 fontSize: 18,
                                                               ),
                                                             ),
                                                           ],
                                                         ),
-                                                        const SizedBox(
-                                                          height: 2,
-                                                        ),
+                                                        const SizedBox(height: 2),
                                                         Row(
                                                           children: [
                                                             Expanded(
                                                               child: Text(
                                                                 'Cliente: ${client.name}',
                                                                 style: const TextStyle(
-                                                                  fontSize:
-                                                                      13.5,
-                                                                  color: Colors
-                                                                      .black54,
+                                                                  fontSize: 13.5,
+                                                                  color: Colors.black54,
                                                                 ),
-                                                                overflow:
-                                                                    TextOverflow
-                                                                        .ellipsis,
+                                                                overflow: TextOverflow.ellipsis,
                                                               ),
                                                             ),
                                                             Text(
                                                               '${t.date.year}-${t.date.month.toString().padLeft(2, '0')}-${t.date.day.toString().padLeft(2, '0')}',
-                                                              style:
-                                                                  const TextStyle(
-                                                                    fontSize:
-                                                                        12.5,
-                                                                    color: Colors
-                                                                        .black45,
-                                                                  ),
+                                                              style: const TextStyle(
+                                                                fontSize: 12.5,
+                                                                color: Colors.black45,
+                                                              ),
                                                             ),
                                                           ],
                                                         ),
@@ -529,7 +496,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                                       size: 22,
                                                     ),
                                                     onPressed: () async {
-                                                      // Implementar lógica de eliminación si se desea
+                                                      final txProvider = Provider.of<TransactionProvider>(context, listen: false);
+                                                      await txProvider.deleteTransaction(t.id, widget.userId);
+                                                      if (mounted) setState(() {});
                                                     },
                                                     tooltip: 'Eliminar',
                                                   ),

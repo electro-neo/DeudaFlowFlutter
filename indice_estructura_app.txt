@@ -126,3 +126,15 @@
 ---
 
 _Este índice es un resumen estructurado y actualizado de la app, útil para documentación, onboarding o refactorización._
+---
+
+## Permisos necesarios (Android)
+
+- <uses-permission android:name="android.permission.INTERNET"/>
+  - Requerido para conexión a Supabase y servicios web.
+- <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+  - Para leer archivos (por ejemplo, exportar o visualizar PDFs).
+- <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28"/>
+  - Para guardar archivos en dispositivos con Android 10 o menor.
+
+Estos permisos están declarados en `android/app/src/main/AndroidManifest.xml` y son necesarios para el funcionamiento correcto de la app.

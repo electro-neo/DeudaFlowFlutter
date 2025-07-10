@@ -8,11 +8,26 @@ class TransactionProvider extends ChangeNotifier {
   List<Transaction> get transactions => _transactions;
 
   Future<void> loadTransactions(String userId) async {
-    _transactions = await _service.fetchTransactions(userId);
+    try {
+      _transactions = await _service.fetchTransactions(userId);
+      debugPrint(
+        '[TransactionProvider] Transacciones cargadas: \\${_transactions.length}',
+      );
+    } catch (e, s) {
+      debugPrint(
+        '[TransactionProvider] Error al cargar transacciones: \\${e.toString()}',
+      );
+      debugPrintStack(stackTrace: s);
+      _transactions = [];
+    }
     notifyListeners();
   }
 
-  Future<void> addTransaction(Transaction tx, String userId, String clientId) async {
+  Future<void> addTransaction(
+    Transaction tx,
+    String userId,
+    String clientId,
+  ) async {
     await _service.addTransaction(tx, userId, clientId);
     await loadTransactions(userId);
   }

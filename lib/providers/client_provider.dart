@@ -8,7 +8,16 @@ class ClientProvider extends ChangeNotifier {
   List<Client> get clients => _clients;
 
   Future<void> loadClients(String userId) async {
-    _clients = await _service.fetchClients(userId);
+    try {
+      _clients = await _service.fetchClients(userId);
+      debugPrint('[ClientProvider] Clientes cargados: \\${_clients.length}');
+    } catch (e, s) {
+      debugPrint(
+        '[ClientProvider] Error al cargar clientes: \\${e.toString()}',
+      );
+      debugPrintStack(stackTrace: s);
+      _clients = [];
+    }
     notifyListeners();
   }
 

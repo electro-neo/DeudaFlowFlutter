@@ -4,6 +4,7 @@ import '../providers/transaction_provider.dart';
 import '../models/client.dart';
 import '../utils/currency_utils.dart';
 import '../providers/currency_provider.dart';
+import 'client_details_modal.dart';
 
 class ClientCard extends StatelessWidget {
   final Client client;
@@ -38,9 +39,7 @@ class ClientCard extends StatelessWidget {
     final balance = hasTransactions ? client.balance : 0.0;
     final isDeuda = balance < 0;
     final balanceColor = isDeuda ? Colors.red : Colors.green;
-    final balanceText = isDeuda
-        ? '-${CurrencyUtils.format(context, balance.abs())}'
-        : '+${CurrencyUtils.format(context, balance)}';
+    // balanceText no se usa, se elimina para evitar warning
     final statusText = balance == 0
         ? 'Sin movimientos'
         : isDeuda
@@ -51,118 +50,193 @@ class ClientCard extends StatelessWidget {
     final formatted = CurrencyUtils.format(context, balance);
     final saldo = '$symbol$formatted';
 
-    Widget card = Container(
-      width: double.infinity,
-      margin: EdgeInsets.symmetric(vertical: 8, horizontal: isMobile ? 0 : 8),
-      child: Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const CircleAvatar(child: Icon(Icons.person)),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          client.name,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
+    if (isMobile) {
+      // SOLO nombre, monto y mensaje alineados, y abre modal con los datos y botones al tocar
+      // SOLO nombre y monto alineados, y abre modal con los datos y botones al tocar
+      return GestureDetector(
+        onTap: () {
+          showDialog(
+            context: context,
+            builder: (_) => ClientDetailsModal(
+              client: client,
+              onEdit: onEdit,
+              onDelete: onDelete,
+              onAddTransaction: onAddTransaction,
+              onViewMovements: onViewMovements,
+              onReceipt: onReceipt,
+            ),
+          );
+        },
+        child: Card(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Row(
+                  children: [
+                    const CircleAvatar(child: Icon(Icons.person)),
+                    const SizedBox(width: 8),
+                    // Nombre a la izquierda
+                    SizedBox(
+                      width: 100, // Ajusta el ancho según tu diseño
+                      child: Text(
+                        client.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
-                        if (client.email != null && client.email!.isNotEmpty)
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.email,
-                                size: 14,
-                                color: Colors.black45,
-                              ),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  client.email!,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.black54,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        if (client.phone != null && client.phone!.isNotEmpty)
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.phone,
-                                size: 14,
-                                color: Colors.black45,
-                              ),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  client.phone!,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.black54,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                      ],
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          saldo,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: balanceColor,
-                          ),
-                        ),
+                  ],
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      saldo,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: balanceColor,
                       ),
-                      Text(
-                        statusText,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: balanceColor,
-                          fontWeight: FontWeight.w500,
-                        ),
+                    ),
+                    Text(
+                      statusText,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: balanceColor,
+                        fontWeight: FontWeight.w500,
                       ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              _ClientCardActions(
-                onEdit: onEdit,
-                onDelete: onDelete,
-                onAddTransaction: onAddTransaction,
-                onViewMovements: onViewMovements,
-                onReceipt: onReceipt,
-              ),
-            ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-    );
-    return card;
+      );
+    } else {
+      // WEB/ESCRITORIO: Card completa y menú hamburguesa
+      return Container(
+        width: double.infinity,
+        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+        child: Card(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const CircleAvatar(child: Icon(Icons.person)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            client.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          if (client.email != null && client.email!.isNotEmpty)
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.email,
+                                  size: 14,
+                                  color: Colors.black45,
+                                ),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    client.email!,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.black54,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          if (client.phone != null && client.phone!.isNotEmpty)
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.phone,
+                                  size: 14,
+                                  color: Colors.black45,
+                                ),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    client.phone!,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.black54,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            saldo,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: balanceColor,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          statusText,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: balanceColor,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                _ClientCardActions(
+                  onEdit: onEdit,
+                  onDelete: onDelete,
+                  onAddTransaction: onAddTransaction,
+                  onViewMovements: onViewMovements,
+                  onReceipt: onReceipt,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
   }
 }
 
@@ -226,9 +300,7 @@ class _ClientCardActionsState extends State<_ClientCardActions>
 
   @override
   Widget build(BuildContext context) {
-    final isMobile =
-        Theme.of(context).platform == TargetPlatform.android ||
-        Theme.of(context).platform == TargetPlatform.iOS;
+    // isMobile no se usa, se elimina para evitar warning
     return Stack(
       children: [
         if (_open)
@@ -324,8 +396,11 @@ class _ClientCardActionsState extends State<_ClientCardActions>
       ],
     );
   }
+
+  // --- Widget de acción animada para el menú hamburguesa ---
 }
 
+// --- Widget de acción animada para el menú hamburguesa ---
 class _ActionBtn extends StatelessWidget {
   final IconData icon;
   final String tooltip;

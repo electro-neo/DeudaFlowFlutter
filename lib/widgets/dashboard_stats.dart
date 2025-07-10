@@ -18,19 +18,27 @@ class DashboardStats extends StatelessWidget {
     final transactions = context.watch<TransactionProvider>().transactions;
     final totalClients = clients.length;
     String format(num value) => CurrencyUtils.formatCompact(context, value);
+    // Calcular totales SOLO a partir de transacciones
     double totalDeuda = 0;
     double totalAbonado = 0;
     double totalSaldo = 0;
     if (transactions.isNotEmpty) {
-      totalDeuda = clients.fold<double>(
-        0,
-        (sum, c) => sum + (c.balance < 0 ? -c.balance : 0),
-      );
+      totalDeuda = transactions
+          .where((t) => t.type == 'debt')
+          .fold<double>(0, (sum, t) => sum + t.amount);
       totalAbonado = transactions
           .where((t) => t.type == 'payment')
           .fold<double>(0, (sum, t) => sum + t.amount);
-      totalSaldo = clients.fold<double>(0, (sum, c) => sum + c.balance);
+      totalSaldo = totalDeuda - totalAbonado;
     }
+    // LOGS TEMPORALES PARA DEPURACIÓN
+    debugPrint('[DashboardStats] Clientes: ' + clients.length.toString());
+    debugPrint(
+      '[DashboardStats] Transacciones: ' + transactions.length.toString(),
+    );
+    debugPrint('[DashboardStats] totalDeuda: ' + totalDeuda.toString());
+    debugPrint('[DashboardStats] totalAbonado: ' + totalAbonado.toString());
+    debugPrint('[DashboardStats] totalSaldo: ' + totalSaldo.toString());
     // Navegación igual que el botón de la barra inferior usando Provider
     void goToClientsTab() {
       Provider.of<TabProvider>(context, listen: false).setTab(1);

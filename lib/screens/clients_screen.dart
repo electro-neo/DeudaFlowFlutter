@@ -21,6 +21,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
   bool _showSearch = false;
   String _searchText = '';
   final TextEditingController _searchController = TextEditingController();
+  bool _didLoadClients = false;
 
   // Método para mostrar el formulario de transacción
   void _showTransactionForm(Client client) async {
@@ -200,13 +201,16 @@ class _ClientsScreenState extends State<ClientsScreen> {
     super.dispose();
   }
 
+  // initState eliminado completamente para evitar cualquier acceso a context
+
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didLoadClients) {
       final provider = Provider.of<ClientProvider>(context, listen: false);
       provider.loadClients(widget.userId);
-    });
+      _didLoadClients = true;
+    }
   }
 
   void _showClientForm([Client? client]) {

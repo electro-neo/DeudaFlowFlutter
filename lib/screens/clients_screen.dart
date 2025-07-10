@@ -6,9 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 // Proveedor para manejar la lógica de clientes
 import '../providers/client_provider.dart';
-// Proveedor para cambiar de pestaña en la app
 import '../providers/tab_provider.dart';
-// Proveedor para filtrar transacciones
 import '../providers/transaction_filter_provider.dart';
 // import 'transactions_screen.dart';
 // import 'receipt_screen.dart';
@@ -190,6 +188,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
                                     widget.userId,
                                   );
                                 },
+                                onClose: () => Navigator.of(context).pop(),
                               ),
                             ],
                           ),
@@ -325,7 +324,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
         // Ancho máximo de las tarjetas de cliente
         final cardMaxWidth = isMobile
             ? (screenWidth - 8).clamp(0.0, 900.0)
-            : 700.0;
+            : 700.0; // (No se usa, solo para referencia visual)
 
         // Filtrado en vivo
         // Filtra los clientes según el texto de búsqueda
@@ -338,6 +337,28 @@ class _ClientsScreenState extends State<ClientsScreen> {
                   )
                   .toList()
             : allClients;
+
+        // Ajustar balance a 0 si el cliente no tiene transacciones, pero NO eliminar ni ocultar clientes ni botones
+        final txProvider = Provider.of<TransactionProvider>(
+          context,
+          listen: false,
+        );
+        final clientsWithBalance = clients.map((client) {
+          final hasTransactions = txProvider.transactions.any(
+            (tx) => tx.clientId == client.id,
+          );
+          // Solo ajustar el balance, no eliminar ni filtrar clientes
+          if (!hasTransactions) {
+            return Client(
+              id: client.id,
+              name: client.name,
+              email: client.email,
+              phone: client.phone,
+              balance: 0,
+            );
+          }
+          return client;
+        }).toList();
 
         // Estructura principal de la pantalla
         return Scaffold(
@@ -450,30 +471,41 @@ class _ClientsScreenState extends State<ClientsScreen> {
                                 ),
                                 const SizedBox(width: 12),
                                 // Botón buscar cliente solo icono
-                                FloatingActionButton(
-                                  heroTag: 'buscarCliente',
-                                  mini: true,
-                                  backgroundColor: const Color(0xFF7C3AED),
-                                  foregroundColor: Colors.white,
-                                  elevation: 2,
-                                  onPressed: () {
-                                    setState(() {
-                                      _showSearch = !_showSearch;
-                                      if (!_showSearch) {
-                                        _searchText = '';
-                                        _searchController.clear();
+                                MouseRegion(
+                                  cursor: SystemMouseCursors.basic,
+                                  child: FloatingActionButton(
+                                    heroTag: 'buscarCliente',
+                                    mini: true,
+                                    backgroundColor: const Color(0xFF7C3AED),
+                                    foregroundColor: Colors.white,
+                                    elevation: 2,
+                                    hoverColor: Colors.transparent,
+                                    focusColor: Colors.transparent,
+                                    splashColor: Colors.transparent,
+                                    onPressed: () {
+                                      setState(() {
+                                        _showSearch = !_showSearch;
+                                        if (!_showSearch) {
+                                          _searchText = '';
+                                          _searchController.clear();
+                                        }
+                                      });
+                                      if (!_showSearch &&
+                                          allClients.isNotEmpty) {
+                                        FocusScope.of(context).unfocus();
                                       }
-                                    });
-                                  },
-                                  tooltip: _showSearch
-                                      ? 'Ocultar buscador'
-                                      : 'Buscar cliente',
-                                  child: const Icon(Icons.search),
+                                    },
+                                    tooltip: _showSearch
+                                        ? 'Ocultar buscador'
+                                        : 'Buscar cliente',
+                                    child: const Icon(Icons.search),
+                                  ),
                                 ),
                               ],
                             ],
                           ),
                         ),
+                        const SizedBox(height: 16),
                         // Mostrar el campo de búsqueda solo si hay clientes y el buscador está activo
                         if (_showSearch && allClients.isNotEmpty)
                           GestureDetector(
@@ -493,62 +525,111 @@ class _ClientsScreenState extends State<ClientsScreen> {
                                 GestureDetector(
                                   onTap:
                                       () {}, // Evita que el tap en el TextField cierre el buscador
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 350),
-                                    curve: Curves.easeInOut,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF3F6FD),
-                                      borderRadius: BorderRadius.circular(
-                                        4,
-                                      ), // Sin efecto curve, esquinas casi rectas
-                                      border: Border.all(
-                                        color: _searchText.isNotEmpty
-                                            ? const Color(0xFF7C3AED)
-                                            : Colors.black,
-                                        width: 2.2,
+                                  child: MouseRegion(
+                                    cursor: SystemMouseCursors.text,
+                                    child: AnimatedContainer(
+                                      duration: const Duration(
+                                        milliseconds: 350,
                                       ),
-                                      boxShadow: _searchText.isNotEmpty
-                                          ? [
-                                              BoxShadow(
-                                                color: const Color(
-                                                  0xFF7C3AED,
-                                                ).withOpacity(0.18),
-                                                blurRadius: 10,
-                                                spreadRadius: 1,
-                                              ),
-                                            ]
-                                          : [],
-                                    ),
-                                    child: TextField(
-                                      controller: _searchController,
-                                      autofocus: true,
-                                      style: const TextStyle(
-                                        color: Colors.black,
-                                      ),
-                                      decoration: InputDecoration(
-                                        hintText: 'Buscar por nombre...',
-                                        prefixIcon: const Icon(
-                                          Icons.search,
-                                          color: Color(0xFF7C3AED),
+                                      curve: Curves.easeInOut,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF3F6FD),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(
+                                          color: _searchText.isNotEmpty
+                                              ? const Color(0xFF7C3AED)
+                                              : Colors.black,
+                                          width: 2.2,
                                         ),
-                                        border: InputBorder.none,
-                                        focusedBorder: InputBorder.none,
-                                        enabledBorder: InputBorder.none,
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                              horizontal: 14,
-                                              vertical: 14,
-                                            ),
-                                        fillColor: Color(
-                                          0xFFF3F6FD,
-                                        ), // Fondo claro y agradable
-                                        filled: true,
+                                        boxShadow: _searchText.isNotEmpty
+                                            ? [
+                                                BoxShadow(
+                                                  color: const Color(
+                                                    0xFF7C3AED,
+                                                  ).withOpacity(0.18),
+                                                  blurRadius: 10,
+                                                  spreadRadius: 1,
+                                                ),
+                                              ]
+                                            : [],
                                       ),
-                                      onChanged: (value) {
-                                        setState(() {
-                                          _searchText = value;
-                                        });
-                                      },
+                                      child: Theme(
+                                        data: Theme.of(context).copyWith(
+                                          hoverColor: Colors.transparent,
+                                          focusColor: Colors.transparent,
+                                          splashColor: Colors.transparent,
+                                          highlightColor: Colors.transparent,
+                                          disabledColor: Colors.transparent,
+                                          canvasColor: const Color(0xFFF3F6FD),
+                                          inputDecorationTheme:
+                                              const InputDecorationTheme(
+                                                border: InputBorder.none,
+                                                focusedBorder: InputBorder.none,
+                                                enabledBorder: InputBorder.none,
+                                                disabledBorder:
+                                                    InputBorder.none,
+                                                errorBorder: InputBorder.none,
+                                                focusedErrorBorder:
+                                                    InputBorder.none,
+                                                fillColor: Color(0xFFF3F6FD),
+                                                filled: true,
+                                                hoverColor: Colors.transparent,
+                                                focusColor: Colors.transparent,
+                                                iconColor: Color(0xFF7C3AED),
+                                                prefixIconColor: Color(
+                                                  0xFF7C3AED,
+                                                ),
+                                                suffixIconColor: Colors.black,
+                                                contentPadding:
+                                                    EdgeInsets.symmetric(
+                                                      horizontal: 14,
+                                                      vertical: 14,
+                                                    ),
+                                              ),
+                                        ),
+                                        child: TextField(
+                                          controller: _searchController,
+                                          autofocus: true,
+                                          style: const TextStyle(
+                                            color: Colors.black,
+                                          ),
+                                          cursorColor: Colors.black,
+                                          enableInteractiveSelection:
+                                              false, // Elimina highlight de selección
+                                          mouseCursor: SystemMouseCursors.text,
+                                          decoration: const InputDecoration(
+                                            hintText: 'Buscar por nombre...',
+                                            prefixIcon: Icon(
+                                              Icons.search,
+                                              color: Color(0xFF7C3AED),
+                                            ),
+                                            border: InputBorder.none,
+                                            focusedBorder: InputBorder.none,
+                                            enabledBorder: InputBorder.none,
+                                            disabledBorder: InputBorder.none,
+                                            errorBorder: InputBorder.none,
+                                            focusedErrorBorder:
+                                                InputBorder.none,
+                                            contentPadding:
+                                                EdgeInsets.symmetric(
+                                                  horizontal: 14,
+                                                  vertical: 14,
+                                                ),
+                                            fillColor: Color(0xFFF3F6FD),
+                                            filled: true,
+                                            hoverColor: Colors.transparent,
+                                            focusColor: Colors.transparent,
+                                            iconColor: Color(0xFF7C3AED),
+                                            prefixIconColor: Color(0xFF7C3AED),
+                                            suffixIconColor: Colors.black,
+                                          ),
+                                          onChanged: (value) {
+                                            setState(() {
+                                              _searchText = value;
+                                            });
+                                          },
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -557,19 +638,18 @@ class _ClientsScreenState extends State<ClientsScreen> {
                           ),
                         const SizedBox(height: 16),
                         // Lista de clientes o mensaje si no hay ninguno
-                        clients.isEmpty
+                        clientsWithBalance.isEmpty
                             ? const Center(child: Text('No hay clientes.'))
                             : ScrollConfiguration(
                                 behavior: const _NoScrollbarBehavior(),
                                 child: ListView.separated(
                                   shrinkWrap: true,
                                   physics: const NeverScrollableScrollPhysics(),
-                                  itemCount: clients.length,
+                                  itemCount: clientsWithBalance.length,
                                   separatorBuilder: (_, __) =>
                                       const SizedBox(height: 10),
                                   itemBuilder: (context, index) {
-                                    final client = clients[index];
-                                    // Cada cliente se muestra en una tarjeta personalizada que ocupa todo el ancho disponible
+                                    final client = clientsWithBalance[index];
                                     return Row(
                                       children: [
                                         Expanded(
@@ -589,16 +669,12 @@ class _ClientsScreenState extends State<ClientsScreen> {
                                             ),
                                             child: ClientCard(
                                               client: client,
-                                              // Editar cliente
                                               onEdit: () =>
                                                   _showClientForm(client),
-                                              // Eliminar cliente
                                               onDelete: () =>
                                                   _deleteClient(client),
-                                              // Agregar transacción
                                               onAddTransaction: () =>
                                                   _showTransactionForm(client),
-                                              // Ver movimientos (cambia a la pestaña de transacciones y filtra por cliente)
                                               onViewMovements: () {
                                                 Provider.of<TabProvider>(
                                                   context,
@@ -609,7 +685,6 @@ class _ClientsScreenState extends State<ClientsScreen> {
                                                     >(context, listen: false)
                                                     .setClientId(client.id);
                                               },
-                                              // Ver recibo individual del cliente
                                               onReceipt: () {
                                                 final txProvider =
                                                     Provider.of<

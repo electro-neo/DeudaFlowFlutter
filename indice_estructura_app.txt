@@ -1,0 +1,110 @@
+# Índice de Páginas, Widgets, Botones y Lógica de la App Deuda-Flow-Flutter
+
+## Estructura General
+
+- **main_scaffold.dart**: Scaffold principal, gestiona navegación y AppBar animado.
+- **app_navigation_bar.dart**: Barra de navegación para web/escritorio.
+- **custom_animated_app_bar.dart**: AppBar animado y profesional.
+- **widgets/**: Componentes reutilizables (formularios, cards, modals, etc).
+- **screens/**: Páginas principales de la app.
+
+---
+
+## Páginas (screens/)
+
+### 1. DashboardScreen
+- **Ruta:** dashboard_screen.dart
+- **Lógica:** Carga clientes y transacciones al iniciar.
+- **Botones/Controles:**
+  - Estadísticas (DashboardStats)
+  - Navegación a otras pantallas
+
+### 2. ClientsScreen
+- **Ruta:** clients_screen.dart
+- **Lógica:**
+  - Carga y muestra lista de clientes.
+  - Permite agregar, editar y eliminar clientes.
+- **Botones/Controles:**
+  - Botón "Agregar Cliente" (abre ClientForm)
+  - Botón de editar/eliminar/ver recibo en cada ClientCard
+  - Botón para agregar transacción a cliente
+
+### 3. TransactionsScreen
+- **Ruta:** transactions_screen.dart
+- **Lógica:**
+  - Carga y muestra transacciones.
+  - Filtrado por cliente.
+- **Botones/Controles:**
+  - Botón para agregar transacción (abre TransactionForm)
+  - Botón para eliminar transacción
+
+### 4. LoginScreen / RegisterScreen / ForgotPasswordScreen / ResetPasswordScreen
+- **Ruta:** login_screen.dart, register_screen.dart, forgot_password_screen.dart, reset_password_screen.dart
+- **Lógica:**
+  - Autenticación de usuario (login, registro, recuperación de contraseña)
+- **Botones/Controles:**
+  - Botón de login
+  - Botón de registro
+  - Botón de recuperar contraseña
+
+### 5. ReceiptScreen / GeneralReceiptScreen
+- **Ruta:** receipt_screen.dart, general_receipt_screen.dart
+- **Lógica:**
+  - Muestra recibos individuales o generales
+  - Exportar recibo a PDF
+- **Botones/Controles:**
+  - Botón de exportar PDF
+  - Botón de cerrar modal
+
+### 6. WelcomeScreen / NotFoundScreen
+- **Ruta:** welcome_screen.dart, not_found_screen.dart
+- **Lógica:**
+  - Pantalla de bienvenida y pantalla de error 404
+- **Botones/Controles:**
+  - Botón para navegar a login o dashboard
+
+---
+
+## Widgets Relevantes (widgets/)
+
+- **CustomAnimatedAppBar**: AppBar animado con menú hamburguesa.
+- **AppNavigationBar**: Barra lateral para navegación en web.
+- **ClientForm**: Formulario para agregar/editar cliente.
+- **ClientCard**: Tarjeta de cliente con acciones (editar, eliminar, ver recibo, agregar transacción, ver movimientos).
+- **TransactionForm**: Formulario para agregar/editar transacción.
+- **DashboardStats**: Estadísticas del dashboard.
+- **ReceiptModal / GeneralReceiptModal**: Modales para mostrar recibos.
+- **ToastHelper**: Mensajes toast para feedback.
+
+---
+
+## Botones y Acciones Principales
+
+- **Botón Menú (AppBar):** Abre el drawer o menú lateral.
+- **Botón Agregar Cliente:** Abre formulario de cliente.
+- **Botón Editar/Eliminar Cliente:** Acciones sobre cada cliente.
+- **Botón Ver Recibo:** Abre modal de recibo.
+- **Botón Agregar Transacción:** Abre formulario de transacción.
+- **Botón Exportar PDF:** Exporta recibo a PDF.
+- **Botón Login/Registro/Recuperar Contraseña:** Acciones de autenticación.
+- **Botón Navegación:** Cambia de pantalla/tab.
+
+---
+
+## Lógica de Navegación
+
+- **Provider (TabProvider):** Controla el tab/página actual.
+- **Navigator:** Para rutas como login, registro, dashboard, etc.
+- **Scaffold:** Estructura principal con AppBar, body y bottomNavigationBar.
+
+---
+
+## Observaciones
+- Cada pantalla principal es un StatefulWidget o StatelessWidget.
+- Los formularios usan validación y feedback visual.
+- Los modales se usan para recibos y formularios.
+- La lógica de negocio está en Providers y Services.
+
+---
+
+_Este índice es un resumen estructurado de la app, útil para documentación, onboarding o refactorización._

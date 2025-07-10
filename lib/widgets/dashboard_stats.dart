@@ -18,14 +18,19 @@ class DashboardStats extends StatelessWidget {
     final transactions = context.watch<TransactionProvider>().transactions;
     final totalClients = clients.length;
     String format(num value) => CurrencyUtils.formatCompact(context, value);
-    final totalDeuda = clients.fold<double>(
-      0,
-      (sum, c) => sum + (c.balance < 0 ? -c.balance : 0),
-    );
-    final totalAbonado = transactions
-        .where((t) => t.type == 'payment')
-        .fold<double>(0, (sum, t) => sum + t.amount);
-    final totalSaldo = clients.fold<double>(0, (sum, c) => sum + c.balance);
+    double totalDeuda = 0;
+    double totalAbonado = 0;
+    double totalSaldo = 0;
+    if (transactions.isNotEmpty) {
+      totalDeuda = clients.fold<double>(
+        0,
+        (sum, c) => sum + (c.balance < 0 ? -c.balance : 0),
+      );
+      totalAbonado = transactions
+          .where((t) => t.type == 'payment')
+          .fold<double>(0, (sum, t) => sum + t.amount);
+      totalSaldo = clients.fold<double>(0, (sum, c) => sum + c.balance);
+    }
     // Navegación igual que el botón de la barra inferior usando Provider
     void goToClientsTab() {
       Provider.of<TabProvider>(context, listen: false).setTab(1);
@@ -133,24 +138,40 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
     final cardColor = isLight ? Colors.white : null;
+    // Cambios para agrandar el stat card:
+    // - Icono más grande (de 32 a 44)
+    // - Padding más amplio (de 12 a 20)
+    // - Fuente del valor más grande (de 18 a 26)
+    // - Fuente del label más grande (de 12 a 16)
     final cardContent = Padding(
-      padding: const EdgeInsets.all(12.0),
+      padding: const EdgeInsets.all(20.0), // padding aumentado
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color ?? Colors.blue, size: 32),
-          const SizedBox(height: 8),
+          Icon(icon, color: color ?? Colors.blue, size: 44), // icono más grande
+          const SizedBox(height: 14), // separación mayor
           FittedBox(
             fit: BoxFit.scaleDown,
             child: Text(
               value,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 26, // fuente más grande para el valor
+              ),
               softWrap: false,
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
             ),
           ),
-          Text(label, style: const TextStyle(fontSize: 12)),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 16, // fuente más grande para el label
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF7B7B7B),
+            ),
+          ),
         ],
       ),
     );

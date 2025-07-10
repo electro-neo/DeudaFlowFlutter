@@ -133,35 +133,7 @@ class _TransactionFormState extends State<TransactionForm> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      if (widget.onClose != null)
-                        Align(
-                          alignment: Alignment.topRight,
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(24),
-                              onTap: widget.onClose,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.85),
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.10),
-                                      blurRadius: 6,
-                                    ),
-                                  ],
-                                ),
-                                padding: const EdgeInsets.all(8),
-                                child: const Icon(
-                                  Icons.close,
-                                  color: Color(0xFF7C3AED),
-                                  size: 24,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
+                      // Botón X eliminado a pedido del usuario
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8.0),
                         child: Text(

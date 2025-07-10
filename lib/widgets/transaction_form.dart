@@ -126,7 +126,7 @@ class _TransactionFormState extends State<TransactionForm> {
                   padding: const EdgeInsets.only(
                     left: 20,
                     right: 20,
-                    top: 50, // Más separación arriba
+                    top: 20, // Menos separación arriba
                     bottom: 24,
                   ),
                   child: Column(

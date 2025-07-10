@@ -133,7 +133,7 @@ class _TransactionFormState extends State<TransactionForm> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Botón X eliminado a pedido del usuario
+                      // Título sin botón X
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8.0),
                         child: Text(

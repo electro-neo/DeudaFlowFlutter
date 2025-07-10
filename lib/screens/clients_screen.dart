@@ -1,19 +1,31 @@
+// Importa el proveedor de transacciones para acceder a los datos de transacciones
 import '../providers/transaction_provider.dart';
+// Importa el framework principal de Flutter para construir la interfaz
 import 'package:flutter/material.dart';
+// Importa Provider para la gestión de estado
 import 'package:provider/provider.dart';
+// Proveedor para manejar la lógica de clientes
 import '../providers/client_provider.dart';
+// Proveedor para cambiar de pestaña en la app
 import '../providers/tab_provider.dart';
+// Proveedor para filtrar transacciones
 import '../providers/transaction_filter_provider.dart';
 // import 'transactions_screen.dart';
 // import 'receipt_screen.dart';
+// Modelo de datos para un cliente
 import '../models/client.dart';
 // import '../models/transaction.dart';
+// Widget para el formulario de cliente
 import '../widgets/client_form.dart';
+// Widget para el formulario de transacción
 import '../widgets/transaction_form.dart';
+// Widget para mostrar la tarjeta de un cliente
 import '../widgets/client_card.dart';
 // import '../widgets/currency_toggle.dart';
+// Widget para mostrar el recibo general de todos los clientes
 import '../widgets/general_receipt_modal.dart';
 
+// Pantalla principal para mostrar y gestionar los clientes
 class ClientsScreen extends StatefulWidget {
   final String userId;
   const ClientsScreen({super.key, required this.userId});
@@ -23,12 +35,16 @@ class ClientsScreen extends StatefulWidget {
 }
 
 class _ClientsScreenState extends State<ClientsScreen> {
+  // Controla si se muestra el buscador
   bool _showSearch = false;
+  // Texto actual del buscador
   String _searchText = '';
+  // Controlador para el campo de texto del buscador
   final TextEditingController _searchController = TextEditingController();
 
   @override
   void dispose() {
+    // Libera el controlador cuando se destruye la pantalla
     _searchController.dispose();
     super.dispose();
   }
@@ -37,12 +53,14 @@ class _ClientsScreenState extends State<ClientsScreen> {
   @override
   void initState() {
     super.initState();
+    // Carga los clientes al iniciar la pantalla
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = Provider.of<ClientProvider>(context, listen: false);
       provider.loadClients(widget.userId);
     });
   }
 
+  // Muestra el formulario para agregar o editar un cliente
   void _showClientForm([Client? client]) {
     // _editingClient eliminado, no es necesario setearlo
     showDialog(
@@ -83,6 +101,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
     );
   }
 
+  // Muestra el formulario para agregar una transacción a un cliente
   void _showTransactionForm(Client client) async {
     final isMobile =
         Theme.of(context).platform == TargetPlatform.android ||
@@ -96,6 +115,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
         builder: (context) {
           return LayoutBuilder(
             builder: (context, constraints) {
+              final viewInsets = MediaQuery.of(context).viewInsets;
               final maxHeight = constraints.maxHeight * 0.95;
               return DraggableScrollableSheet(
                 initialChildSize: 0.85,
@@ -103,89 +123,76 @@ class _ClientsScreenState extends State<ClientsScreen> {
                 maxChildSize: 0.95,
                 expand: false,
                 builder: (context, scrollController) {
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor,
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(24),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
-                          blurRadius: 12,
-                          offset: const Offset(0, -2),
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: viewInsets.bottom),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color:
+                            Colors.transparent, // Fondo totalmente transparente
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(24),
                         ),
-                      ],
-                    ),
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(maxHeight: maxHeight),
-                      child: SingleChildScrollView(
-                        controller: scrollController,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    'Agregar Transacción para ${client.name}',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleLarge
-                                        ?.copyWith(fontWeight: FontWeight.bold),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.close),
-                                  onPressed: () => Navigator.of(context).pop(),
-                                ),
-                              ],
-                            ),
-                            TransactionForm(
-                              clientId: client.id,
-                              userId: widget.userId,
-                              onSave: (tx) async {
-                                final txProvider =
-                                    Provider.of<TransactionProvider>(
-                                      context,
-                                      listen: false,
-                                    );
-                                await txProvider.addTransaction(
-                                  tx,
-                                  widget.userId,
-                                  client.id,
-                                );
-                                // Actualizar balance del cliente
-                                final clientProvider =
-                                    Provider.of<ClientProvider>(
-                                      context,
-                                      listen: false,
-                                    );
-                                double newBalance = client.balance;
-                                if (tx.type == 'debt') {
-                                  newBalance -= tx.amount;
-                                } else if (tx.type == 'payment') {
-                                  newBalance += tx.amount;
-                                }
-                                await clientProvider.updateClient(
-                                  Client(
-                                    id: client.id,
-                                    name: client.name,
-                                    email: client.email,
-                                    phone: client.phone,
-                                    balance: newBalance,
-                                  ),
-                                  widget.userId,
-                                );
-                                Navigator.of(context).pop();
-                                await clientProvider.loadClients(widget.userId);
-                              },
-                            ),
-                          ],
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.15),
+                            blurRadius: 12,
+                            offset: const Offset(0, -2),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxHeight: maxHeight),
+                        child: SingleChildScrollView(
+                          controller: scrollController,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              TransactionForm(
+                                clientId: client.id,
+                                userId: widget.userId,
+                                onSave: (tx) async {
+                                  final txProvider =
+                                      Provider.of<TransactionProvider>(
+                                        context,
+                                        listen: false,
+                                      );
+                                  await txProvider.addTransaction(
+                                    tx,
+                                    widget.userId,
+                                    client.id,
+                                  );
+                                  // Actualizar balance del cliente
+                                  final clientProvider =
+                                      Provider.of<ClientProvider>(
+                                        context,
+                                        listen: false,
+                                      );
+                                  double newBalance = client.balance;
+                                  if (tx.type == 'debt') {
+                                    newBalance -= tx.amount;
+                                  } else if (tx.type == 'payment') {
+                                    newBalance += tx.amount;
+                                  }
+                                  await clientProvider.updateClient(
+                                    Client(
+                                      id: client.id,
+                                      name: client.name,
+                                      email: client.email,
+                                      phone: client.phone,
+                                      balance: newBalance,
+                                    ),
+                                    widget.userId,
+                                  );
+                                  Navigator.of(context).pop();
+                                  await clientProvider.loadClients(
+                                    widget.userId,
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -267,6 +274,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
     );
   }
 
+  // Elimina un cliente (y sus transacciones asociadas si existen)
   Future<void> _deleteClient(Client client) async {
     final provider = Provider.of<ClientProvider>(context, listen: false);
     final txProvider = Provider.of<TransactionProvider>(context, listen: false);
@@ -302,19 +310,25 @@ class _ClientsScreenState extends State<ClientsScreen> {
   }
 
   @override
+  // Construye la interfaz de la pantalla de clientes
   Widget build(BuildContext context) {
     return Consumer<ClientProvider>(
       builder: (context, provider, child) {
+        // Lista completa de clientes
         final allClients = provider.clients;
+        // Detecta si es un dispositivo móvil
         final isMobile =
             Theme.of(context).platform == TargetPlatform.android ||
             Theme.of(context).platform == TargetPlatform.iOS;
+        // Ancho de la pantalla
         final screenWidth = MediaQuery.of(context).size.width;
+        // Ancho máximo de las tarjetas de cliente
         final cardMaxWidth = isMobile
             ? (screenWidth - 8).clamp(0.0, 900.0)
             : 700.0;
 
         // Filtrado en vivo
+        // Filtra los clientes según el texto de búsqueda
         final clients = _showSearch && _searchText.isNotEmpty
             ? allClients
                   .where(
@@ -325,8 +339,11 @@ class _ClientsScreenState extends State<ClientsScreen> {
                   .toList()
             : allClients;
 
+        // Estructura principal de la pantalla
         return Scaffold(
-          backgroundColor: const Color(0xFFE6F0FF),
+          backgroundColor: const Color(
+            0xFFE6F0FF,
+          ), // Fondo violeta/azulado claro original
           body: GestureDetector(
             behavior: HitTestBehavior.translucent,
             onTap: () {
@@ -348,190 +365,215 @@ class _ClientsScreenState extends State<ClientsScreen> {
                       horizontal: isMobile ? 4.0 : 8.0,
                       vertical: 8.0,
                     ),
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: cardMaxWidth),
-                      child: Card(
-                        elevation: 8,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          'Clientes registrados',
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF7C3AED),
+                                fontSize: 28,
+                              ),
+                          textAlign: TextAlign.center,
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 20,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                        const SizedBox(height: 8),
+                        // Botones de acción: Recibo general, Registrar cliente, Buscar cliente (solo icono)
+                        Center(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(
-                                'Clientes registrados',
-                                style: Theme.of(context).textTheme.titleLarge
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF7C3AED),
-                                      fontSize: 28,
-                                    ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 8),
-                              // Botones de acción: Recibo general, Registrar cliente, Buscar cliente (solo icono)
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  if (allClients.isEmpty) ...[
-                                    FloatingActionButton(
-                                      heroTag: 'registrarCliente',
-                                      mini: true,
-                                      backgroundColor: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                      foregroundColor: Colors.white,
-                                      elevation: 2,
-                                      onPressed: () => _showClientForm(),
-                                      tooltip: 'Registrar Cliente',
-                                      child: const Icon(Icons.add),
-                                    ),
-                                  ] else ...[
-                                    FloatingActionButton(
-                                      heroTag: 'reciboGeneral',
-                                      mini: true,
-                                      backgroundColor: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                      foregroundColor: Colors.white,
-                                      elevation: 2,
-                                      onPressed: () {
-                                        final txProvider =
-                                            Provider.of<TransactionProvider>(
-                                              context,
-                                              listen: false,
-                                            );
-                                        final clientData = allClients
-                                            .map(
-                                              (c) => {
-                                                'client': c,
-                                                'transactions': txProvider
-                                                    .transactions
-                                                    .where(
-                                                      (tx) =>
-                                                          tx.clientId == c.id,
-                                                    )
-                                                    .toList(),
-                                              },
-                                            )
-                                            .toList();
-                                        showDialog(
-                                          context: context,
-                                          builder: (_) => GeneralReceiptModal(
-                                            clientData: clientData,
-                                          ),
+                              if (allClients.isEmpty) ...[
+                                FloatingActionButton(
+                                  heroTag: 'registrarCliente',
+                                  mini: true,
+                                  backgroundColor: Theme.of(
+                                    context,
+                                  ).colorScheme.primary,
+                                  foregroundColor: Colors.white,
+                                  elevation: 2,
+                                  onPressed: () => _showClientForm(),
+                                  tooltip: 'Registrar Cliente',
+                                  child: const Icon(Icons.add),
+                                ),
+                              ] else ...[
+                                FloatingActionButton(
+                                  heroTag: 'reciboGeneral',
+                                  mini: true,
+                                  backgroundColor: Theme.of(
+                                    context,
+                                  ).colorScheme.primary,
+                                  foregroundColor: Colors.white,
+                                  elevation: 2,
+                                  onPressed: () {
+                                    final txProvider =
+                                        Provider.of<TransactionProvider>(
+                                          context,
+                                          listen: false,
                                         );
-                                      },
-                                      tooltip: 'Recibo general',
-                                      child: const Icon(Icons.receipt_long),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    FloatingActionButton(
-                                      heroTag: 'registrarCliente',
-                                      mini: true,
-                                      backgroundColor: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                      foregroundColor: Colors.white,
-                                      elevation: 2,
-                                      onPressed: () => _showClientForm(),
-                                      tooltip: 'Registrar Cliente',
-                                      child: const Icon(Icons.add),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    // Botón buscar cliente solo icono
-                                    FloatingActionButton(
-                                      heroTag: 'buscarCliente',
-                                      mini: true,
-                                      backgroundColor: const Color(0xFF7C3AED),
-                                      foregroundColor: Colors.white,
-                                      elevation: 2,
-                                      onPressed: () {
-                                        setState(() {
-                                          _showSearch = !_showSearch;
-                                          if (!_showSearch) {
-                                            _searchText = '';
-                                            _searchController.clear();
-                                          }
-                                        });
-                                      },
-                                      tooltip: _showSearch
-                                          ? 'Ocultar buscador'
-                                          : 'Buscar cliente',
-                                      child: const Icon(Icons.search),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                              // Mostrar buscador solo si hay clientes y _showSearch está activo
-                              if (_showSearch && allClients.isNotEmpty)
-                                GestureDetector(
-                                  behavior: HitTestBehavior.translucent,
-                                  onTap: () {
-                                    // Oculta el buscador si se hace tap fuera
-                                    FocusScope.of(context).unfocus();
+                                    final clientData = allClients
+                                        .map(
+                                          (c) => {
+                                            'client': c,
+                                            'transactions': txProvider
+                                                .transactions
+                                                .where(
+                                                  (tx) => tx.clientId == c.id,
+                                                )
+                                                .toList(),
+                                          },
+                                        )
+                                        .toList();
+                                    showDialog(
+                                      context: context,
+                                      builder: (_) => GeneralReceiptModal(
+                                        clientData: clientData,
+                                      ),
+                                    );
+                                  },
+                                  tooltip: 'Recibo general',
+                                  child: const Icon(Icons.receipt_long),
+                                ),
+                                const SizedBox(width: 12),
+                                FloatingActionButton(
+                                  heroTag: 'registrarCliente',
+                                  mini: true,
+                                  backgroundColor: Theme.of(
+                                    context,
+                                  ).colorScheme.primary,
+                                  foregroundColor: Colors.white,
+                                  elevation: 2,
+                                  onPressed: () => _showClientForm(),
+                                  tooltip: 'Registrar Cliente',
+                                  child: const Icon(Icons.add),
+                                ),
+                                const SizedBox(width: 12),
+                                // Botón buscar cliente solo icono
+                                FloatingActionButton(
+                                  heroTag: 'buscarCliente',
+                                  mini: true,
+                                  backgroundColor: const Color(0xFF7C3AED),
+                                  foregroundColor: Colors.white,
+                                  elevation: 2,
+                                  onPressed: () {
                                     setState(() {
-                                      _showSearch = false;
-                                      _searchText = '';
-                                      _searchController.clear();
+                                      _showSearch = !_showSearch;
+                                      if (!_showSearch) {
+                                        _searchText = '';
+                                        _searchController.clear();
+                                      }
                                     });
                                   },
-                                  child: Column(
-                                    children: [
-                                      const SizedBox(height: 12),
-                                      GestureDetector(
-                                        onTap:
-                                            () {}, // Evita que el tap en el TextField cierre el buscador
-                                        child: TextField(
-                                          controller: _searchController,
-                                          autofocus: true,
-                                          decoration: InputDecoration(
-                                            hintText: 'Buscar por nombre...',
-                                            prefixIcon: const Icon(
-                                              Icons.search,
-                                            ),
-                                            border: OutlineInputBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                            contentPadding:
-                                                const EdgeInsets.symmetric(
-                                                  horizontal: 12,
-                                                  vertical: 0,
-                                                ),
-                                          ),
-                                          onChanged: (value) {
-                                            setState(() {
-                                              _searchText = value;
-                                            });
-                                          },
-                                        ),
+                                  tooltip: _showSearch
+                                      ? 'Ocultar buscador'
+                                      : 'Buscar cliente',
+                                  child: const Icon(Icons.search),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        // Mostrar el campo de búsqueda solo si hay clientes y el buscador está activo
+                        if (_showSearch && allClients.isNotEmpty)
+                          GestureDetector(
+                            behavior: HitTestBehavior.translucent,
+                            onTap: () {
+                              // Oculta el buscador si se hace tap fuera
+                              FocusScope.of(context).unfocus();
+                              setState(() {
+                                _showSearch = false;
+                                _searchText = '';
+                                _searchController.clear();
+                              });
+                            },
+                            child: Column(
+                              children: [
+                                const SizedBox(height: 12),
+                                GestureDetector(
+                                  onTap:
+                                      () {}, // Evita que el tap en el TextField cierre el buscador
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 350),
+                                    curve: Curves.easeInOut,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF3F6FD),
+                                      borderRadius: BorderRadius.circular(
+                                        4,
+                                      ), // Sin efecto curve, esquinas casi rectas
+                                      border: Border.all(
+                                        color: _searchText.isNotEmpty
+                                            ? const Color(0xFF7C3AED)
+                                            : Colors.black,
+                                        width: 2.2,
                                       ),
-                                    ],
+                                      boxShadow: _searchText.isNotEmpty
+                                          ? [
+                                              BoxShadow(
+                                                color: const Color(
+                                                  0xFF7C3AED,
+                                                ).withOpacity(0.18),
+                                                blurRadius: 10,
+                                                spreadRadius: 1,
+                                              ),
+                                            ]
+                                          : [],
+                                    ),
+                                    child: TextField(
+                                      controller: _searchController,
+                                      autofocus: true,
+                                      style: const TextStyle(
+                                        color: Colors.black,
+                                      ),
+                                      decoration: InputDecoration(
+                                        hintText: 'Buscar por nombre...',
+                                        prefixIcon: const Icon(
+                                          Icons.search,
+                                          color: Color(0xFF7C3AED),
+                                        ),
+                                        border: InputBorder.none,
+                                        focusedBorder: InputBorder.none,
+                                        enabledBorder: InputBorder.none,
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 14,
+                                              vertical: 14,
+                                            ),
+                                        fillColor: Color(
+                                          0xFFF3F6FD,
+                                        ), // Fondo claro y agradable
+                                        filled: true,
+                                      ),
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _searchText = value;
+                                        });
+                                      },
+                                    ),
                                   ),
                                 ),
-                              const SizedBox(height: 16),
-                              clients.isEmpty
-                                  ? const Center(
-                                      child: Text('No hay clientes.'),
-                                    )
-                                  : ScrollConfiguration(
-                                      behavior: const _NoScrollbarBehavior(),
-                                      child: ListView.separated(
-                                        shrinkWrap: true,
-                                        physics:
-                                            const NeverScrollableScrollPhysics(),
-                                        itemCount: clients.length,
-                                        separatorBuilder: (_, __) =>
-                                            const SizedBox(height: 10),
-                                        itemBuilder: (context, index) {
-                                          final client = clients[index];
-                                          return Container(
+                              ],
+                            ),
+                          ),
+                        const SizedBox(height: 16),
+                        // Lista de clientes o mensaje si no hay ninguno
+                        clients.isEmpty
+                            ? const Center(child: Text('No hay clientes.'))
+                            : ScrollConfiguration(
+                                behavior: const _NoScrollbarBehavior(),
+                                child: ListView.separated(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: clients.length,
+                                  separatorBuilder: (_, __) =>
+                                      const SizedBox(height: 10),
+                                  itemBuilder: (context, index) {
+                                    final client = clients[index];
+                                    // Cada cliente se muestra en una tarjeta personalizada que ocupa todo el ancho disponible
+                                    return Row(
+                                      children: [
+                                        Expanded(
+                                          child: Container(
                                             decoration: BoxDecoration(
                                               color: Colors.white,
                                               borderRadius:
@@ -547,12 +589,16 @@ class _ClientsScreenState extends State<ClientsScreen> {
                                             ),
                                             child: ClientCard(
                                               client: client,
+                                              // Editar cliente
                                               onEdit: () =>
                                                   _showClientForm(client),
+                                              // Eliminar cliente
                                               onDelete: () =>
                                                   _deleteClient(client),
+                                              // Agregar transacción
                                               onAddTransaction: () =>
                                                   _showTransactionForm(client),
+                                              // Ver movimientos (cambia a la pestaña de transacciones y filtra por cliente)
                                               onViewMovements: () {
                                                 Provider.of<TabProvider>(
                                                   context,
@@ -563,6 +609,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
                                                     >(context, listen: false)
                                                     .setClientId(client.id);
                                               },
+                                              // Ver recibo individual del cliente
                                               onReceipt: () {
                                                 final txProvider =
                                                     Provider.of<
@@ -590,14 +637,14 @@ class _ClientsScreenState extends State<ClientsScreen> {
                                                 );
                                               },
                                             ),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                            ],
-                          ),
-                        ),
-                      ),
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                ),
+                              ),
+                      ],
                     ),
                   ),
                 ),
@@ -610,6 +657,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
   }
 }
 
+// Comportamiento para ocultar el scrollbar
 class _NoScrollbarBehavior extends ScrollBehavior {
   const _NoScrollbarBehavior();
   @override
@@ -622,6 +670,7 @@ class _NoScrollbarBehavior extends ScrollBehavior {
   }
 }
 
+// Comportamiento para hacer el scrollbar invisible pero permitir el scroll
 class _TransparentScrollbarBehavior extends ScrollBehavior {
   const _TransparentScrollbarBehavior();
   @override

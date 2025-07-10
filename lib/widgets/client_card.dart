@@ -233,6 +233,7 @@ class _ClientCardActionsState extends State<_ClientCardActions>
           ),
         // Permite scroll horizontal y evita overflow
         SizedBox(
+          width: double.infinity,
           height: 48,
           child: Center(
             child: SingleChildScrollView(

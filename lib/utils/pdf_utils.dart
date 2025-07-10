@@ -39,11 +39,10 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
               style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
             ),
             pw.Text(
-              'Teléfono: ' +
-                  ((client.phone != null &&
+              'Teléfono: ${(client.phone != null &&
                           client.phone.toString().trim().isNotEmpty)
                       ? client.phone.toString()
-                      : 'Sin Información'),
+                      : 'Sin Información'}',
               style: pw.TextStyle(fontSize: 10),
             ),
             pw.SizedBox(height: 4),

@@ -24,7 +24,12 @@
 - **Lógica:**
   - Carga y muestra lista de clientes.
   - Permite agregar, editar y eliminar clientes.
+  - Cards de clientes ocupan el ancho máximo en móvil.
+  - Mejora visual: cards sin sombra, fondo personalizado, bloques adaptativos.
+  - Acciones centradas y botones flotantes centrados.
+  - Formulario de transacción móvil con fondo transparente y botón cerrar flotante.
 - **Botones/Controles:**
+  - Buscador animado con AnimatedContainer, borde animado, sombra y transición de color.
   - Botón "Agregar Cliente" (abre ClientForm)
   - Botón de editar/eliminar/ver recibo en cada ClientCard
   - Botón para agregar transacción a cliente
@@ -33,10 +38,17 @@
 - **Ruta:** transactions_screen.dart
 - **Lógica:**
   - Carga y muestra transacciones.
-  - Filtrado por cliente.
+  - Filtrado por cliente, tipo y rango de fechas.
+  - Filtros "Cliente" y "Tipo" con botones más altos y padding visual.
+  - Buscador animado y visualmente destacado.
+  - Calendario de rango de fechas pequeño (no pantalla completa) en modal.
+  - Cards de transacciones ocupan el ancho máximo en móvil.
+  - Mejora visual: cards con sombra suave, bloques adaptativos, separación y padding.
+  - Feedback visual y mensajes claros.
 - **Botones/Controles:**
   - Botón para agregar transacción (abre TransactionForm)
   - Botón para eliminar transacción
+  - Filtros visuales y calendario pequeño para rango de fechas
 
 ### 4. LoginScreen / RegisterScreen / ForgotPasswordScreen / ResetPasswordScreen
 - **Ruta:** login_screen.dart, register_screen.dart, forgot_password_screen.dart, reset_password_screen.dart
@@ -70,11 +82,12 @@
 - **CustomAnimatedAppBar**: AppBar animado con menú hamburguesa.
 - **AppNavigationBar**: Barra lateral para navegación en web.
 - **ClientForm**: Formulario para agregar/editar cliente.
-- **ClientCard**: Tarjeta de cliente con acciones (editar, eliminar, ver recibo, agregar transacción, ver movimientos).
-- **TransactionForm**: Formulario para agregar/editar transacción.
+- **ClientCard**: Tarjeta de cliente con acciones (editar, eliminar, ver recibo, agregar transacción, ver movimientos), bloques adaptativos y acciones centradas.
+- **TransactionForm**: Formulario para agregar/editar transacción, fondo transparente en móvil, botón cerrar flotante.
 - **DashboardStats**: Estadísticas del dashboard.
 - **ReceiptModal / GeneralReceiptModal**: Modales para mostrar recibos.
 - **ToastHelper**: Mensajes toast para feedback.
+- **CalendarDateRangePicker**: Calendario pequeño para seleccionar rango de fechas en transacciones.
 
 ---
 
@@ -88,6 +101,8 @@
 - **Botón Exportar PDF:** Exporta recibo a PDF.
 - **Botón Login/Registro/Recuperar Contraseña:** Acciones de autenticación.
 - **Botón Navegación:** Cambia de pantalla/tab.
+- **Buscador animado:** En clientes y transacciones, con transición visual.
+- **Filtros visuales:** Cliente, tipo y rango de fechas con botones grandes y calendario pequeño.
 
 ---
 
@@ -104,7 +119,10 @@
 - Los formularios usan validación y feedback visual.
 - Los modales se usan para recibos y formularios.
 - La lógica de negocio está en Providers y Services.
+- Cards y bloques principales se adaptan a móvil y escritorio.
+- Mejoras visuales y de usabilidad implementadas en filtros, formularios y listados.
+- Calendario de rango de fechas compacto y moderno.
 
 ---
 
-_Este índice es un resumen estructurado de la app, útil para documentación, onboarding o refactorización._
+_Este índice es un resumen estructurado y actualizado de la app, útil para documentación, onboarding o refactorización._

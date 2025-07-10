@@ -123,9 +123,11 @@ class _TransactionFormState extends State<TransactionForm> {
                 ),
                 color: Colors.white,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 24,
+                  padding: const EdgeInsets.only(
+                    left: 20,
+                    right: 20,
+                    top: 50, // Más separación arriba
+                    bottom: 24,
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -134,13 +136,30 @@ class _TransactionFormState extends State<TransactionForm> {
                       if (widget.onClose != null)
                         Align(
                           alignment: Alignment.topRight,
-                          child: IconButton(
-                            icon: const Icon(
-                              Icons.close,
-                              color: Colors.black54,
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(24),
+                              onTap: widget.onClose,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.85),
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.10),
+                                      blurRadius: 6,
+                                    ),
+                                  ],
+                                ),
+                                padding: const EdgeInsets.all(8),
+                                child: const Icon(
+                                  Icons.close,
+                                  color: Color(0xFF7C3AED),
+                                  size: 24,
+                                ),
+                              ),
                             ),
-                            tooltip: 'Cerrar',
-                            onPressed: widget.onClose,
                           ),
                         ),
                       Padding(
@@ -318,6 +337,28 @@ class _TransactionFormState extends State<TransactionForm> {
                                       : 'Guardar Abono'),
                           ),
                           onPressed: _loading ? null : _save,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: colorScheme.primary,
+                            side: BorderSide(
+                              color: colorScheme.primary,
+                              width: 1.5,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                          ),
+                          icon: const Icon(Icons.close),
+                          label: const Text('Cerrar'),
+                          onPressed:
+                              widget.onClose ??
+                              () => Navigator.of(context).pop(),
                         ),
                       ),
                     ],

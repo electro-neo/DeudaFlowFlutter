@@ -79,25 +79,21 @@ class ClientCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               children: [
-                Row(
-                  children: [
-                    const CircleAvatar(child: Icon(Icons.person)),
-                    const SizedBox(width: 8),
-                    // Nombre a la izquierda
-                    SizedBox(
-                      width: 100, // Ajusta el ancho según tu diseño
-                      child: Text(
-                        client.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
+                const CircleAvatar(child: Icon(Icons.person)),
                 const SizedBox(width: 8),
+                // Nombre a la izquierda
+                SizedBox(
+                  width: 100, // Ajusta el ancho según tu diseño
+                  child: Text(
+                    client.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const Spacer(),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [

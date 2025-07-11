@@ -7,19 +7,9 @@ import '../models/client.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../utils/currency_utils.dart';
 import '../providers/currency_provider.dart';
-import 'package:flutter/foundation.dart'; // Para kIsWeb
 
-// Utilidad para ocultar el scrollbar
-class NoScrollbarBehavior extends ScrollBehavior {
-  @override
-  Widget buildScrollbar(
-    BuildContext context,
-    Widget child,
-    ScrollableDetails details,
-  ) {
-    return child;
-  }
-}
+import '../utils/no_scrollbar_behavior.dart';
+import 'package:flutter/foundation.dart'; // Para kIsWeb
 
 class DashboardScreen extends StatefulWidget {
   final String userId;
@@ -149,7 +139,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ScrollConfiguration(
-              behavior: NoScrollbarBehavior(),
+              behavior: const NoScrollbarBehavior(),
               child: SingleChildScrollView(
                 child: Column(
                   children: [

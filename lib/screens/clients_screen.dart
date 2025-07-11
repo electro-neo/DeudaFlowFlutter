@@ -1,7 +1,8 @@
 // --- INICIO: Código restaurado del último commit y ajustado para layout independiente ---
-import '../providers/transaction_provider.dart';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../providers/transaction_provider.dart';
 import '../providers/client_provider.dart';
 import '../models/client.dart';
 import '../widgets/client_form.dart';
@@ -9,6 +10,7 @@ import '../widgets/client_card.dart';
 import '../widgets/general_receipt_modal.dart';
 import '../widgets/transaction_form.dart';
 import 'transactions_screen.dart';
+import '../utils/no_scrollbar_behavior.dart';
 
 class ClientsScreen extends StatefulWidget {
   final String userId;
@@ -524,7 +526,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
                           child: clientsWithBalance.isEmpty
                               ? const Center(child: Text('No hay clientes.'))
                               : ScrollConfiguration(
-                                  behavior: const _NoScrollbarBehavior(),
+                                  behavior: NoScrollbarBehavior(),
                                   child: ListView.separated(
                                     padding: const EdgeInsets.symmetric(
                                       vertical: 10,
@@ -669,25 +671,6 @@ class _ClientsScreenState extends State<ClientsScreen> {
         ),
       ),
     );
-    @override
-    void dispose() {
-      _searchController.dispose();
-      _searchFocusNode.dispose();
-      _screenFocusScopeNode.dispose();
-      super.dispose();
-    }
-  }
-}
-
-class _NoScrollbarBehavior extends ScrollBehavior {
-  const _NoScrollbarBehavior();
-  @override
-  Widget buildScrollbar(
-    BuildContext context,
-    Widget child,
-    ScrollableDetails details,
-  ) {
-    return child;
   }
 }
 

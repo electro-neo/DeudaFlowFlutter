@@ -1,24 +1,12 @@
-import '../providers/currency_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../providers/currency_provider.dart';
 import '../providers/transaction_filter_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../models/client.dart';
-
 import '../providers/client_provider.dart';
 import '../utils/currency_utils.dart';
-
-// Utilidad para ocultar el scrollbar
-class NoScrollbarBehavior extends ScrollBehavior {
-  @override
-  Widget buildScrollbar(
-    BuildContext context,
-    Widget child,
-    ScrollableDetails details,
-  ) {
-    return child;
-  }
-}
+import '../utils/no_scrollbar_behavior.dart';
 
 class TransactionsScreen extends StatefulWidget {
   final String userId;
@@ -34,12 +22,19 @@ class TransactionsScreen extends StatefulWidget {
 }
 
 class _TransactionsScreenState extends State<TransactionsScreen> {
+  final FocusNode _searchFocusNode = FocusNode();
   String? _selectedClientId;
   DateTimeRange? _selectedRange;
   String? _selectedType; // 'debt', 'payment', o null
   String _searchQuery = '';
   bool _loading = true;
   bool _appliedInitialType = false;
+
+  @override
+  void dispose() {
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -133,66 +128,96 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final double? maxCardWidth = isMobile ? null : 500.0;
 
     Widget content;
+    GestureDetector gestureWrapper({required Widget child}) {
+      return GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () {
+          if (_searchFocusNode.hasFocus) {
+            _searchFocusNode.unfocus();
+          }
+        },
+        child: child,
+      );
+    }
+
     if (isMobile) {
       // En móvil: igualar el ancho y estilo visual del box de clientes
-      content = Column(
-        children: [
-          // Header y filtros
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.92),
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 14,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
+      content = gestureWrapper(
+        child: Column(
+          children: [
+            // Header y filtros
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.92),
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 14,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 18,
+                  horizontal: 10,
+                ),
+                child: _buildTransactionColumn(format, clients, transactions),
               ),
-              padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 10),
-              child: _buildTransactionColumn(format, clients, transactions),
             ),
-          ),
-        ],
+          ],
+        ),
       );
     } else {
       // En escritorio: Card centrado y ancho máximo
-      content = Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: maxCardWidth ?? 500.0),
-          child: Card(
-            elevation: 8,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            color: Colors.white,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
-              child: _buildTransactionColumn(format, clients, transactions),
+      content = gestureWrapper(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxCardWidth ?? 500.0),
+            child: Card(
+              elevation: 8,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              color: Colors.white,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 24,
+                ),
+                child: _buildTransactionColumn(format, clients, transactions),
+              ),
             ),
           ),
         ),
       );
     }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFE6F0FF),
-      body: SafeArea(
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : ScrollConfiguration(
-                behavior: NoScrollbarBehavior(),
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(0, topPadding, 0, 24),
-                    child: content,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        if (_searchFocusNode.hasFocus) {
+          _searchFocusNode.unfocus();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFE6F0FF),
+        body: SafeArea(
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : ScrollConfiguration(
+                  behavior: NoScrollbarBehavior(),
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(0, topPadding, 0, 24),
+                      child: content,
+                    ),
                   ),
                 ),
-              ),
+        ),
       ),
     );
   }
@@ -224,6 +249,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             borderRadius: BorderRadius.circular(8),
           ),
           child: TextField(
+            focusNode: _searchFocusNode,
             decoration: const InputDecoration(
               hintText: 'Buscar por cliente o descripción...',
               border: InputBorder.none,

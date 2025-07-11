@@ -5,7 +5,7 @@
 - **main_scaffold.dart**: Scaffold principal, gestiona navegación y AppBar animado.
 - **app_navigation_bar.dart**: Barra de navegación para web/escritorio.
 - **custom_animated_app_bar.dart**: AppBar animado y profesional.
-- **widgets/**: Componentes reutilizables (formularios, cards, modals, etc).
+- **widgets/**: Componentes reutilizables (formularios, cards, modals, etc). Eliminados: `gradient_app_bar.dart`, `navigation_bar.dart` (no usados). Limpieza de imports y clases privadas innecesarias en widgets y screens.
 - **screens/**: Páginas principales de la app.
 
 ---

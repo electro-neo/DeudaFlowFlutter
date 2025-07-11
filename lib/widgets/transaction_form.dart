@@ -79,6 +79,16 @@ class _TransactionFormState extends State<TransactionForm> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Transacción guardada correctamente')),
         );
+        // Cerrar automáticamente el modal después de guardar
+        Future.delayed(const Duration(milliseconds: 350), () {
+          if (widget.onClose != null) {
+            widget.onClose!();
+          } else {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            }
+          }
+        });
       }
     } catch (e) {
       setState(() {
@@ -160,13 +170,13 @@ class _TransactionFormState extends State<TransactionForm> {
                             _type == 'debt'
                                 ? Icons.trending_down
                                 : _type == 'payment'
-                                    ? Icons.trending_up
-                                    : Icons.swap_horiz,
+                                ? Icons.trending_up
+                                : Icons.swap_horiz,
                             color: _type == 'debt'
                                 ? Colors.red
                                 : _type == 'payment'
-                                    ? Colors.green
-                                    : Colors.grey,
+                                ? Colors.green
+                                : Colors.grey,
                             size: 32,
                           ),
                           const SizedBox(width: 8),
@@ -174,8 +184,8 @@ class _TransactionFormState extends State<TransactionForm> {
                             _type == 'debt'
                                 ? 'Registrar Deuda'
                                 : _type == 'payment'
-                                    ? 'Registrar Abono'
-                                    : 'Selecciona tipo',
+                                ? 'Registrar Abono'
+                                : 'Selecciona tipo',
                             style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(fontWeight: FontWeight.bold),
                           ),
@@ -222,7 +232,8 @@ class _TransactionFormState extends State<TransactionForm> {
                                   icon: Icons.trending_up,
                                   label: 'Abono',
                                   color: Colors.green,
-                                  onTap: () => setState(() => _type = 'payment'),
+                                  onTap: () =>
+                                      setState(() => _type = 'payment'),
                                 ),
                               ],
                             ),

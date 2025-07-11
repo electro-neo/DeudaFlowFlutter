@@ -22,6 +22,39 @@ class ClientsScreen extends StatefulWidget {
 }
 
 class _ClientsScreenState extends State<ClientsScreen> {
+  /// Recalcula el balance de todos los clientes según sus transacciones actuales
+  Future<void> recalculateAllClientBalances() async {
+    final clientProvider = Provider.of<ClientProvider>(context, listen: false);
+    final txProvider = Provider.of<TransactionProvider>(context, listen: false);
+    await txProvider.loadTransactions(widget.userId);
+    await clientProvider.loadClients(widget.userId);
+    final clients = clientProvider.clients;
+    final txs = txProvider.transactions;
+    for (final client in clients) {
+      final clientTxs = txs.where((t) => t.clientId == client.id);
+      double newBalance = 0;
+      for (final t in clientTxs) {
+        if (t.type == 'debt') {
+          newBalance -= t.amount;
+        } else if (t.type == 'payment') {
+          newBalance += t.amount;
+        }
+      }
+      if (client.balance != newBalance) {
+        await clientProvider.updateClient(
+          Client(
+            id: client.id,
+            name: client.name,
+            email: client.email,
+            phone: client.phone,
+            balance: newBalance,
+          ),
+          widget.userId,
+        );
+      }
+    }
+    await clientProvider.loadClients(widget.userId);
+  }
   final FocusScopeNode _screenFocusScopeNode = FocusScopeNode();
   bool _showSearch = false;
   String _searchText = '';
@@ -34,6 +67,39 @@ class _ClientsScreenState extends State<ClientsScreen> {
     final isMobile =
         Theme.of(context).platform == TargetPlatform.android ||
         Theme.of(context).platform == TargetPlatform.iOS;
+    Future<void> handleTransactionSave(Transaction tx) async {
+      final txProvider = Provider.of<TransactionProvider>(context, listen: false);
+      final clientProvider = Provider.of<ClientProvider>(context, listen: false);
+      await txProvider.addTransaction(
+        tx,
+        widget.userId,
+        client.id,
+      );
+      // Obtener el balance actualizado del cliente desde las transacciones
+      await txProvider.loadTransactions(widget.userId);
+      final allTxs = txProvider.transactions.where((t) => t.clientId == client.id);
+      double newBalance = 0;
+      for (final t in allTxs) {
+        if (t.type == 'debt') {
+          newBalance -= t.amount;
+        } else if (t.type == 'payment') {
+          newBalance += t.amount;
+        }
+      }
+      await clientProvider.updateClient(
+        Client(
+          id: client.id,
+          name: client.name,
+          email: client.email,
+          phone: client.phone,
+          balance: newBalance,
+        ),
+        widget.userId,
+      );
+      Navigator.of(context).pop();
+      await clientProvider.loadClients(widget.userId);
+    }
+
     if (isMobile) {
       await showModalBottomSheet(
         context: context,
@@ -78,44 +144,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
                               TransactionForm(
                                 clientId: client.id,
                                 userId: widget.userId,
-                                onSave: (tx) async {
-                                  final txProvider =
-                                      Provider.of<TransactionProvider>(
-                                        context,
-                                        listen: false,
-                                      );
-                                  await txProvider.addTransaction(
-                                    tx,
-                                    widget.userId,
-                                    client.id,
-                                  );
-                                  // Actualizar balance del cliente
-                                  final clientProvider =
-                                      Provider.of<ClientProvider>(
-                                        context,
-                                        listen: false,
-                                      );
-                                  double newBalance = client.balance;
-                                  if (tx.type == 'debt') {
-                                    newBalance -= tx.amount;
-                                  } else if (tx.type == 'payment') {
-                                    newBalance += tx.amount;
-                                  }
-                                  await clientProvider.updateClient(
-                                    Client(
-                                      id: client.id,
-                                      name: client.name,
-                                      email: client.email,
-                                      phone: client.phone,
-                                      balance: newBalance,
-                                    ),
-                                    widget.userId,
-                                  );
-                                  Navigator.of(context).pop();
-                                  await clientProvider.loadClients(
-                                    widget.userId,
-                                  );
-                                },
+                                onSave: handleTransactionSave,
                                 onClose: () => Navigator.of(context).pop(),
                               ),
                             ],
@@ -157,40 +186,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
                 child: TransactionForm(
                   clientId: client.id,
                   userId: widget.userId,
-                  onSave: (tx) async {
-                    final txProvider = Provider.of<TransactionProvider>(
-                      context,
-                      listen: false,
-                    );
-                    await txProvider.addTransaction(
-                      tx,
-                      widget.userId,
-                      client.id,
-                    );
-                    // Actualizar balance del cliente
-                    final clientProvider = Provider.of<ClientProvider>(
-                      context,
-                      listen: false,
-                    );
-                    double newBalance = client.balance;
-                    if (tx.type == 'debt') {
-                      newBalance -= tx.amount;
-                    } else if (tx.type == 'payment') {
-                      newBalance += tx.amount;
-                    }
-                    await clientProvider.updateClient(
-                      Client(
-                        id: client.id,
-                        name: client.name,
-                        email: client.email,
-                        phone: client.phone,
-                        balance: newBalance,
-                      ),
-                      widget.userId,
-                    );
-                    Navigator.of(context).pop();
-                    await clientProvider.loadClients(widget.userId);
-                  },
+                  onSave: handleTransactionSave,
                   onClose: () => Navigator.of(context).pop(),
                 ),
               ),
@@ -215,8 +211,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_didLoadClients) {
-      final provider = Provider.of<ClientProvider>(context, listen: false);
-      provider.loadClients(widget.userId);
+      recalculateAllClientBalances();
       _didLoadClients = true;
     }
   }
@@ -270,6 +265,8 @@ class _ClientsScreenState extends State<ClientsScreen> {
                   widget.userId,
                   createdClient.id,
                 );
+                // Recargar transacciones para que la UI muestre el saldo inicial
+                await txProvider.loadTransactions(widget.userId);
                 await provider.loadClients(widget.userId);
               }
             } else {

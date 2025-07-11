@@ -25,6 +25,7 @@ class _ClientFormState extends State<ClientForm> {
   late final TextEditingController _emailController;
   late final TextEditingController _phoneController;
   late final TextEditingController _balanceController;
+  bool _isSaving = false;
   @override
   void initState() {
     super.initState();
@@ -47,7 +48,10 @@ class _ClientFormState extends State<ClientForm> {
 
   void _save() async {
     if (!mounted) return;
-    setState(() => _error = null);
+    setState(() {
+      _error = null;
+      _isSaving = true;
+    });
     if (_nameController.text.trim().isEmpty) {
       if (!mounted) return;
       setState(() => _error = 'El nombre es obligatorio');
@@ -91,33 +95,29 @@ class _ClientFormState extends State<ClientForm> {
         Navigator.of(context).pop();
       }
     } catch (e) {
-      // Si el widget ya fue desmontado, no intentes mostrar error
       if (!mounted) return;
       final msg = e.toString();
       if (msg.contains('duplicate key value') ||
           msg.contains('already exists')) {
-        setState(
-          () => _error = 'Ya existe un cliente con ese correo o teléfono.',
-        );
+        setState(() => _error = 'Ya existe un cliente con ese correo o teléfono.');
       } else if (msg.contains('invalid input syntax for type numeric')) {
-        setState(
-          () => _error = 'El saldo debe ser un número válido (ej: 1000.00).',
-        );
+        setState(() => _error = 'El saldo debe ser un número válido (ej: 1000.00).');
       } else if (msg.contains('PostgrestException')) {
-        setState(
-          () => _error =
-              'Error al guardar los datos. Verifica los campos e inténtalo de nuevo.',
-        );
+        setState(() => _error = 'Error al guardar los datos. Verifica los campos e inténtalo de nuevo.');
       } else if (msg.contains('unmounted') || msg.contains('defunct')) {
-        // No mostrar nada si el widget ya no está montado
         return;
       } else {
-        setState(
-          () => _error =
-              'No se pudo guardar. Verifica los datos e inténtalo de nuevo.',
-        );
+        setState(() => _error = 'No se pudo guardar. Verifica los datos e inténtalo de nuevo.');
       }
+      setState(() {
+        _isSaving = false;
+      });
       return;
+    }
+    if (mounted) {
+      setState(() {
+        _isSaving = false;
+      });
     }
   }
 
@@ -311,14 +311,23 @@ class _ClientFormState extends State<ClientForm> {
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
-                      onPressed: _save,
-                      icon: widget.initialClient == null
-                          ? const Icon(Icons.save_alt_rounded)
-                          : const Icon(Icons.update),
+                      onPressed: _isSaving ? null : _save,
+                      icon: _isSaving
+                          ? SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                valueColor: AlwaysStoppedAnimation<Color>(colorScheme.onPrimary),
+                              ),
+                            )
+                          : (widget.initialClient == null
+                              ? const Icon(Icons.save_alt_rounded)
+                              : const Icon(Icons.update)),
                       label: Text(
-                        widget.initialClient == null
-                            ? 'Guardar'
-                            : 'Actualizar Cliente',
+                        _isSaving
+                            ? (widget.initialClient == null ? 'Guardando...' : 'Actualizando...')
+                            : (widget.initialClient == null ? 'Guardar' : 'Actualizar Cliente'),
                       ),
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),

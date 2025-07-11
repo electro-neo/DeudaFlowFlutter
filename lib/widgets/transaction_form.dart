@@ -95,10 +95,13 @@ class _TransactionFormState extends State<TransactionForm> {
         _error = 'Error inesperado: $e';
         _loading = false;
       });
+      return;
     } finally {
-      setState(() {
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -323,9 +326,22 @@ class _TransactionFormState extends State<TransactionForm> {
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
-                          icon: Icon(
-                            _type == 'debt' ? Icons.save : Icons.check_circle,
-                          ),
+                          icon: _loading
+                              ? SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : Icon(
+                                  _type == 'debt'
+                                      ? Icons.save
+                                      : Icons.check_circle,
+                                ),
                           label: Text(
                             _loading
                                 ? 'Guardando...'

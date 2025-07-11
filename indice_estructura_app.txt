@@ -66,10 +66,10 @@
   - Botón de registro
   - Botón de recuperar contraseña
 
-### 5. ReceiptScreen / GeneralReceiptScreen
-- **Ruta:** receipt_screen.dart, general_receipt_screen.dart
+### 5. ReceiptScreen
+- **Ruta:** receipt_screen.dart
 - **Lógica:**
-  - Muestra recibos individuales o generales
+  - Muestra recibos individuales
   - Exportar recibo a PDF
 - **Botones/Controles:**
   - Botón de exportar PDF
@@ -92,7 +92,7 @@
 - **ClientCard**: Tarjeta de cliente con acciones (editar, eliminar, ver recibo, agregar transacción, ver movimientos), bloques adaptativos y acciones centradas.
 - **TransactionForm**: Formulario para agregar/editar transacción, fondo transparente en móvil, botón cerrar flotante.
 - **DashboardStats**: Estadísticas del dashboard.
-- **ReceiptModal / GeneralReceiptModal**: Modales para mostrar recibos.
+- **ReceiptModal / GeneralReceiptModal**: Modales para mostrar recibos. El modal de recibo general ahora es scrollable, con botones de acción y fechas fuera del área scrollable, centrados y con mejor disposición visual.
 - **ToastHelper**: Mensajes toast para feedback.
 - **CalendarDateRangePicker**: Calendario pequeño para seleccionar rango de fechas en transacciones.
 

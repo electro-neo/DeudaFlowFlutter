@@ -23,9 +23,15 @@ Actualización 11/07/2025:
 - Refactor local del formateo de montos para independencia visual en transacciones.
 - Lógica de stats y filtrado mejorada.
 
+
+---
+Actualización 11/07/2025 (continuación):
+
+- El modal de recibo general (`GeneralReceiptModal`) ahora es completamente scrollable y los botones de acción ("Compartir Recibo/Imprimir" y "Cerrar") están centrados, uno debajo del otro, con estilo compacto y acorde al tema.
+- Los botones de selección de fecha ("Desde" y "Hasta") se ubican fuera del área scrollable, justo debajo del título del modal.
+- Se mejoró la disposición visual y la experiencia de usuario en el modal de recibo general para evitar overflow y mantener la accesibilidad en móvil y escritorio.
+- Se confirmó que la pantalla `GeneralReceiptScreen` no está en uso y puede eliminarse.
+
 Commit sugerido:
 
-"Fix formateo de montos en transacciones:
-- Símbolo $ solo en USD y conversión correcta
-- Refactor local de formateo
-- UX consistente al alternar moneda"
+"UI/UX: Mejoras en modal de recibo general:\n- Botones de acción centrados y compactos\n- Fechas fuera del scroll\n- Mejor disposición visual y accesibilidad"

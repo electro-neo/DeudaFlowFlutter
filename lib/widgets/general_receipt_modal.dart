@@ -106,106 +106,180 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
         (platform == TargetPlatform.android || platform == TargetPlatform.iOS);
 
     return AlertDialog(
-      title: Text(title),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.date_range),
+                  label: Text(
+                    fromDate == null
+                        ? 'Desde'
+                        : '${fromDate!.day.toString().padLeft(2, '0')}/${fromDate!.month.toString().padLeft(2, '0')}/${fromDate!.year}',
+                    style: const TextStyle(fontWeight: FontWeight.normal),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(width: 2),
+                  ),
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: fromDate ?? DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (picked != null) setState(() => fromDate = picked);
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.date_range),
+                  label: Text(
+                    toDate == null
+                        ? 'Hasta'
+                        : '${toDate!.day.toString().padLeft(2, '0')}/${toDate!.month.toString().padLeft(2, '0')}/${toDate!.year}',
+                    style: const TextStyle(fontWeight: FontWeight.normal),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(width: 2),
+                  ),
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: toDate ?? DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (picked != null) setState(() => toDate = picked);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
       content: SizedBox(
         width: 350,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.date_range),
-                    label: Text(
-                      fromDate == null
-                          ? 'Desde'
-                          : '${fromDate!.day.toString().padLeft(2, '0')}/${fromDate!.month.toString().padLeft(2, '0')}/${fromDate!.year}',
-                      style: const TextStyle(fontWeight: FontWeight.normal),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (filtered.isEmpty)
+                const Text('No hay movimientos en el rango seleccionado.'),
+              ...filtered.map((e) {
+                final client = e['client'];
+                final phone =
+                    (client.phone != null &&
+                        client.phone.toString().trim().isNotEmpty)
+                    ? client.phone.toString()
+                    : 'Sin Información';
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Nombre: ${client.name}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(width: 2),
-                    ),
-                    onPressed: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: fromDate ?? DateTime.now(),
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
-                      );
-                      if (picked != null) setState(() => fromDate = picked);
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.date_range),
-                    label: Text(
-                      toDate == null
-                          ? 'Hasta'
-                          : '${toDate!.day.toString().padLeft(2, '0')}/${toDate!.month.toString().padLeft(2, '0')}/${toDate!.year}',
-                      style: const TextStyle(fontWeight: FontWeight.normal),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(width: 2),
-                    ),
-                    onPressed: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: toDate ?? DateTime.now(),
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
-                      );
-                      if (picked != null) setState(() => toDate = picked);
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            if (filtered.isEmpty)
-              const Text('No hay movimientos en el rango seleccionado.'),
-            ...filtered.map((e) {
-              final client = e['client'];
-              final phone =
-                  (client.phone != null &&
-                      client.phone.toString().trim().isNotEmpty)
-                  ? client.phone.toString()
-                  : 'Sin Información';
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Nombre: ${client.name}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Text('Teléfono: $phone'),
-                  Text('ID: ${client.id}'),
-                  const SizedBox(height: 12),
-                ],
-              );
-            }),
-            if (filtered.isNotEmpty)
-              ElevatedButton(
-                onPressed: () async {
-                  if (isMobile) {
-                    await exportAndShareGeneralReceiptWithMovementsPDF(
-                      filtered,
-                    );
-                  } else {
-                    await exportGeneralReceiptWithMovementsPDF(filtered);
-                  }
-                },
-                child: Text(isMobile ? 'Compartir Recibo' : 'Imprimir'),
-              ),
-          ],
+                    Text('Teléfono: $phone'),
+                    Text('ID: ${client.id}'),
+                    const SizedBox(height: 12),
+                  ],
+                );
+              }),
+            ],
+          ),
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cerrar'),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (filtered.isNotEmpty)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 180,
+                      child: ElevatedButton.icon(
+                        icon: Icon(isMobile ? Icons.share : Icons.print),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary,
+                          foregroundColor: Theme.of(
+                            context,
+                          ).colorScheme.onPrimary,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          elevation: 2,
+                          textStyle: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                        onPressed: () async {
+                          if (isMobile) {
+                            await exportAndShareGeneralReceiptWithMovementsPDF(
+                              filtered,
+                            );
+                          } else {
+                            await exportGeneralReceiptWithMovementsPDF(
+                              filtered,
+                            );
+                          }
+                        },
+                        label: Text(isMobile ? 'Compartir Recibo' : 'Imprimir'),
+                      ),
+                    ),
+                  ],
+                ),
+              if (filtered.isNotEmpty) const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 140,
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.close),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Theme.of(context).colorScheme.primary,
+                        side: BorderSide(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 2,
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 10,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        textStyle: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                      onPressed: () => Navigator.of(context).pop(),
+                      label: const Text('Cerrar'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ],
     );

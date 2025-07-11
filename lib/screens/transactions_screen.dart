@@ -72,11 +72,17 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    context.watch<CurrencyProvider>();
+    final currencyProvider = context.watch<CurrencyProvider>();
     final txProvider = Provider.of<TransactionProvider>(context);
     final clientProvider = Provider.of<ClientProvider>(context);
     final filterProvider = Provider.of<TransactionFilterProvider>(context);
-    String format(num value) => CurrencyUtils.format(context, value);
+    String format(num value) {
+      final isUSD = currencyProvider.currency == 'USD';
+      final rate = currencyProvider.rate > 0 ? currencyProvider.rate : 1.0;
+      final converted = isUSD ? value.toDouble() / rate : value.toDouble();
+      return isUSD ? '\$' + converted.toStringAsFixed(2) : converted.toStringAsFixed(2);
+    }
+
     final clients = clientProvider.clients;
     var transactions = txProvider.transactions;
 

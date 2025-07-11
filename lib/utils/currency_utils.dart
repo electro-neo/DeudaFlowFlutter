@@ -34,7 +34,7 @@ class CurrencyUtils {
     // Formato: punto como separador de miles, coma como decimal
     final formatter = NumberFormat.currency(
       locale: 'es',
-      symbol: isUSD ? '\u000024' : '',
+      symbol: isUSD ? '\$' : '',
       decimalDigits: 2,
       customPattern: '#,##0.00',
     );

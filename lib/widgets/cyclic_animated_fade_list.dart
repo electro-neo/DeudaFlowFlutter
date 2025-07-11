@@ -160,13 +160,13 @@ class _CyclicAnimatedFadeListState extends State<CyclicAnimatedFadeList>
       itemCount: _items.length,
       itemBuilder: (context, i) {
         return _AnimatedFadeListItem(
-          child: _items[i],
           index: i,
           isAnimating: _isAnimating,
           animation: _animation,
           itemCount: _items.length,
           minOpacity: widget.minOpacity,
           itemSpacing: widget.itemSpacing,
+          child: _items[i],
         );
       },
     );

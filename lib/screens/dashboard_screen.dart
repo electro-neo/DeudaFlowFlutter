@@ -336,6 +336,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             )
                           else
                             CyclicAnimatedFadeList(
+                              interval: const Duration(milliseconds: 2000),
+                              animationDuration: const Duration(
+                                milliseconds: 8000,
+                              ),
+                              minOpacity: 0.25,
+                              itemSpacing: 10.0,
                               children: recent.map((tx) {
                                 final client = clients.firstWhere(
                                   (c) => c.id == tx.clientId,
@@ -408,12 +414,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   ),
                                 );
                               }).toList(),
-                              interval: const Duration(milliseconds: 2000),
-                              animationDuration: const Duration(
-                                milliseconds: 8000,
-                              ),
-                              minOpacity: 0.25,
-                              itemSpacing: 10.0,
                             ),
                         ],
                       ),

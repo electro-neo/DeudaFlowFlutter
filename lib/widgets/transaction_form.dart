@@ -26,7 +26,7 @@ class TransactionForm extends StatefulWidget {
 class _TransactionFormState extends State<TransactionForm> {
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
-  String _type = 'debt';
+  String? _type; // No seleccionado por defecto
   DateTime _selectedDate = DateTime.now();
 
   String? _error;
@@ -37,6 +37,13 @@ class _TransactionFormState extends State<TransactionForm> {
       _error = null;
       _loading = true;
     });
+    if (_type == null) {
+      setState(() {
+        _error = 'Debes seleccionar Deuda o Abono';
+        _loading = false;
+      });
+      return;
+    }
     final amount = double.tryParse(_amountController.text);
     if (amount == null || amount <= 0) {
       setState(() {
@@ -60,7 +67,7 @@ class _TransactionFormState extends State<TransactionForm> {
             id: '',
             clientId: widget.clientId,
             userId: widget.userId,
-            type: _type,
+            type: _type!,
             amount: amount,
             description: _descriptionController.text,
             date: _selectedDate,
@@ -152,15 +159,23 @@ class _TransactionFormState extends State<TransactionForm> {
                           Icon(
                             _type == 'debt'
                                 ? Icons.trending_down
-                                : Icons.trending_up,
-                            color: _type == 'debt' ? Colors.red : Colors.green,
+                                : _type == 'payment'
+                                    ? Icons.trending_up
+                                    : Icons.swap_horiz,
+                            color: _type == 'debt'
+                                ? Colors.red
+                                : _type == 'payment'
+                                    ? Colors.green
+                                    : Colors.grey,
                             size: 32,
                           ),
                           const SizedBox(width: 8),
                           Text(
                             _type == 'debt'
                                 ? 'Registrar Deuda'
-                                : 'Registrar Abono',
+                                : _type == 'payment'
+                                    ? 'Registrar Abono'
+                                    : 'Selecciona tipo',
                             style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(fontWeight: FontWeight.bold),
                           ),
@@ -207,8 +222,7 @@ class _TransactionFormState extends State<TransactionForm> {
                                   icon: Icons.trending_up,
                                   label: 'Abono',
                                   color: Colors.green,
-                                  onTap: () =>
-                                      setState(() => _type = 'payment'),
+                                  onTap: () => setState(() => _type = 'payment'),
                                 ),
                               ],
                             ),

@@ -381,6 +381,109 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             ),
           ],
         ),
+
+        // Stats de Abono / Deuda mejorado con iconos y recuadro
+        Builder(
+          builder: (context) {
+            double totalAbono = 0;
+            double totalDeuda = 0;
+            for (var tx in transactions) {
+              if (tx.type == 'payment') {
+                totalAbono += tx.amount;
+              } else if (tx.type == 'debt') {
+                totalDeuda += tx.amount;
+              }
+            }
+            // Mostrar solo el stat correspondiente según el filtro seleccionado
+            final showAbono =
+                _selectedType == null || _selectedType == 'payment';
+            final showDeuda = _selectedType == null || _selectedType == 'debt';
+            if (!showAbono && !showDeuda) return SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsets.symmetric(
+                vertical: 12.0,
+                horizontal: 2.0,
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                  border: Border.all(
+                    color: const Color(0xFFE6F0FF),
+                    width: 1.2,
+                  ),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 10,
+                  horizontal: 24,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (showAbono) ...[
+                      Icon(
+                        Icons.arrow_upward,
+                        color: Colors.green[700],
+                        size: 22,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Abono:',
+                        style: TextStyle(
+                          color: Colors.green[700],
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        format(totalAbono),
+                        style: TextStyle(
+                          color: Colors.green[700],
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                    if (showAbono && showDeuda) const SizedBox(width: 28),
+                    if (showDeuda) ...[
+                      Icon(
+                        Icons.arrow_downward,
+                        color: Colors.red[700],
+                        size: 22,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Deuda:',
+                        style: TextStyle(
+                          color: Colors.red[700],
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        format(totalDeuda),
+                        style: TextStyle(
+                          color: Colors.red[700],
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
         if (_selectedRange != null)
           Padding(
             padding: const EdgeInsets.only(top: 4, left: 2),
@@ -431,43 +534,59 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         color: Colors.red.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: const Icon(Icons.delete, color: Colors.red, size: 32),
+                      child: const Icon(
+                        Icons.delete,
+                        color: Colors.red,
+                        size: 32,
+                      ),
                     ),
                     confirmDismiss: (direction) async {
                       // Confirmación opcional, puedes quitar si no quieres preguntar
                       return await showDialog<bool>(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Eliminar transacción'),
-                          content: const Text('¿Estás seguro de eliminar esta transacción?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(false),
-                              child: const Text('Cancelar'),
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Eliminar transacción'),
+                              content: const Text(
+                                '¿Estás seguro de eliminar esta transacción?',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.of(context).pop(false),
+                                  child: const Text('Cancelar'),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () =>
+                                      Navigator.of(context).pop(true),
+                                  child: const Text('Eliminar'),
+                                ),
+                              ],
                             ),
-                            ElevatedButton(
-                              onPressed: () => Navigator.of(context).pop(true),
-                              child: const Text('Eliminar'),
-                            ),
-                          ],
-                        ),
-                      ) ?? false;
+                          ) ??
+                          false;
                     },
                     onDismissed: (direction) async {
-                      final txProvider = Provider.of<TransactionProvider>(context, listen: false);
+                      final txProvider = Provider.of<TransactionProvider>(
+                        context,
+                        listen: false,
+                      );
                       try {
                         await txProvider.deleteTransaction(t.id, widget.userId);
                         if (mounted) setState(() {});
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: const Text('Transacción eliminada correctamente'),
+                            content: const Text(
+                              'Transacción eliminada correctamente',
+                            ),
                             backgroundColor: Colors.green,
                           ),
                         );
                       } catch (e) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Error al eliminar: \\${e.toString()}'),
+                            content: Text(
+                              'Error al eliminar: \\${e.toString()}',
+                            ),
                             backgroundColor: Colors.red,
                           ),
                         );

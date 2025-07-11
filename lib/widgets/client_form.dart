@@ -87,7 +87,9 @@ class _ClientFormState extends State<ClientForm> {
     );
     try {
       await widget.onSave(client);
-      // El cierre del modal lo hace el padre (clients_screen.dart)
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
     } catch (e) {
       // Si el widget ya fue desmontado, no intentes mostrar error
       if (!mounted) return;

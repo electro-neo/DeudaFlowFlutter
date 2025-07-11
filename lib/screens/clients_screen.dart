@@ -6,6 +6,7 @@ import '../providers/transaction_provider.dart';
 import '../providers/client_provider.dart';
 import '../models/client.dart';
 import '../widgets/client_form.dart';
+import '../models/transaction.dart';
 import '../widgets/client_card.dart';
 import '../widgets/general_receipt_modal.dart';
 import '../widgets/transaction_form.dart';
@@ -237,11 +238,40 @@ class _ClientsScreenState extends State<ClientsScreen> {
               context,
               listen: false,
             );
-            Client result;
+            final txProvider = Provider.of<TransactionProvider>(
+              context,
+              listen: false,
+            );
             if (client == null) {
               await provider.addClient(newClient, widget.userId);
               await provider.loadClients(widget.userId);
-              result = newClient;
+              final createdClient = provider.clients.firstWhere(
+                (c) =>
+                    c.name == newClient.name &&
+                    c.email == newClient.email &&
+                    c.phone == newClient.phone &&
+                    c.balance == newClient.balance,
+                orElse: () => newClient,
+              );
+              if (newClient.balance != 0) {
+                final now = DateTime.now();
+                final tx = Transaction(
+                  id: '',
+                  clientId: createdClient.id,
+                  userId: widget.userId,
+                  type: newClient.balance > 0 ? 'payment' : 'debt',
+                  amount: newClient.balance.abs(),
+                  description: 'Saldo inicial',
+                  date: now,
+                  createdAt: now,
+                );
+                await txProvider.addTransaction(
+                  tx,
+                  widget.userId,
+                  createdClient.id,
+                );
+                await provider.loadClients(widget.userId);
+              }
             } else {
               await provider.updateClient(
                 Client(
@@ -254,13 +284,9 @@ class _ClientsScreenState extends State<ClientsScreen> {
                 widget.userId,
               );
               await provider.loadClients(widget.userId);
-              result = client;
             }
-            // Cierra el modal usando el contexto correcto del diálogo
-            if (Navigator.of(dialogContext).canPop()) {
-              Navigator.of(dialogContext).pop();
-            }
-            return result;
+            // Ya no se cierra el modal aquí, lo hace el formulario
+            return newClient;
           },
           readOnlyBalance: client != null,
         ),
@@ -319,21 +345,8 @@ class _ClientsScreenState extends State<ClientsScreen> {
                           )
                           .toList()
                     : allClients;
-                final clientsWithBalance = clients.map((client) {
-                  final hasTransactions = txProvider.transactions.any(
-                    (tx) => tx.clientId == client.id,
-                  );
-                  if (!hasTransactions) {
-                    return Client(
-                      id: client.id,
-                      name: client.name,
-                      email: client.email,
-                      phone: client.phone,
-                      balance: 0,
-                    );
-                  }
-                  return client;
-                }).toList();
+                // Mostrar siempre el balance real del cliente, aunque no tenga transacciones
+                final clientsWithBalance = clients;
 
                 // --- LAYOUT INDEPENDIENTE Y MODERNO ---
                 return Column(

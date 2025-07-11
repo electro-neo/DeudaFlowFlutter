@@ -394,7 +394,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 totalDeuda += tx.amount;
               }
             }
-            // Mostrar solo el stat correspondiente según el filtro seleccionado
             final showAbono =
                 _selectedType == null || _selectedType == 'payment';
             final showDeuda = _selectedType == null || _selectedType == 'debt';
@@ -426,58 +425,97 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (showAbono) ...[
-                      Icon(
-                        Icons.arrow_upward,
-                        color: Colors.green[700],
-                        size: 22,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Abono:',
-                        style: TextStyle(
-                          color: Colors.green[700],
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                    if (showAbono)
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.green[100],
+                                  ),
+                                  padding: const EdgeInsets.all(8),
+                                  child: Icon(
+                                    Icons.arrow_upward,
+                                    color: Colors.green[700],
+                                    size: 22,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Abono',
+                                  style: TextStyle(
+                                    color: Colors.green[700],
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              format(totalAbono),
+                              style: TextStyle(
+                                color: Colors.green[700],
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        format(totalAbono),
-                        style: TextStyle(
-                          color: Colors.green[700],
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                    if (showAbono && showDeuda) const SizedBox(width: 18),
+                    if (showDeuda)
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.red[100],
+                                  ),
+                                  padding: const EdgeInsets.all(8),
+                                  child: Icon(
+                                    Icons.arrow_downward,
+                                    color: Colors.red[700],
+                                    size: 22,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Deuda',
+                                  style: TextStyle(
+                                    color: Colors.red[700],
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              format(totalDeuda),
+                              style: TextStyle(
+                                color: Colors.red[700],
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                    if (showAbono && showDeuda) const SizedBox(width: 28),
-                    if (showDeuda) ...[
-                      Icon(
-                        Icons.arrow_downward,
-                        color: Colors.red[700],
-                        size: 22,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Deuda:',
-                        style: TextStyle(
-                          color: Colors.red[700],
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        format(totalDeuda),
-                        style: TextStyle(
-                          color: Colors.red[700],
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),
@@ -573,14 +611,19 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       try {
                         await txProvider.deleteTransaction(t.id, widget.userId);
                         if (mounted) setState(() {});
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text(
-                              'Transacción eliminada correctamente',
-                            ),
-                            backgroundColor: Colors.green,
+                        final snackBar = SnackBar(
+                          content: const Text(
+                            'Transacción eliminada correctamente',
                           ),
+                          backgroundColor: Colors.green,
+                          duration: const Duration(milliseconds: 1200),
                         );
+                        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                        // Esperar a que se muestre el snackbar y luego cerrar la pantalla
+                        await Future.delayed(
+                          const Duration(milliseconds: 1200),
+                        );
+                        if (mounted) Navigator.of(context).maybePop();
                       } catch (e) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(

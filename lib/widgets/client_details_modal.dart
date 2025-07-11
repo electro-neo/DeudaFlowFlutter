@@ -87,7 +87,12 @@ class ClientDetailsModal extends StatelessWidget {
                 IconButton(
                   icon: const Icon(Icons.delete),
                   tooltip: 'Eliminar',
-                  onPressed: onDelete,
+                  onPressed: () {
+                    Navigator.of(context, rootNavigator: true).pop();
+                    if (onDelete != null) {
+                      Future.delayed(Duration.zero, onDelete!);
+                    }
+                  },
                 ),
                 IconButton(
                   icon: const Icon(Icons.add),

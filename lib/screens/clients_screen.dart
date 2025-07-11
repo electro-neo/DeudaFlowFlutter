@@ -204,6 +204,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
   void dispose() {
     _searchController.dispose();
     _searchFocusNode.dispose();
+    _screenFocusScopeNode.dispose();
     super.dispose();
   }
 
@@ -237,7 +238,9 @@ class _ClientsScreenState extends State<ClientsScreen> {
               listen: false,
             );
             if (client == null) {
-              return await provider.addClient(newClient, widget.userId);
+              await provider.addClient(newClient, widget.userId);
+              await provider.loadClients(widget.userId);
+              return newClient;
             } else {
               await provider.updateClient(
                 Client(

@@ -1,4 +1,5 @@
 import '../widgets/dashboard_stats.dart';
+import '../widgets/cyclic_animated_fade_list.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/client_provider.dart';
@@ -334,14 +335,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               child: Text('No hay movimientos registrados aún'),
                             )
                           else
-                            ListView.separated(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: recent.length,
-                              separatorBuilder: (context, i) =>
-                                  const SizedBox(height: 10),
-                              itemBuilder: (context, i) {
-                                final tx = recent[i];
+                            CyclicAnimatedFadeList(
+                              children: recent.map((tx) {
                                 final client = clients.firstWhere(
                                   (c) => c.id == tx.clientId,
                                   orElse: () =>
@@ -412,7 +407,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     ),
                                   ),
                                 );
-                              },
+                              }).toList(),
+                              interval: const Duration(milliseconds: 2000),
+                              animationDuration: const Duration(
+                                milliseconds: 8000,
+                              ),
+                              minOpacity: 0.25,
+                              itemSpacing: 10.0,
                             ),
                         ],
                       ),

@@ -31,58 +31,58 @@ class AnimatedFadeList extends StatelessWidget {
           itemCount: children.length,
           itemBuilder: (context, i) {
             return _AnimatedFadeListItem(
-            final denominator = (children.length - 1) == 0 ? 1 : (children.length - 1);
-            final fade =
-                (1 - (i / denominator).clamp(0, 1)) *
-                    (1 - minOpacity) +
-                minOpacity;
-            final opacity =
-                fadeFraction + (1 - fadeFraction) * animValue * fade;
-            final offsetY = (1 - animValue) * 30 * (i / denominator);
+              index: i,
+              total: children.length,
+              fadeFraction: fadeFraction,
+              minOpacity: minOpacity,
+              animValue: animValue,
+              itemSpacing: itemSpacing,
+              child: children[i],
             );
           },
         );
       },
     );
   }
-  
-  class _AnimatedFadeListItem extends StatelessWidget {
-    final int index;
-    final int total;
-    final double fadeFraction;
-    final double minOpacity;
-    final double animValue;
-    final double itemSpacing;
-    final Widget child;
-  
-    const _AnimatedFadeListItem({
-      required this.index,
-      required this.total,
-      required this.fadeFraction,
-      required this.minOpacity,
-      required this.animValue,
-      required this.itemSpacing,
-      required this.child,
-    });
-  
-    @override
-    Widget build(BuildContext context) {
-      final fade =
-          (1 - (index / (total - 1)).clamp(0, 1)) * (1 - minOpacity) + minOpacity;
-      final opacity = fadeFraction + (1 - fadeFraction) * animValue * fade;
-      final offsetY = (1 - animValue) * 30 * (index / (total - 1));
-      return Opacity(
-        opacity: opacity,
-        child: Transform.translate(
-          offset: Offset(0, offsetY),
-          child: Padding(
-            padding: EdgeInsets.only(
-              bottom: index == total - 1 ? 0 : itemSpacing,
-            ),
-            child: child,
+}
+
+class _AnimatedFadeListItem extends StatelessWidget {
+  final int index;
+  final int total;
+  final double fadeFraction;
+  final double minOpacity;
+  final double animValue;
+  final double itemSpacing;
+  final Widget child;
+
+  const _AnimatedFadeListItem({
+    required this.index,
+    required this.total,
+    required this.fadeFraction,
+    required this.minOpacity,
+    required this.animValue,
+    required this.itemSpacing,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final denominator = (total - 1) == 0 ? 1 : (total - 1);
+    final fade = (1 - (index / denominator).clamp(0, 1)) * (1 - minOpacity) + minOpacity;
+    final opacity = fadeFraction + (1 - fadeFraction) * animValue * fade;
+    final offsetY = (1 - animValue) * 30 * (index / denominator);
+    return Opacity(
+      opacity: opacity,
+      child: Transform.translate(
+        offset: Offset(0, offsetY),
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: index == total - 1 ? 0 : itemSpacing,
           ),
+          child: child,
         ),
-      );
-    }
+      ),
+    );
   }
 }
+

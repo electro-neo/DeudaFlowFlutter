@@ -48,16 +48,24 @@ class _AnimatedFadeListItem extends StatelessWidget {
       builder: (context, _) {
         double opacity = 1.0;
         double offsetY = 0.0;
-        if (index == 0 && isAnimating) {
-          opacity = 1.0 - animation.value;
-          offsetY = -30 * animation.value;
-        } else if (index == 1 && isAnimating) {
-          offsetY = -30 * (1 - animation.value);
+        const double moveY = 100;
+        if (isAnimating) {
+          if (index == 0) {
+            // El primer item se va desvaneciendo y subiendo
+            opacity = 1.0 - animation.value;
+            offsetY = -moveY * animation.value;
+          } else if (index == itemCount - 1) {
+            // El último item aparece desde abajo
+            opacity = minOpacity + (1.0 - minOpacity) * animation.value;
+            offsetY = moveY * (1 - animation.value);
+          } else {
+            // Los demás suben en sincronía
+            offsetY = -moveY * animation.value;
+          }
         }
         if (index > 0) {
           final fade =
-              (1 - (index / (itemCount - 1)).clamp(0, 1)) *
-                  (1 - minOpacity) +
+              (1 - (index / (itemCount - 1)).clamp(0, 1)) * (1 - minOpacity) +
               minOpacity;
           opacity *= fade;
         }
@@ -94,7 +102,7 @@ class _CyclicAnimatedFadeListState extends State<CyclicAnimatedFadeList>
       vsync: this,
       duration: widget.animationDuration,
     );
-    _animation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+    _animation = CurvedAnimation(parent: _controller, curve: Curves.linear);
     _startCycle();
   }
 
@@ -108,6 +116,8 @@ class _CyclicAnimatedFadeListState extends State<CyclicAnimatedFadeList>
         _items.add(first);
         _isAnimating = false;
       });
+      // Espera un poco antes de resetear para que el fade-out termine visualmente
+      await Future.delayed(const Duration(milliseconds: 300));
       _controller.reset();
     });
   }
@@ -130,6 +140,20 @@ class _CyclicAnimatedFadeListState extends State<CyclicAnimatedFadeList>
       _controller = AnimationController(
         vsync: this,
         duration: widget.animationDuration,
+      );
+      _animation = CurvedAnimation(parent: _controller, curve: Curves.linear);
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return ListView.builder(
       physics: const NeverScrollableScrollPhysics(),
       shrinkWrap: true,
@@ -143,21 +167,6 @@ class _CyclicAnimatedFadeListState extends State<CyclicAnimatedFadeList>
           itemCount: _items.length,
           minOpacity: widget.minOpacity,
           itemSpacing: widget.itemSpacing,
-        );
-      },
-    );
-              opacity: opacity,
-              child: Transform.translate(
-                offset: Offset(0, offsetY),
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    bottom: i == _items.length - 1 ? 0 : widget.itemSpacing,
-                  ),
-                  child: _items[i],
-                ),
-              ),
-            );
-          }),
         );
       },
     );

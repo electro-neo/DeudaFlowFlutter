@@ -273,10 +273,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   decoration: const InputDecoration(
                     labelText: 'Filtrar por cliente',
                     border: InputBorder.none,
-                    isDense: false,
+                    isDense: true,
                     contentPadding: EdgeInsets.symmetric(
-                      vertical: 16,
-                      horizontal: 12,
+                      vertical: 8,
+                      horizontal: 8,
                     ),
                   ),
                   items: [
@@ -293,7 +293,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 ),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Expanded(
               child: SizedBox(
                 height: 52,
@@ -302,10 +302,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   decoration: const InputDecoration(
                     labelText: 'Tipo',
                     border: InputBorder.none,
-                    isDense: false,
+                    isDense: true,
                     contentPadding: EdgeInsets.symmetric(
-                      vertical: 16,
-                      horizontal: 12,
+                      vertical: 8,
+                      horizontal: 8,
                     ),
                   ),
                   items: const [
@@ -321,56 +321,62 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 ),
               ),
             ),
-            const SizedBox(width: 8),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.date_range, color: Colors.black87),
-                onPressed: () async {
-                  final picked = await showDialog<DateTimeRange>(
-                    context: context,
-                    builder: (context) {
-                      DateTimeRange tempRange =
-                          _selectedRange ??
-                          DateTimeRange(
-                            start: DateTime.now().subtract(
-                              const Duration(days: 7),
+            const SizedBox(width: 6),
+            SizedBox(
+              height: 52,
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.date_range, color: Colors.black87),
+                    onPressed: () async {
+                      final picked = await showDialog<DateTimeRange>(
+                        context: context,
+                        builder: (context) {
+                          DateTimeRange tempRange =
+                              _selectedRange ??
+                              DateTimeRange(
+                                start: DateTime.now().subtract(
+                                  const Duration(days: 7),
+                                ),
+                                end: DateTime.now(),
+                              );
+                          return AlertDialog(
+                            title: const Text('Selecciona un rango'),
+                            content: SizedBox(
+                              width: 320,
+                              height: 260, // Más bajo
+                              child: CalendarDateRangePicker(
+                                initialRange: tempRange,
+                                onChanged: (range) {
+                                  tempRange = range;
+                                },
+                              ),
                             ),
-                            end: DateTime.now(),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: const Text('Cancelar'),
+                              ),
+                              ElevatedButton(
+                                onPressed: () =>
+                                    Navigator.of(context).pop(tempRange),
+                                child: const Text('Aceptar'),
+                              ),
+                            ],
                           );
-                      return AlertDialog(
-                        title: const Text('Selecciona un rango'),
-                        content: SizedBox(
-                          width: 320,
-                          height: 260, // Más bajo
-                          child: CalendarDateRangePicker(
-                            initialRange: tempRange,
-                            onChanged: (range) {
-                              tempRange = range;
-                            },
-                          ),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('Cancelar'),
-                          ),
-                          ElevatedButton(
-                            onPressed: () =>
-                                Navigator.of(context).pop(tempRange),
-                            child: const Text('Aceptar'),
-                          ),
-                        ],
+                        },
                       );
+                      if (picked != null) {
+                        setState(() => _selectedRange = picked);
+                      }
                     },
-                  );
-                  if (picked != null) {
-                    setState(() => _selectedRange = picked);
-                  }
-                },
+                  ),
+                ),
               ),
             ),
           ],

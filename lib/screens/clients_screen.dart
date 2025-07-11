@@ -222,7 +222,8 @@ class _ClientsScreenState extends State<ClientsScreen> {
   void _showClientForm([Client? client]) {
     showDialog(
       context: context,
-      barrierColor: Colors.transparent,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withOpacity(0.25),
       builder: (_) => Dialog(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -236,7 +237,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
               listen: false,
             );
             if (client == null) {
-              await provider.addClient(newClient, widget.userId);
+              return await provider.addClient(newClient, widget.userId);
             } else {
               await provider.updateClient(
                 Client(
@@ -248,8 +249,9 @@ class _ClientsScreenState extends State<ClientsScreen> {
                 ),
                 widget.userId,
               );
+              await provider.loadClients(widget.userId);
+              return client;
             }
-            await provider.loadClients(widget.userId);
           },
           readOnlyBalance: client != null,
         ),
@@ -363,24 +365,42 @@ class _ClientsScreenState extends State<ClientsScreen> {
                                   textAlign: TextAlign.center,
                                 ),
                                 const SizedBox(height: 12),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    FloatingActionButton(
-                                      heroTag: 'registrarCliente',
-                                      mini: true,
-                                      backgroundColor: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                      foregroundColor: Colors.white,
-                                      elevation: 2,
-                                      onPressed: () => _showClientForm(),
-                                      tooltip: 'Registrar Cliente',
-                                      child: const Icon(Icons.add),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    if (allClients.isNotEmpty)
+                                if (allClients.isEmpty)
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      FloatingActionButton(
+                                        heroTag: 'registrarCliente',
+                                        mini: true,
+                                        backgroundColor: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        foregroundColor: Colors.white,
+                                        elevation: 2,
+                                        onPressed: () => _showClientForm(),
+                                        tooltip: 'Registrar Cliente',
+                                        child: const Icon(Icons.add),
+                                      ),
+                                    ],
+                                  )
+                                else
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      FloatingActionButton(
+                                        heroTag: 'registrarCliente',
+                                        mini: true,
+                                        backgroundColor: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        foregroundColor: Colors.white,
+                                        elevation: 2,
+                                        onPressed: () => _showClientForm(),
+                                        tooltip: 'Registrar Cliente',
+                                        child: const Icon(Icons.add),
+                                      ),
+                                      const SizedBox(width: 12),
                                       FloatingActionButton(
                                         heroTag: 'reciboGeneral',
                                         mini: true,
@@ -414,14 +434,13 @@ class _ClientsScreenState extends State<ClientsScreen> {
                                         tooltip: 'Recibo general',
                                         child: const Icon(Icons.receipt_long),
                                       ),
-                                    const SizedBox(width: 12),
-                                    if (allClients.isNotEmpty)
+                                      const SizedBox(width: 12),
                                       FloatingActionButton(
                                         heroTag: 'buscarCliente',
                                         mini: true,
-                                        backgroundColor: const Color(
-                                          0xFF7C3AED,
-                                        ),
+                                        backgroundColor: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
                                         foregroundColor: Colors.white,
                                         elevation: 2,
                                         onPressed: _toggleSearch,
@@ -430,8 +449,8 @@ class _ClientsScreenState extends State<ClientsScreen> {
                                             : 'Buscar cliente',
                                         child: const Icon(Icons.search),
                                       ),
-                                  ],
-                                ),
+                                    ],
+                                  ),
                                 if (_showSearch && allClients.isNotEmpty)
                                   Padding(
                                     padding: const EdgeInsets.only(top: 14.0),

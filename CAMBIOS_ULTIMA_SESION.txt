@@ -1,0 +1,24 @@
+Cambios realizados en la app Deuda Flow (última sesión):
+
+- El saldo inicial de un cliente ahora se registra como transacción y aparece en el listado de movimientos.
+- Al registrar un cliente con saldo inicial, se recargan las transacciones para que el saldo se muestre de inmediato.
+- El balance de cada cliente se recalcula automáticamente sumando abonos y restando deudas cada vez que entras a la pantalla de clientes.
+- Al agregar una transacción a un cliente, el balance se actualiza automáticamente según todas sus transacciones.
+- Se mejoró la visualización y validación de los formularios de cliente y transacción.
+- El formulario de transacción cierra el modal automáticamente al guardar y muestra un mensaje de éxito.
+- Se eliminó el doble cierre de modal en formularios.
+- El tipo de transacción (deuda/abono) es obligatorio y no tiene selección por defecto.
+- Los iconos de stats en la pantalla de transacciones tienen fondo circular difuminado y los montos aparecen debajo del título.
+- Al eliminar una transacción, la pantalla se cierra automáticamente tras mostrar el mensaje de éxito.
+- El toggle para cambiar a USD/VES ahora aparece en el menú hamburguesa (menú inferior) en móvil, accesible desde cualquier pantalla.
+- Se corrigieron errores de Provider y tipado en el menú de moneda.
+- Se mantiene la navegación global y la experiencia consistente en móvil y escritorio.
+
+Commit sugerido:
+
+"Mejoras UX y lógica de saldos:
+- Saldo inicial como transacción visible
+- Balance de cliente siempre actualizado según movimientos
+- Mejoras visuales y validaciones en formularios
+- Toggle USD/VES en menú hamburguesa móvil
+- Corrección de errores de cierre de modal y Provider"

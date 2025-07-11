@@ -477,7 +477,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                     Text(
                                       format(t.amount),
                                       style: TextStyle(
-                                        color: Colors.red,
+                                        color: t.type == 'payment' ? Colors.green : Colors.red,
                                         fontWeight: FontWeight.bold,
                                         fontSize: 18,
                                       ),

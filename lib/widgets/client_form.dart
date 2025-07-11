@@ -48,40 +48,49 @@ class _ClientFormState extends State<ClientForm> {
 
   void _save() async {
     if (!mounted) return;
-    setState(() {
-      _error = null;
-      _isSaving = true;
-    });
+    // Validaciones antes de mostrar loading
     if (_nameController.text.trim().isEmpty) {
-      if (!mounted) return;
-      setState(() => _error = 'El nombre es obligatorio');
+      setState(() {
+        _error = 'El nombre es obligatorio';
+        _isSaving = false;
+      });
       return;
     }
-    // Validar selección de tipo deuda/abono
     if (widget.initialClient == null && _initialType == null) {
-      if (!mounted) return;
-      setState(() => _error = 'Debes seleccionar Deuda o Abono');
+      setState(() {
+        _error = 'Debes seleccionar Deuda o Abono';
+        _isSaving = false;
+      });
       return;
     }
-    // Validar que el teléfono y el saldo no estén vacíos
     final phoneText = _phoneController.text.trim();
     if (phoneText.isEmpty) {
-      if (!mounted) return;
-      setState(() => _error = 'El teléfono es obligatorio');
+      setState(() {
+        _error = 'El teléfono es obligatorio';
+        _isSaving = false;
+      });
       return;
     }
     final balanceText = _balanceController.text.trim();
     if (balanceText.isEmpty) {
-      if (!mounted) return;
-      setState(() => _error = 'El saldo es obligatorio');
+      setState(() {
+        _error = 'El saldo es obligatorio';
+        _isSaving = false;
+      });
       return;
     }
     final balance = double.tryParse(balanceText);
     if (balance == null) {
-      if (!mounted) return;
-      setState(() => _error = 'Saldo inválido. Solo números y punto decimal.');
+      setState(() {
+        _error = 'Saldo inválido. Solo números y punto decimal.';
+        _isSaving = false;
+      });
       return;
     }
+    setState(() {
+      _error = null;
+      _isSaving = true;
+    });
     final client = Client(
       id: '',
       name: _nameController.text,
@@ -99,15 +108,25 @@ class _ClientFormState extends State<ClientForm> {
       final msg = e.toString();
       if (msg.contains('duplicate key value') ||
           msg.contains('already exists')) {
-        setState(() => _error = 'Ya existe un cliente con ese correo o teléfono.');
+        setState(
+          () => _error = 'Ya existe un cliente con ese correo o teléfono.',
+        );
       } else if (msg.contains('invalid input syntax for type numeric')) {
-        setState(() => _error = 'El saldo debe ser un número válido (ej: 1000.00).');
+        setState(
+          () => _error = 'El saldo debe ser un número válido (ej: 1000.00).',
+        );
       } else if (msg.contains('PostgrestException')) {
-        setState(() => _error = 'Error al guardar los datos. Verifica los campos e inténtalo de nuevo.');
+        setState(
+          () => _error =
+              'Error al guardar los datos. Verifica los campos e inténtalo de nuevo.',
+        );
       } else if (msg.contains('unmounted') || msg.contains('defunct')) {
         return;
       } else {
-        setState(() => _error = 'No se pudo guardar. Verifica los datos e inténtalo de nuevo.');
+        setState(
+          () => _error =
+              'No se pudo guardar. Verifica los datos e inténtalo de nuevo.',
+        );
       }
       setState(() {
         _isSaving = false;
@@ -318,16 +337,22 @@ class _ClientFormState extends State<ClientForm> {
                               height: 22,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.5,
-                                valueColor: AlwaysStoppedAnimation<Color>(colorScheme.onPrimary),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  colorScheme.onPrimary,
+                                ),
                               ),
                             )
                           : (widget.initialClient == null
-                              ? const Icon(Icons.save_alt_rounded)
-                              : const Icon(Icons.update)),
+                                ? const Icon(Icons.save_alt_rounded)
+                                : const Icon(Icons.update)),
                       label: Text(
                         _isSaving
-                            ? (widget.initialClient == null ? 'Guardando...' : 'Actualizando...')
-                            : (widget.initialClient == null ? 'Guardar' : 'Actualizar Cliente'),
+                            ? (widget.initialClient == null
+                                  ? 'Guardando...'
+                                  : 'Actualizando...')
+                            : (widget.initialClient == null
+                                  ? 'Guardar'
+                                  : 'Actualizar Cliente'),
                       ),
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),

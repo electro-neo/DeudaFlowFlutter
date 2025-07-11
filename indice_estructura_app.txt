@@ -45,6 +45,13 @@
   - Cards de transacciones ocupan el ancho máximo en móvil.
   - Mejora visual: cards con sombra suave, bloques adaptativos, separación y padding.
   - Feedback visual y mensajes claros.
+  - Formateo de montos ahora muestra el símbolo "$" solo si la moneda es USD y realiza la conversión según el rate.
+  - El cambio de moneda (toggle USD/VES) actualiza el símbolo y la conversión en tiempo real.
+  - Corrección de bug: el símbolo "$" ya no aparece en VES y los valores se convierten correctamente.
+  - Lógica de filtrado, búsqueda y stats mejorada.
+  - Cierre automático y feedback visual al eliminar transacción.
+  - Filtros visuales y calendario pequeño para rango de fechas.
+  - Refactor local del formateo de montos para independencia visual.
 - **Botones/Controles:**
   - Botón para agregar transacción (abre TransactionForm)
   - Botón para eliminar transacción

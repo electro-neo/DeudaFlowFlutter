@@ -14,11 +14,18 @@ Cambios realizados en la app Deuda Flow (última sesión):
 - Se corrigieron errores de Provider y tipado en el menú de moneda.
 - Se mantiene la navegación global y la experiencia consistente en móvil y escritorio.
 
+---
+Actualización 11/07/2025:
+
+- El formateo de montos en la pantalla de transacciones ahora muestra el símbolo "$" solo si la moneda es USD y realiza la conversión según el rate.
+- El cambio de moneda (toggle USD/VES) actualiza el símbolo y la conversión en tiempo real.
+- Corrección de bug: el símbolo "$" ya no aparece en VES y los valores se convierten correctamente.
+- Refactor local del formateo de montos para independencia visual en transacciones.
+- Lógica de stats y filtrado mejorada.
+
 Commit sugerido:
 
-"Mejoras UX y lógica de saldos:
-- Saldo inicial como transacción visible
-- Balance de cliente siempre actualizado según movimientos
-- Mejoras visuales y validaciones en formularios
-- Toggle USD/VES en menú hamburguesa móvil
-- Corrección de errores de cierre de modal y Provider"
+"Fix formateo de montos en transacciones:
+- Símbolo $ solo en USD y conversión correcta
+- Refactor local de formateo
+- UX consistente al alternar moneda"

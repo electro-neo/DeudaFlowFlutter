@@ -421,134 +421,150 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     (c) => c.id == t.clientId,
                     orElse: () => Client(id: '', name: '', balance: 0),
                   );
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.07),
-                          blurRadius: 8,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
+                  return Dismissible(
+                    key: ValueKey(t.id),
+                    direction: DismissDirection.endToStart,
+                    background: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          CircleAvatar(
-                            backgroundColor: t.type == 'debt'
-                                ? Color(0xFFFFE5E5)
-                                : Color(0xFFE5FFE8),
-                            radius: 22,
-                            child: Icon(
-                              t.type == 'debt'
-                                  ? Icons.arrow_downward
-                                  : Icons.arrow_upward,
-                              color: t.type == 'debt'
-                                  ? Colors.red
-                                  : Colors.green,
-                              size: 24,
+                      child: const Icon(Icons.delete, color: Colors.red, size: 32),
+                    ),
+                    confirmDismiss: (direction) async {
+                      // Confirmación opcional, puedes quitar si no quieres preguntar
+                      return await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Eliminar transacción'),
+                          content: const Text('¿Estás seguro de eliminar esta transacción?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(false),
+                              child: const Text('Cancelar'),
                             ),
+                            ElevatedButton(
+                              onPressed: () => Navigator.of(context).pop(true),
+                              child: const Text('Eliminar'),
+                            ),
+                          ],
+                        ),
+                      ) ?? false;
+                    },
+                    onDismissed: (direction) async {
+                      final txProvider = Provider.of<TransactionProvider>(context, listen: false);
+                      try {
+                        await txProvider.deleteTransaction(t.id, widget.userId);
+                        if (mounted) setState(() {});
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('Transacción eliminada correctamente'),
+                            backgroundColor: Colors.green,
                           ),
-                          SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        t.description,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      format(t.amount),
-                                      style: TextStyle(
-                                        color: t.type == 'payment' ? Colors.green : Colors.red,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: 2),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        'Cliente: ${client.name}',
-                                        style: TextStyle(
-                                          fontSize: 13.5,
-                                          color: Colors.black54,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    Text(
-                                      '${t.date.year}-${t.date.month.toString().padLeft(2, '0')}-${t.date.day.toString().padLeft(2, '0')}',
-                                      style: TextStyle(
-                                        fontSize: 12.5,
-                                        color: Colors.black45,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
+                        );
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error al eliminar: \\${e.toString()}'),
+                            backgroundColor: Colors.red,
                           ),
-                          IconButton(
-                            icon: Icon(
-                              Icons.delete,
-                              color: Colors.red,
-                              size: 22,
-                            ),
-                            onPressed: () async {
-                              final txProvider =
-                                  Provider.of<TransactionProvider>(
-                                    context,
-                                    listen: false,
-                                  );
-                              try {
-                                await txProvider.deleteTransaction(
-                                  t.id,
-                                  widget.userId,
-                                );
-                                if (mounted) setState(() {});
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Transacción eliminada correctamente',
-                                    ),
-                                    backgroundColor: Colors.green,
-                                  ),
-                                );
-                              } catch (e) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Error al eliminar: \\${e.toString()}',
-                                    ),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              }
-                            },
-                            tooltip: 'Eliminar',
+                        );
+                      }
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.07),
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
                           ),
                         ],
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            CircleAvatar(
+                              backgroundColor: t.type == 'debt'
+                                  ? Color(0xFFFFE5E5)
+                                  : Color(0xFFE5FFE8),
+                              radius: 22,
+                              child: Icon(
+                                t.type == 'debt'
+                                    ? Icons.arrow_downward
+                                    : Icons.arrow_upward,
+                                color: t.type == 'debt'
+                                    ? Colors.red
+                                    : Colors.green,
+                                size: 24,
+                              ),
+                            ),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          t.description,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        format(t.amount),
+                                        style: TextStyle(
+                                          color: t.type == 'payment'
+                                              ? Colors.green
+                                              : Colors.red,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 18,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 2),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          'Cliente: ${client.name}',
+                                          style: TextStyle(
+                                            fontSize: 13.5,
+                                            color: Colors.black54,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${t.date.year}-${t.date.month.toString().padLeft(2, '0')}-${t.date.day.toString().padLeft(2, '0')}',
+                                        style: TextStyle(
+                                          fontSize: 12.5,
+                                          color: Colors.black45,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   );

@@ -225,7 +225,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
       context: context,
       barrierDismissible: true,
       barrierColor: Colors.black.withOpacity(0.25),
-      builder: (_) => Dialog(
+      builder: (dialogContext) => Dialog(
         backgroundColor: Colors.transparent,
         elevation: 0,
         insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
@@ -237,10 +237,11 @@ class _ClientsScreenState extends State<ClientsScreen> {
               context,
               listen: false,
             );
+            Client result;
             if (client == null) {
               await provider.addClient(newClient, widget.userId);
               await provider.loadClients(widget.userId);
-              return newClient;
+              result = newClient;
             } else {
               await provider.updateClient(
                 Client(
@@ -253,8 +254,13 @@ class _ClientsScreenState extends State<ClientsScreen> {
                 widget.userId,
               );
               await provider.loadClients(widget.userId);
-              return client;
+              result = client;
             }
+            // Cierra el modal usando el contexto correcto del diálogo
+            if (Navigator.of(dialogContext).canPop()) {
+              Navigator.of(dialogContext).pop();
+            }
+            return result;
           },
           readOnlyBalance: client != null,
         ),

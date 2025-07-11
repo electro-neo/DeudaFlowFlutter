@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
 import '../models/client.dart';
-import '../providers/transaction_provider.dart';
-import '../models/transaction.dart';
 
 class ClientForm extends StatefulWidget {
   final Future<Client> Function(Client) onSave;
@@ -23,7 +20,7 @@ class ClientForm extends StatefulWidget {
 }
 
 class _ClientFormState extends State<ClientForm> {
-  String _initialType = 'debt';
+  String? _initialType; // No seleccionado por defecto
   late final TextEditingController _nameController;
   late final TextEditingController _emailController;
   late final TextEditingController _phoneController;
@@ -41,6 +38,8 @@ class _ClientFormState extends State<ClientForm> {
     if (widget.initialClient != null && widget.readOnlyBalance) {
       // Si es edición, deshabilitar el tipo (deuda/abono) y el balance
       _initialType = c!.balance < 0 ? 'debt' : 'payment';
+    } else {
+      _initialType = null; // No seleccionado por defecto en registro
     }
   }
 
@@ -52,6 +51,12 @@ class _ClientFormState extends State<ClientForm> {
     if (_nameController.text.trim().isEmpty) {
       if (!mounted) return;
       setState(() => _error = 'El nombre es obligatorio');
+      return;
+    }
+    // Validar selección de tipo deuda/abono
+    if (widget.initialClient == null && _initialType == null) {
+      if (!mounted) return;
+      setState(() => _error = 'Debes seleccionar Deuda o Abono');
       return;
     }
     // Validar que el teléfono y el saldo no estén vacíos
@@ -81,32 +86,8 @@ class _ClientFormState extends State<ClientForm> {
       balance: _initialType == 'debt' ? -balance : balance,
     );
     try {
-      final createdClient = await widget.onSave(client);
-      // Si es un nuevo cliente y el saldo es distinto de 0, crea la transacción inicial
-      if (widget.initialClient == null && balance != 0) {
-        final txProvider = Provider.of<TransactionProvider>(
-          context,
-          listen: false,
-        );
-        final txType = _initialType == 'debt' ? 'debt' : 'payment';
-        final txAmount = balance.abs();
-        await txProvider.addTransaction(
-          Transaction(
-            id: '',
-            clientId: createdClient.id,
-            userId: widget.userId,
-            type: txType,
-            amount: txAmount,
-            description: 'Saldo inicial',
-            date: DateTime.now(),
-            createdAt: DateTime.now(),
-          ),
-          widget.userId,
-          createdClient.id,
-        );
-      }
-      if (!mounted) return;
-      Navigator.of(context).pop(); // Cierra el modal solo si todo fue bien
+      await widget.onSave(client);
+      // El cierre del modal lo hace el padre (clients_screen.dart)
     } catch (e) {
       // Si el widget ya fue desmontado, no intentes mostrar error
       if (!mounted) return;

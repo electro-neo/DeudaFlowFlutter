@@ -135,8 +135,74 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     // --- INICIO NUEVO ESTILO ---
+    final isMobile =
+        Theme.of(context).platform == TargetPlatform.android ||
+        Theme.of(context).platform == TargetPlatform.iOS;
     return Scaffold(
       backgroundColor: const Color(0xFFE6F0FF),
+      drawer: isMobile
+          ? Drawer(
+              child: SafeArea(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    DrawerHeader(
+                      decoration: const BoxDecoration(color: Color(0xFF7C3AED)),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.account_circle_rounded,
+                            color: Colors.white,
+                            size: 64,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            userName.isNotEmpty ? userName : 'Usuario',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.attach_money_rounded),
+                      title: Consumer<CurrencyProvider>(
+                        builder: (context, currencyProvider, _) => Row(
+                          children: [
+                            Switch(
+                              value: currencyProvider.currency == 'USD',
+                              onChanged: (val) {
+                                if (val) {
+                                  currencyProvider.setCurrency('USD');
+                                  Future.delayed(
+                                    const Duration(milliseconds: 200),
+                                    () {
+                                      _showRateDialog(
+                                        context,
+                                        currencyProvider.rate,
+                                      );
+                                    },
+                                  );
+                                } else {
+                                  currencyProvider.setCurrency('VES');
+                                }
+                              },
+                            ),
+                            const Text('USD'),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Puedes agregar más opciones aquí si lo deseas
+                  ],
+                ),
+              ),
+            )
+          : null,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ScrollConfiguration(
@@ -234,68 +300,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                         const SizedBox(height: 12),
-                                        Row(
-                                          children: [
-                                            Expanded(child: Container()),
-                                            if (!kIsWeb ||
-                                                (kIsWeb &&
-                                                    MediaQuery.of(
-                                                          context,
-                                                        ).size.width <
-                                                        700))
-                                              Consumer<CurrencyProvider>(
-                                                builder:
-                                                    (
-                                                      context,
-                                                      currencyProvider,
-                                                      _,
-                                                    ) => Row(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        Switch(
-                                                          value:
-                                                              currencyProvider
-                                                                  .currency ==
-                                                              'USD',
-                                                          onChanged: (val) {
-                                                            if (val) {
-                                                              currencyProvider
-                                                                  .setCurrency(
-                                                                    'USD',
-                                                                  );
-                                                              Future.delayed(
-                                                                const Duration(
-                                                                  milliseconds:
-                                                                      200,
-                                                                ),
-                                                                () {
-                                                                  _showRateDialog(
-                                                                    context,
-                                                                    currencyProvider
-                                                                        .rate,
-                                                                  );
-                                                                },
-                                                              );
-                                                            } else {
-                                                              currencyProvider
-                                                                  .setCurrency(
-                                                                    'VES',
-                                                                  );
-                                                            }
-                                                          },
-                                                        ),
-                                                        const Text(
-                                                          'USD',
-                                                          style: TextStyle(
-                                                            color: Colors.white,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                              ),
-                                          ],
-                                        ),
+                                        // El toggle USD se movió al Drawer en móvil
                                       ],
                                     ),
                                   ),

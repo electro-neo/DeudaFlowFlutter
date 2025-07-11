@@ -8,6 +8,7 @@ import 'app_navigation_bar.dart';
 import '../services/guest_cleanup_service.dart' as guest_cleanup;
 import '../providers/tab_provider.dart';
 import '../providers/theme_provider.dart';
+import '../providers/currency_provider.dart';
 
 class MainScaffold extends StatefulWidget {
   final String userId;
@@ -105,8 +106,7 @@ class _MobileBottomBarState extends State<_MobileBottomBar> {
   Widget build(BuildContext context) {
     return BottomAppBar(
       child: Row(
-        mainAxisAlignment:
-            MainAxisAlignment.spaceEvenly, // Distribución uniforme
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           IconButton(
             icon: const Icon(Icons.dashboard),
@@ -151,6 +151,70 @@ class _MobileBottomBarState extends State<_MobileBottomBar> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        const SizedBox(height: 16),
+                        // Toggle USD/VES
+                        Consumer<CurrencyProvider>(
+                          builder: (context, currencyProvider, _) {
+                            return Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.attach_money_rounded),
+                                Switch(
+                                  value: currencyProvider.currency == 'USD',
+                                  onChanged: (val) {
+                                    if (val) {
+                                      currencyProvider.setCurrency('USD');
+                                      Future.delayed(
+                                        const Duration(milliseconds: 200),
+                                        () {
+                                          showDialog(
+                                            context: context,
+                                            builder: (ctx2) {
+                                              final rate = currencyProvider.rate;
+                                              final controller = TextEditingController(text: rate.toString());
+                                              return AlertDialog(
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.circular(16),
+                                                ),
+                                                title: const Text('Registrar tasa USD'),
+                                                content: TextField(
+                                                  controller: controller,
+                                                  decoration: const InputDecoration(
+                                                    labelText: 'Tasa USD',
+                                                    border: OutlineInputBorder(),
+                                                    isDense: true,
+                                                  ),
+                                                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                                                ),
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed: () => Navigator.of(ctx2).pop(),
+                                                    child: const Text('Cancelar'),
+                                                  ),
+                                                  ElevatedButton(
+                                                    onPressed: () {
+                                                      final rate = double.tryParse(controller.text.replaceAll(',', '.')) ?? 1.0;
+                                                      currencyProvider.setRate(rate);
+                                                      Navigator.of(ctx2).pop();
+                                                    },
+                                                    child: const Text('Registrar'),
+                                                  ),
+                                                ],
+                                              );
+                                            },
+                                          );
+                                        },
+                                      );
+                                    } else {
+                                      currencyProvider.setCurrency('VES');
+                                    }
+                                  },
+                                ),
+                                const Text('USD'),
+                              ],
+                            );
+                          },
+                        ),
                         const SizedBox(height: 16),
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 8),

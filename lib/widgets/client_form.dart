@@ -157,7 +157,7 @@ class _ClientFormState extends State<ClientForm> {
           child: Material(
             color: Colors.white,
             borderRadius: BorderRadius.circular(18),
-            child: Padding(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
               child: Column(
                 mainAxisSize: MainAxisSize.min,

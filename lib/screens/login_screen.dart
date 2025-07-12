@@ -1,7 +1,12 @@
-import 'register_screen.dart';
-import 'forgot_password_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:hive/hive.dart';
+import 'package:provider/provider.dart';
+import '../providers/client_provider.dart';
+import '../providers/transaction_provider.dart';
+import 'register_screen.dart';
+import 'forgot_password_screen.dart';
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -11,6 +16,26 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  Future<void> _loginOffline() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    final email = _emailController.text.trim();
+    final sessionBox = await Hive.openBox('session');
+    final savedEmail = sessionBox.get('email');
+    if (savedEmail == email && email.isNotEmpty) {
+      Navigator.of(context).pushReplacementNamed('/dashboard');
+    } else {
+      setState(() {
+        _error = 'No hay sesión guardada para este usuario.';
+      });
+    }
+    setState(() {
+      _loading = false;
+    });
+  }
+
   // Datos de invitado (ajusta si es necesario)
   static const String _guestEmail = 'invitado@deudaflow.com';
   static const String _guestPassword = 'invitado123';
@@ -31,35 +56,91 @@ class _LoginScreenState extends State<LoginScreen> {
       _loading = true;
       _error = null;
     });
-    if (_emailController.text.trim().isEmpty ||
-        _passwordController.text.trim().isEmpty) {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    if (email.isEmpty || password.isEmpty) {
       setState(() {
         _error = 'Email y contraseña requeridos';
         _loading = false;
       });
       return;
     }
+    // Intentar login online primero
     try {
       final res = await Supabase.instance.client.auth.signInWithPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
+        email: email,
+        password: password,
       );
-      if (res.user == null) {
+      final user = res.user;
+      if (user == null) {
         setState(() {
           _error = 'Login fallido';
         });
       } else {
-        // Navegar a la pantalla principal
+        // Guardar usuario en Hive para saludo offline
+        final sessionBox = await Hive.openBox('session');
+        final userMeta = user.userMetadata;
+        final userName =
+            (userMeta != null &&
+                userMeta['name'] != null &&
+                userMeta['name'].toString().trim().isNotEmpty)
+            ? userMeta['name']
+            : null;
+        await sessionBox.put('userName', userName ?? '');
+        await sessionBox.put('email', user.email ?? email);
+        // Sincronizar datos locales si hay internet
+        try {
+          final clientProvider = Provider.of<ClientProvider>(
+            context,
+            listen: false,
+          );
+          final txProvider = Provider.of<TransactionProvider>(
+            context,
+            listen: false,
+          );
+          await clientProvider.syncPendingClients(user.id);
+          await txProvider.syncPendingTransactions(user.id);
+        } catch (_) {}
         Navigator.of(context).pushReplacementNamed('/dashboard');
       }
     } on AuthException catch (e) {
-      setState(() {
-        _error = e.message;
-      });
+      // Si es error de red, permitir login offline si hay datos guardados
+      if (e.message.toLowerCase().contains('network') ||
+          e.message.toLowerCase().contains('internet')) {
+        final sessionBox = await Hive.openBox('session');
+        final savedEmail = sessionBox.get('email');
+        if (savedEmail == email) {
+          // Login offline permitido
+          Navigator.of(context).pushReplacementNamed('/dashboard');
+        } else {
+          setState(() {
+            _error = 'No hay sesión guardada para este usuario.';
+          });
+        }
+      } else {
+        setState(() {
+          _error = e.message;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _error = 'Error inesperado: ${e.toString()}';
-      });
+      // Si es error de red, permitir login offline si hay datos guardados
+      if (e.toString().toLowerCase().contains('network') ||
+          e.toString().toLowerCase().contains('internet')) {
+        final sessionBox = await Hive.openBox('session');
+        final savedEmail = sessionBox.get('email');
+        if (savedEmail == email) {
+          // Login offline permitido
+          Navigator.of(context).pushReplacementNamed('/dashboard');
+        } else {
+          setState(() {
+            _error = 'No hay sesión guardada para este usuario.';
+          });
+        }
+      } else {
+        setState(() {
+          _error = 'Error inesperado: [${e.toString()}';
+        });
+      }
     } finally {
       setState(() {
         _loading = false;
@@ -158,25 +239,54 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                         ),
                       ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: _loading ? null : _loginOffline,
+                          icon: const Icon(Icons.wifi_off, size: 18),
+                          label: const Text(
+                            'Ingresar sin conexión',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 36),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: 10),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const RegisterScreen(),
+                          Expanded(
+                            child: TextButton(
+                              onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const RegisterScreen(),
+                                ),
+                              ),
+                              child: const Text(
+                                'Registrarse',
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            child: const Text('Registrarse'),
                           ),
-                          TextButton(
-                            onPressed: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const ForgotPasswordScreen(),
+                          Expanded(
+                            child: TextButton(
+                              onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const ForgotPasswordScreen(),
+                                ),
+                              ),
+                              child: const Text(
+                                '¿Olvidaste tu contraseña?',
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            child: const Text('¿Olvidaste tu contraseña?'),
                           ),
                         ],
                       ),

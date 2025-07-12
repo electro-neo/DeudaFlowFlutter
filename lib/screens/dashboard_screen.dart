@@ -1,17 +1,19 @@
-import '../widgets/dashboard_stats.dart';
-import '../widgets/cyclic_animated_fade_list.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/client_provider.dart';
-import '../providers/transaction_provider.dart';
-import '../models/client.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../utils/currency_utils.dart';
+
+import '../models/client.dart';
+import '../providers/client_provider.dart';
 import '../providers/currency_provider.dart';
-
+import '../providers/sync_provider.dart';
+import '../providers/transaction_provider.dart';
+import '../utils/currency_utils.dart';
 import '../utils/no_scrollbar_behavior.dart';
-// Para kIsWeb
+import '../widgets/cyclic_animated_fade_list.dart';
+import '../widgets/dashboard_stats.dart';
+import '../widgets/sync_banner.dart';
 
+// Para kIsWeb
 class DashboardScreen extends StatefulWidget {
   final String userId;
   const DashboardScreen({super.key, required this.userId});
@@ -73,6 +75,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _loadData();
+    // Inicializa el estado de SyncProvider para que el banner se muestre correctamente
+    Future.microtask(() {
+      Provider.of<SyncProvider>(context, listen: false).initializeConnectionStatus();
+    });
   }
 
   Future<void> _loadData() async {
@@ -99,15 +105,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ..sort((a, b) => b.date.compareTo(a.date));
     final recent = recentTransactions.take(10).toList();
 
-    // Obtener usuario actual de Supabase
+    // Obtener usuario actual de Supabase o modo offline
     final user = Supabase.instance.client.auth.currentUser;
     String userName = '';
+    bool isOffline = false;
     if (user != null) {
       final meta = user.userMetadata;
       if (meta != null &&
           meta['name'] != null &&
           (meta['name'] as String).trim().isNotEmpty) {
-        // Capitaliza cada palabra del nombre
         userName = (meta['name'] as String)
             .trim()
             .split(' ')
@@ -118,12 +124,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
             )
             .join(' ');
       } else if (user.email != null) {
-        // Usa la parte antes de la @ y capitaliza la primera letra
         final emailName = user.email!.split('@')[0];
         userName = emailName.isNotEmpty
             ? emailName[0].toUpperCase() + emailName.substring(1)
             : '';
       }
+    } else {
+      // Modo offline: obtener nombre de Hive
+      isOffline = true;
+      // Aquí podrías obtener el nombre offline si tienes la lógica
+      userName =
+          'Invitado'; // Puedes cambiar esto por el nombre real si lo tienes
     }
 
     // Saludo dinámico en español
@@ -165,6 +176,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
+                          // Eliminada la 'x' en modo offline
                         ],
                       ),
                     ),
@@ -305,6 +317,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     ),
                                   ),
                                 ],
+                              ),
+                              // SyncBanner centrado debajo del saludo
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [SyncBanner()],
                               ),
                             ],
                           ),

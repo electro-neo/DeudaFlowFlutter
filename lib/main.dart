@@ -1,9 +1,15 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'models/client_hive.dart';
+import 'models/transaction_hive.dart';
+
 import 'providers/client_provider.dart';
 import 'providers/transaction_provider.dart';
 import 'providers/currency_provider.dart';
+import 'providers/sync_provider.dart';
 
 import 'screens/login_screen.dart';
 import 'screens/welcome_screen.dart';
@@ -24,6 +30,22 @@ void main() async {
     url: supabaseUrl, // Usando la variable importada
     anonKey: supabaseAnonKey, // Usando la variable importada
   );
+
+  // Captura errores globales de Supabase y de Flutter
+  FlutterError.onError = (FlutterErrorDetails details) {
+    if (details.exception.toString().contains('SocketException')) {
+      // Solo loguea, no crashea
+      debugPrint('Supabase offline: \\n${details.exception}');
+    } else {
+      FlutterError.presentError(details);
+    }
+  };
+
+  await Hive.initFlutter();
+  Hive.registerAdapter(ClientHiveAdapter());
+  Hive.registerAdapter(TransactionHiveAdapter());
+  await Hive.openBox<ClientHive>('clients');
+  await Hive.openBox<TransactionHive>('transactions');
   runApp(const MyApp());
 }
 
@@ -40,6 +62,9 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => TabProvider()),
         ChangeNotifierProvider(create: (_) => TransactionFilterProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(
+          create: (_) => SyncProvider(),
+        ), // <--- Agrega esto
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) => MaterialApp(
@@ -91,15 +116,43 @@ class AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<AuthGate> {
+  Future<bool> checkInternet() async {
+    try {
+      final result = await InternetAddress.lookup(
+        'google.com',
+      ).timeout(const Duration(seconds: 2));
+      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final session = Supabase.instance.client.auth.currentSession;
-    if (session == null) {
-      return const LoginScreen();
-    } else {
-      final userId = session.user.id;
-      // Usar el nuevo MainScaffold para navegación global
-      return MainScaffold(userId: userId);
-    }
+    final clientsBox = Hive.box<ClientHive>('clients');
+    final transactionsBox = Hive.box<TransactionHive>('transactions');
+    final hasLocalData = clientsBox.isNotEmpty || transactionsBox.isNotEmpty;
+
+    return FutureBuilder<bool>(
+      future: checkInternet(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final isOnline = snapshot.data ?? false;
+        if (!isOnline && hasLocalData) {
+          // Modo offline: acceso directo
+          return MainScaffold(userId: 'offline');
+        }
+        // Si hay internet, consulta Supabase normalmente
+        final session = Supabase.instance.client.auth.currentSession;
+        if (session == null) {
+          return const LoginScreen();
+        } else {
+          final userId = session.user.id;
+          return MainScaffold(userId: userId);
+        }
+      },
+    );
   }
 }

@@ -1,0 +1,17 @@
+# Agrega estas dependencias a tu pubspec.yaml para soporte offline con Hive
+
+dependencies:
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  connectivity_plus: ^5.0.2
+  path_provider: ^2.1.2
+
+dev_dependencies:
+  hive_generator: ^2.0.1
+  build_runner: ^2.4.8
+
+# Luego ejecuta:
+# flutter pub get
+# flutter packages pub run build_runner build
+
+# Esto te permitirá usar Hive para guardar clientes y transacciones offline y sincronizar cuando haya internet.

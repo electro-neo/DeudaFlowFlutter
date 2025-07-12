@@ -5,7 +5,6 @@ import '../providers/transaction_filter_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../models/client.dart';
 import '../providers/client_provider.dart';
-import '../utils/currency_utils.dart';
 import '../utils/no_scrollbar_behavior.dart';
 
 class TransactionsScreen extends StatefulWidget {

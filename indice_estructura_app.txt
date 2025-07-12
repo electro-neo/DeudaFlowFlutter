@@ -239,3 +239,13 @@ Estos permisos están declarados en `android/app/src/main/AndroidManifest.xml` y
 - **Visualización:** El estado de sincronización se muestra en las tarjetas (ClientCard y, si aplica, TransactionCard).
 
 ---
+---
+## Lógica y sincronización offline/online (Actualización 12/07/2025)
+
+- TransactionProvider y ClientProvider ahora almacenan y utilizan el userId más reciente para garantizar la sincronización automática y manual de transacciones y clientes, incluso tras reinstalación o limpieza de datos.
+- Al recuperar conexión, las transacciones pendientes se sincronizan automáticamente y se recarga el listado desde Supabase, actualizando el estado local y eliminando el estado "pendiente por sincronizar" si ya existen en el backend.
+- El balance de los clientes se recalcula automáticamente tras cualquier cambio en transacciones.
+- Se reforzó la migración automática de campos en Hive y la robustez ante datos corruptos.
+- El polling y la lógica de feedback visual en la UI se mejoraron para todos los flujos offline/online.
+
+---

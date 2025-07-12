@@ -1,6 +1,8 @@
 // --- INICIO: Código restaurado del último commit y ajustado para layout independiente ---
 
 import 'package:flutter/material.dart';
+import 'dart:async';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:provider/provider.dart';
 import '../providers/transaction_provider.dart';
 import '../providers/client_provider.dart';
@@ -23,8 +25,13 @@ class ClientsScreen extends StatefulWidget {
   State<ClientsScreen> createState() => _ClientsScreenState();
 }
 
-class _ClientsScreenState extends State<ClientsScreen> {
+class _ClientsScreenState extends State<ClientsScreen>
+    with SingleTickerProviderStateMixin {
   // ...existing code...
+
+  bool _isSyncing = false;
+  StreamSubscription? _connectivitySubscription;
+  late final AnimationController _syncController;
 
   final FocusScopeNode _screenFocusScopeNode = FocusScopeNode();
   bool _showSearch = false;
@@ -49,6 +56,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
       );
       await txProvider.addTransaction(tx, widget.userId, client.id);
       // Ya no recalculamos el balance manualmente aquí, el provider lo hace automáticamente
+      if (!mounted) return;
       Navigator.of(context).pop();
       await clientProvider.loadClients(widget.userId);
     }
@@ -151,11 +159,65 @@ class _ClientsScreenState extends State<ClientsScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _syncController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    );
+    // Escucha cambios de conectividad y dispara sincronización automática
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
+      result,
+    ) async {
+      if (result != ConnectivityResult.none && !_isSyncing) {
+        await _syncAll();
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     _searchFocusNode.dispose();
     _screenFocusScopeNode.dispose();
+    _connectivitySubscription?.cancel();
+    _syncController.dispose();
     super.dispose();
+  }
+
+  Future<void> _syncAll() async {
+    if (_isSyncing) return;
+    setState(() => _isSyncing = true);
+    _syncController.repeat();
+    final provider = Provider.of<ClientProvider>(context, listen: false);
+    final txProvider = Provider.of<TransactionProvider>(context, listen: false);
+    await provider.syncPendingClients(widget.userId);
+    await txProvider.syncPendingTransactions(widget.userId);
+    // Esperar a que no haya clientes pendientes de eliminar antes de recargar la lista
+    int intentos = 0;
+    bool hayPendientes;
+    do {
+      await provider.loadClients(widget.userId);
+      final box = Hive.box<ClientHive>('clients');
+      hayPendientes = box.values.any((c) => c.pendingDelete == true);
+      if (hayPendientes) {
+        await Future.delayed(const Duration(milliseconds: 500));
+      }
+      intentos++;
+    } while (hayPendientes && intentos < 8);
+    await txProvider.loadTransactions(widget.userId);
+    if (mounted) {
+      setState(() => _isSyncing = false);
+      _syncController.reset();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Sincronización de clientes y transacciones completada.',
+          ),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   // initState eliminado completamente para evitar cualquier acceso a context
@@ -418,64 +480,26 @@ class _ClientsScreenState extends State<ClientsScreen> {
                                         ).colorScheme.primary,
                                         foregroundColor: Colors.white,
                                         elevation: 2,
-                                        onPressed: () async {
-                                          final provider =
-                                              Provider.of<ClientProvider>(
-                                                context,
-                                                listen: false,
-                                              );
-                                          final txProvider =
-                                              Provider.of<TransactionProvider>(
-                                                context,
-                                                listen: false,
-                                              );
-                                          await provider.syncPendingClients(
-                                            widget.userId,
-                                          );
-                                          await txProvider
-                                              .syncPendingTransactions(
-                                                widget.userId,
-                                              );
-                                          // Refuerzo: Esperar a que no haya clientes pendientes de eliminar antes de recargar la lista
-                                          int intentos = 0;
-                                          bool hayPendientes;
-                                          do {
-                                            await provider.loadClients(
-                                              widget.userId,
-                                            );
-                                            final box = Hive.box<ClientHive>(
-                                              'clients',
-                                            );
-                                            hayPendientes = box.values.any(
-                                              (c) => c.pendingDelete == true,
-                                            );
-                                            if (hayPendientes) {
-                                              await Future.delayed(
-                                                const Duration(
-                                                  milliseconds: 500,
-                                                ),
-                                              );
-                                            }
-                                            intentos++;
-                                          } while (hayPendientes &&
-                                              intentos < 8);
-                                          await txProvider.loadTransactions(
-                                            widget.userId,
-                                          );
-                                          if (!mounted) return;
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                'Sincronización forzada completada.',
+                                        onPressed: _isSyncing ? null : _syncAll,
+                                        tooltip:
+                                            'Forzar sincronización de clientes y transacciones',
+                                        child: AnimatedBuilder(
+                                          animation: _syncController,
+                                          builder: (context, child) {
+                                            return Transform.rotate(
+                                              angle: _isSyncing
+                                                  ? _syncController.value *
+                                                        6.28319
+                                                  : 0, // 2*pi
+                                              child: Icon(
+                                                Icons.sync,
+                                                color: _isSyncing
+                                                    ? Colors.green
+                                                    : Colors.white,
                                               ),
-                                              duration: Duration(seconds: 2),
-                                            ),
-                                          );
-                                        },
-                                        tooltip: 'Forzar sincronización',
-                                        child: const Icon(Icons.sync),
+                                            );
+                                          },
+                                        ),
                                       ),
                                       const SizedBox(width: 12),
                                       FloatingActionButton(

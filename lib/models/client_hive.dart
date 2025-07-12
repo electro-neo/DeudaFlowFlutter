@@ -53,15 +53,21 @@ class ClientHive extends HiveObject {
       balance: (map['balance'] is num)
           ? (map['balance'] as num).toDouble()
           : double.tryParse(map['balance']?.toString() ?? '') ?? 0.0,
-      synced: map['synced'] is bool
-          ? map['synced'] as bool
-          : (map['synced'] is int ? (map['synced'] == 1) : false),
-      pendingDelete: map['pendingDelete'] is bool
-          ? map['pendingDelete'] as bool
-          : (map['pendingDelete'] is int ? (map['pendingDelete'] == 1) : false),
+      synced: map['synced'] == null
+          ? false
+          : (map['synced'] is bool
+                ? map['synced'] as bool
+                : (map['synced'] is int ? (map['synced'] == 1) : false)),
+      pendingDelete: map['pendingDelete'] == null
+          ? false
+          : (map['pendingDelete'] is bool
+                ? map['pendingDelete'] as bool
+                : (map['pendingDelete'] is int
+                      ? (map['pendingDelete'] == 1)
+                      : false)),
     );
     print(
-      '[CLIENT_HIVE][fromMap] Instancia creada: id=${client.id}, name=${client.name}, pendingDelete=${client.pendingDelete}, synced=${client.synced}',
+      '[CLIENT_HIVE][fromMap] Instancia creada: id=[36m${client.id}[0m, name=[36m${client.name}[0m, pendingDelete=${client.pendingDelete}, synced=${client.synced}',
     );
     return client;
   }

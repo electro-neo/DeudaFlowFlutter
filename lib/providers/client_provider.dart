@@ -97,7 +97,7 @@ class ClientProvider extends ChangeNotifier {
               await box.put(newId, updated);
 
               // --- ACTUALIZAR TRANSACCIONES CON EL NUEVO ID DE CLIENTE ---
-              var txBox;
+              Box<TransactionHive> txBox;
               if (Hive.isBoxOpen('transactions')) {
                 txBox = Hive.box<TransactionHive>('transactions');
               } else {
@@ -122,15 +122,17 @@ class ClientProvider extends ChangeNotifier {
           await c.save();
           // Refuerzo: tras sincronizar, asegurar que TODAS las transacciones de este cliente tengan el id correcto
           if (c.id.length == 36) {
-            var txBox;
+            Box<TransactionHive> txBox;
             if (Hive.isBoxOpen('transactions')) {
               txBox = Hive.box<TransactionHive>('transactions');
             } else {
               txBox = await Hive.openBox<TransactionHive>('transactions');
             }
-            final txsToUpdate = txBox.values
-                .where((tx) => tx.clientId != c.id && tx.name == c.name)
-                .toList();
+            final clientBox = Hive.box<ClientHive>('clients');
+            final txsToUpdate = txBox.values.where((tx) {
+              final relatedClient = clientBox.get(tx.clientId);
+              return tx.clientId != c.id && relatedClient?.name == c.name;
+            }).toList();
             for (final tx in txsToUpdate) {
               tx.clientId = c.id;
               await tx.save();
@@ -196,11 +198,18 @@ class ClientProvider extends ChangeNotifier {
   Future<void> loadClients(String userId) async {
     final isOnline = await _isOnline();
     final box = await Hive.openBox<ClientHive>('clients');
-    // MIGRACIÓN AUTOMÁTICA: Fuerza la escritura de los campos para todos los clientes
+    // MIGRACIÓN AUTOMÁTICA: Fuerza la escritura de los campos para todos los clientes y corrige nulls
     for (final c in box.values) {
-      c.synced = c.synced;
-      c.pendingDelete = c.pendingDelete;
-      c.save();
+      bool changed = false;
+      if (c.synced == null) {
+        c.synced = false;
+        changed = true;
+      }
+      if (c.pendingDelete == null) {
+        c.pendingDelete = false;
+        changed = true;
+      }
+      if (changed) await c.save();
     }
     if (isOnline) {
       try {
@@ -321,7 +330,7 @@ class ClientProvider extends ChangeNotifier {
       finalId = updated.id;
       // --- ACTUALIZAR TRANSACCIONES CON EL NUEVO ID DE CLIENTE ---
       if (finalId != client.id) {
-        var txBox;
+        Box<TransactionHive> txBox;
         if (Hive.isBoxOpen('transactions')) {
           txBox = Hive.box<TransactionHive>('transactions');
         } else {

@@ -426,7 +426,7 @@ class _ClientCardActionsState extends State<_ClientCardActions>
                       onTap: () {
                         widget.onDelete?.call();
                         if ((context is Element && context.mounted) ||
-                            !(context is Element)) {
+                            context is! Element) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text(

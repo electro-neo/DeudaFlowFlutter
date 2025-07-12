@@ -23,13 +23,14 @@ class ClientHiveAdapter extends TypeAdapter<ClientHive> {
       phone: fields[3] as String?,
       balance: fields[4] as double,
       synced: fields[5] as bool,
+      pendingDelete: fields[6] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, ClientHive obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(7)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -41,7 +42,9 @@ class ClientHiveAdapter extends TypeAdapter<ClientHive> {
       ..writeByte(4)
       ..write(obj.balance)
       ..writeByte(5)
-      ..write(obj.synced);
+      ..write(obj.synced)
+      ..writeByte(6)
+      ..write(obj.pendingDelete);
   }
 
   @override

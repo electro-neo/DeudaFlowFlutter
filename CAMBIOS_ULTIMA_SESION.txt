@@ -50,3 +50,18 @@ Commit sugerido:
 "UI/UX: Mejoras en modal de recibo general:\n- Botones de acción centrados y compactos\n- Fechas fuera del scroll\n- Mejor disposición visual y accesibilidad"
 
 "Offline-first: Estado de sincronización visual en ClientCard, migración automática Hive, feedback inmediato en UI y mejoras de sincronización en segundo plano."
+---
+Actualización 12/07/2025 (sincronización offline/online robusta):
+
+- Refuerzo y depuración completa de la lógica de sincronización offline/online para clientes y transacciones usando Supabase y Hive.
+- Ahora las transacciones y clientes creados offline se sincronizan automáticamente al recuperar conexión, incluso si la app fue reinstalada o los datos locales fueron borrados.
+- Se implementó almacenamiento y uso del userId más reciente en TransactionProvider para garantizar la sincronización automática y manual, evitando el warning de userId ausente.
+- Tras sincronizar, se recarga el listado desde Supabase y se actualiza el estado local de todas las transacciones, marcando como sincronizadas las que ya existen en el backend.
+- El estado "pendiente por sincronizar" desaparece correctamente tras la sincronización, incluso si hubo fallos previos o duplicidad.
+- Se garantiza que el balance de los clientes se recalcula automáticamente tras cualquier cambio en transacciones.
+- Se mejoró la migración automática de campos en Hive y la robustez ante datos corruptos (recomendación de reinstalación para limpiar datos viejos).
+- Se limpió y reforzó la lógica de polling y feedback visual en la UI para todos los flujos offline/online.
+
+Commit sugerido:
+
+"Sync robusto offline/online: userId persistente, recarga desde Supabase tras sincronizar, feedback inmediato en UI, migración Hive y polling seguro."

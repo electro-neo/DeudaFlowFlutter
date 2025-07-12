@@ -3,8 +3,6 @@ part 'transaction_hive.g.dart';
 
 @HiveType(typeId: 1)
 class TransactionHive extends HiveObject {
-  @HiveField(7)
-  bool pendingDelete;
   @HiveField(0)
   String id;
   @HiveField(1)
@@ -19,6 +17,10 @@ class TransactionHive extends HiveObject {
   bool synced;
   @HiveField(6)
   String description;
+  @HiveField(7)
+  bool pendingDelete;
+  @HiveField(8)
+  String? userId;
 
   TransactionHive({
     required this.id,
@@ -29,6 +31,7 @@ class TransactionHive extends HiveObject {
     required this.description,
     this.synced = false,
     this.pendingDelete = false,
+    this.userId,
   });
 
   factory TransactionHive.fromMap(Map<String, dynamic> map) {
@@ -89,6 +92,7 @@ class TransactionHive extends HiveObject {
       pendingDelete: map['pendingDelete'] is bool
           ? map['pendingDelete'] as bool
           : (map['pendingDelete'] is int ? (map['pendingDelete'] == 1) : false),
+      userId: map['userId']?.toString(),
     );
   }
 
@@ -101,5 +105,6 @@ class TransactionHive extends HiveObject {
     'description': description,
     'synced': synced,
     'pendingDelete': pendingDelete,
+    'userId': userId,
   };
 }

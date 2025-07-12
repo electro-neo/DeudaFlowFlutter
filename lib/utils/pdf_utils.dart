@@ -39,16 +39,13 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
               style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
             ),
             pw.Text(
-              'Teléfono: ${(client.phone != null &&
-                          client.phone.toString().trim().isNotEmpty)
-                      ? client.phone.toString()
-                      : 'Sin Información'}',
+              'Teléfono: ${(client.phone != null && client.phone.toString().trim().isNotEmpty) ? client.phone.toString() : 'Sin Información'}',
               style: pw.TextStyle(fontSize: 10),
             ),
             pw.SizedBox(height: 4),
             if (txs.isEmpty) pw.Text('Sin movimientos en el rango.'),
             if (txs.isNotEmpty)
-              pw.Table.fromTextArray(
+              pw.TableHelper.fromTextArray(
                 headers: ['Tipo', 'Descripción', 'Fecha', 'Monto'],
                 data: txs
                     .map(
@@ -105,7 +102,7 @@ pw.Document buildGeneralReceiptPDF(List<Client> clients) {
               style: pw.TextStyle(fontSize: 10),
             ),
             pw.SizedBox(height: 4),
-            pw.Table.fromTextArray(
+            pw.TableHelper.fromTextArray(
               headers: ['Saldo'],
               data: [
                 [client.balance.toStringAsFixed(2)],
@@ -148,7 +145,7 @@ Future<void> exportAndShareClientReceiptPDF(
           ),
           pw.Text('ID: ${client.id}'),
           pw.SizedBox(height: 10),
-          pw.Table.fromTextArray(
+          pw.TableHelper.fromTextArray(
             headers: ['Tipo', 'Monto', 'Descripción', 'Fecha'],
             data: transactions
                 .map(
@@ -210,7 +207,7 @@ Future<void> exportClientReceiptToPDF(
           ),
           pw.Text('ID: ${client.id}'),
           pw.SizedBox(height: 10),
-          pw.Table.fromTextArray(
+          pw.TableHelper.fromTextArray(
             headers: ['Tipo', 'Monto', 'Descripción', 'Fecha'],
             data: transactions
                 .map(

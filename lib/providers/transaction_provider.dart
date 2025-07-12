@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:hive/hive.dart';
 import '../models/transaction.dart';
 import '../models/transaction_hive.dart';
+import '../models/client_hive.dart';
 import '../services/supabase_service.dart';
 
 class TransactionProvider extends ChangeNotifier {
@@ -14,7 +15,7 @@ class TransactionProvider extends ChangeNotifier {
 
   Future<bool> isOnline() async {
     final result = await Connectivity().checkConnectivity();
-    if (result == ConnectivityResult.none) return false;
+    if (result.contains(ConnectivityResult.none)) return false;
     // Prueba acceso real a internet
     try {
       final response = await InternetAddress.lookup('google.com');
@@ -29,7 +30,9 @@ class TransactionProvider extends ChangeNotifier {
 
   Future<void> loadTransactions(String userId) async {
     final online = await isOnline();
-    final box = await Hive.openBox<TransactionHive>('transactions');
+    final box = Hive.isBoxOpen('transactions')
+        ? Hive.box<TransactionHive>('transactions')
+        : await Hive.openBox<TransactionHive>('transactions');
     // MIGRACIÓN AUTOMÁTICA: Fuerza la escritura de los campos para todos los registros
     for (final t in box.values) {
       t.synced = t.synced;
@@ -71,15 +74,56 @@ class TransactionProvider extends ChangeNotifier {
         }
         // Refresca la lista desde Hive para asegurar que el estado synced es correcto
         _transactions = box.values.map((t) => Transaction.fromHive(t)).toList();
+        // Recalcula balances de todos los clientes tras cargar transacciones
+        await _recalculateAllClientsBalances();
       } catch (e) {
         // Si falla la red, carga desde Hive
         _transactions = box.values.map((t) => Transaction.fromHive(t)).toList();
+        await _recalculateAllClientsBalances();
       }
     } else {
       // Offline: usa Hive
       _transactions = box.values.map((t) => Transaction.fromHive(t)).toList();
+      await _recalculateAllClientsBalances();
     }
     notifyListeners();
+  }
+
+  // Recalcula el balance de todos los clientes existentes
+  Future<void> _recalculateAllClientsBalances() async {
+    final clientBox = Hive.isBoxOpen('clients')
+        ? Hive.box<ClientHive>('clients')
+        : await Hive.openBox<ClientHive>('clients');
+    for (final client in clientBox.values) {
+      await recalculateClientBalance(client.id);
+    }
+  }
+
+  // Recalcula y guarda el balance de un cliente tras cambios en sus transacciones
+  Future<void> recalculateClientBalance(String clientId) async {
+    final clientBox = Hive.isBoxOpen('clients')
+        ? Hive.box<ClientHive>('clients')
+        : await Hive.openBox<ClientHive>('clients');
+    final txBox = Hive.isBoxOpen('transactions')
+        ? Hive.box<TransactionHive>('transactions')
+        : await Hive.openBox<TransactionHive>('transactions');
+    final client = clientBox.get(clientId);
+    if (client == null) return;
+    final txs = txBox.values.where(
+      (t) => t.clientId == clientId && t.pendingDelete != true,
+    );
+    double newBalance = 0;
+    for (final t in txs) {
+      if (t.type == 'debt') {
+        newBalance -= t.amount;
+      } else if (t.type == 'payment') {
+        newBalance += t.amount;
+      }
+    }
+    if (client.balance != newBalance) {
+      client.balance = newBalance;
+      await client.save();
+    }
   }
 
   Future<void> addTransaction(
@@ -87,7 +131,9 @@ class TransactionProvider extends ChangeNotifier {
     String userId,
     String clientId,
   ) async {
-    final box = Hive.box<TransactionHive>('transactions');
+    final box = Hive.isBoxOpen('transactions')
+        ? Hive.box<TransactionHive>('transactions')
+        : await Hive.openBox<TransactionHive>('transactions');
     final online = await isOnline();
     if (online) {
       try {
@@ -138,17 +184,20 @@ class TransactionProvider extends ChangeNotifier {
         ),
       );
     }
+    await recalculateClientBalance(clientId);
     await loadTransactions(userId);
   }
 
   Future<void> updateTransaction(Transaction tx, String userId) async {
     final online = await isOnline();
+    final box = Hive.isBoxOpen('transactions')
+        ? Hive.box<TransactionHive>('transactions')
+        : await Hive.openBox<TransactionHive>('transactions');
     if (online) {
       try {
         await _service.updateTransaction(tx);
       } catch (_) {
         // Si falla la red, marca como no sincronizado
-        final box = Hive.box<TransactionHive>('transactions');
         final t = box.get(tx.id);
         if (t != null) {
           t
@@ -159,9 +208,9 @@ class TransactionProvider extends ChangeNotifier {
           await t.save();
         }
       }
+      await recalculateClientBalance(tx.clientId);
       await loadTransactions(userId);
     } else {
-      final box = Hive.box<TransactionHive>('transactions');
       final t = box.get(tx.id);
       if (t != null) {
         t
@@ -171,15 +220,19 @@ class TransactionProvider extends ChangeNotifier {
           ..synced = false;
         await t.save();
       }
+      await recalculateClientBalance(tx.clientId);
       await loadTransactions(userId);
     }
   }
 
   Future<void> deleteTransaction(String transactionId, String userId) async {
     final online = await isOnline();
-    final box = Hive.box<TransactionHive>('transactions');
+    final box = Hive.isBoxOpen('transactions')
+        ? Hive.box<TransactionHive>('transactions')
+        : await Hive.openBox<TransactionHive>('transactions');
     final t = box.get(transactionId);
     if (t == null) return;
+    final clientId = t.clientId;
     if (online) {
       try {
         await _service.deleteTransaction(transactionId);
@@ -190,12 +243,14 @@ class TransactionProvider extends ChangeNotifier {
         t.synced = false;
         await t.save();
       }
+      await recalculateClientBalance(clientId);
       await loadTransactions(userId);
     } else {
       // Solo marca como pendiente de eliminar
       t.pendingDelete = true;
       t.synced = false;
       await t.save();
+      await recalculateClientBalance(clientId);
       await loadTransactions(userId);
     }
   }
@@ -203,7 +258,9 @@ class TransactionProvider extends ChangeNotifier {
   /// Sincroniza los cambios locales pendientes cuando hay internet
   Future<void> syncPendingTransactions(String userId) async {
     if (!await isOnline()) return;
-    final box = Hive.box<TransactionHive>('transactions');
+    final box = Hive.isBoxOpen('transactions')
+        ? Hive.box<TransactionHive>('transactions')
+        : await Hive.openBox<TransactionHive>('transactions');
     // Primero elimina en Supabase las transacciones pendientes de eliminar
     final toDelete = box.values.where((t) => t.pendingDelete == true).toList();
     for (final t in toDelete) {

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:hive/hive.dart';
 import '../models/client.dart';
 import '../models/client_hive.dart';
+import '../models/transaction_hive.dart';
 import '../services/supabase_service.dart';
 
 class ClientProvider extends ChangeNotifier {
@@ -98,9 +99,9 @@ class ClientProvider extends ChangeNotifier {
               // --- ACTUALIZAR TRANSACCIONES CON EL NUEVO ID DE CLIENTE ---
               var txBox;
               if (Hive.isBoxOpen('transactions')) {
-                txBox = Hive.box('transactions');
+                txBox = Hive.box<TransactionHive>('transactions');
               } else {
-                txBox = await Hive.openBox('transactions');
+                txBox = await Hive.openBox<TransactionHive>('transactions');
               }
               final txsToUpdate = txBox.values
                   .where((tx) => tx.clientId == c.id)
@@ -123,9 +124,9 @@ class ClientProvider extends ChangeNotifier {
           if (c.id.length == 36) {
             var txBox;
             if (Hive.isBoxOpen('transactions')) {
-              txBox = Hive.box('transactions');
+              txBox = Hive.box<TransactionHive>('transactions');
             } else {
-              txBox = await Hive.openBox('transactions');
+              txBox = await Hive.openBox<TransactionHive>('transactions');
             }
             final txsToUpdate = txBox.values
                 .where((tx) => tx.clientId != c.id && tx.name == c.name)
@@ -157,7 +158,9 @@ class ClientProvider extends ChangeNotifier {
 
   Future<bool> _isOnline() async {
     final result = await Connectivity().checkConnectivity();
-    if (result == ConnectivityResult.none) return false;
+    if (result.contains(ConnectivityResult.none)) {
+      return false;
+    }
     // Prueba acceso real a internet
     try {
       final response = await InternetAddress.lookup('google.com');
@@ -316,6 +319,22 @@ class ClientProvider extends ChangeNotifier {
         orElse: () => box.get(client.id)!,
       );
       finalId = updated.id;
+      // --- ACTUALIZAR TRANSACCIONES CON EL NUEVO ID DE CLIENTE ---
+      if (finalId != client.id) {
+        var txBox;
+        if (Hive.isBoxOpen('transactions')) {
+          txBox = Hive.box<TransactionHive>('transactions');
+        } else {
+          txBox = await Hive.openBox<TransactionHive>('transactions');
+        }
+        final txsToUpdate = txBox.values
+            .where((tx) => tx.clientId == client.id)
+            .toList();
+        for (final tx in txsToUpdate) {
+          tx.clientId = finalId;
+          await tx.save();
+        }
+      }
     }
     return finalId;
   }

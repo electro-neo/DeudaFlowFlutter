@@ -14,12 +14,12 @@ class SyncProvider extends ChangeNotifier {
   /// Refuerza el estado inicial de conexión al crear el provider
   Future<void> initializeConnectionStatus() async {
     final result = await Connectivity().checkConnectivity();
-    final online = result != ConnectivityResult.none;
+    final online = !result.contains(ConnectivityResult.none);
     _isOnline = online;
     notifyListeners();
   }
 
-  late StreamSubscription _subscription;
+  late StreamSubscription<List<ConnectivityResult>> _subscription;
   bool _isOnline = true;
   bool get isOnline => _isOnline;
 
@@ -75,7 +75,7 @@ class SyncProvider extends ChangeNotifier {
   void startSync(BuildContext context, String userId) {
     _userId = userId;
     _subscription = Connectivity().onConnectivityChanged.listen((result) async {
-      final online = result != ConnectivityResult.none;
+      final online = !result.contains(ConnectivityResult.none);
       // Solo sincroniza si pasamos de offline a online
       if (online && !_isOnline) {
         print(

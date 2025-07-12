@@ -4,8 +4,12 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 /// Inicializa Hive y abre las cajas necesarias
 Future<void> initOfflineStorage() async {
   await Hive.initFlutter();
-  await Hive.openBox('clients');
-  await Hive.openBox('transactions');
+  if (!Hive.isBoxOpen('clients')) {
+    await Hive.openBox('clients');
+  }
+  if (!Hive.isBoxOpen('transactions')) {
+    await Hive.openBox('transactions');
+  }
 }
 
 /// Guarda un cliente localmente
@@ -35,5 +39,5 @@ List<Map<String, dynamic>> getTransactionsOffline() {
 /// Verifica si hay conexión a internet
 Future<bool> isOnline() async {
   final result = await Connectivity().checkConnectivity();
-  return result != ConnectivityResult.none;
+  return !result.contains(ConnectivityResult.none);
 }

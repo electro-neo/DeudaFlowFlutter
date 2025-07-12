@@ -822,6 +822,51 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                         ),
                                       ),
                                     ),
+                                  if (t.synced == true)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                        top: 4,
+                                        bottom: 2,
+                                      ),
+                                      child: Center(
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.green.withOpacity(
+                                              0.10,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                Icons.check_circle,
+                                                size: 16,
+                                                color: Colors.green,
+                                              ),
+                                              SizedBox(width: 8),
+                                              Text(
+                                                'Sincronizado',
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: Colors.green[800],
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                 ],
                               ),
                             ),

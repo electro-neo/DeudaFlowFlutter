@@ -24,32 +24,7 @@ class ClientsScreen extends StatefulWidget {
 }
 
 class _ClientsScreenState extends State<ClientsScreen> {
-  /// Recalcula el balance de todos los clientes según sus transacciones actuales
-  Future<void> recalculateAllClientBalances() async {
-    final clientProvider = Provider.of<ClientProvider>(context, listen: false);
-    final txProvider = Provider.of<TransactionProvider>(context, listen: false);
-    await txProvider.loadTransactions(widget.userId);
-    await clientProvider.loadClients(widget.userId);
-    final box = Hive.box<ClientHive>('clients');
-    final clients = box.values.toList();
-    final txs = txProvider.transactions;
-    for (final client in clients) {
-      final clientTxs = txs.where((t) => t.clientId == client.id);
-      double newBalance = 0;
-      for (final t in clientTxs) {
-        if (t.type == 'debt') {
-          newBalance -= t.amount;
-        } else if (t.type == 'payment') {
-          newBalance += t.amount;
-        }
-      }
-      if (client.balance != newBalance) {
-        client.balance = newBalance;
-        await client.save();
-      }
-    }
-    await clientProvider.loadClients(widget.userId);
-  }
+  // ...existing code...
 
   final FocusScopeNode _screenFocusScopeNode = FocusScopeNode();
   bool _showSearch = false;
@@ -73,21 +48,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
         listen: false,
       );
       await txProvider.addTransaction(tx, widget.userId, client.id);
-      // Obtener el balance actualizado del cliente desde las transacciones
-      await txProvider.loadTransactions(widget.userId);
-      final allTxs = txProvider.transactions.where(
-        (t) => t.clientId == client.id,
-      );
-      double newBalance = 0;
-      for (final t in allTxs) {
-        if (t.type == 'debt') {
-          newBalance -= t.amount;
-        } else if (t.type == 'payment') {
-          newBalance += t.amount;
-        }
-      }
-      client.balance = newBalance;
-      await client.save();
+      // Ya no recalculamos el balance manualmente aquí, el provider lo hace automáticamente
       Navigator.of(context).pop();
       await clientProvider.loadClients(widget.userId);
     }
@@ -203,7 +164,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_didLoadClients) {
-      recalculateAllClientBalances();
+      // Ya no es necesario recalcular balances manualmente, el provider lo hace automáticamente
       _didLoadClients = true;
     }
   }

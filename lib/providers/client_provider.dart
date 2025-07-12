@@ -108,6 +108,27 @@ class ClientProvider extends ChangeNotifier {
           await _service.updateClient(client);
           c.synced = true;
           await c.save();
+          // Refuerzo: tras sincronizar, asegurar que TODAS las transacciones de este cliente tengan el id correcto
+          if (c.id.length == 36) {
+            var txBox;
+            if (Hive.isBoxOpen('transactions')) {
+              txBox = Hive.box('transactions');
+            } else {
+              txBox = await Hive.openBox('transactions');
+            }
+            final txsToUpdate = txBox.values
+                .where((tx) => tx.clientId != c.id && tx.name == c.name)
+                .toList();
+            for (final tx in txsToUpdate) {
+              tx.clientId = c.id;
+              await tx.save();
+            }
+            if (txsToUpdate.isNotEmpty) {
+              print(
+                '[SYNC][INFO] Transacciones antiguas actualizadas al id correcto de cliente: ${c.id} (${txsToUpdate.length} transacciones)',
+              );
+            }
+          }
         }
       } catch (e) {
         print('[SYNC][ERROR] Error al sincronizar cliente: $e');

@@ -9,7 +9,8 @@ import '../services/supabase_service.dart';
 class TransactionProvider extends ChangeNotifier {
   final SupabaseService _service = SupabaseService();
   List<Transaction> _transactions = [];
-  List<Transaction> get transactions => _transactions;
+  List<Transaction> get transactions =>
+      _transactions.where((t) => t.pendingDelete != true).toList();
 
   Future<bool> isOnline() async {
     final result = await Connectivity().checkConnectivity();
@@ -39,13 +40,13 @@ class TransactionProvider extends ChangeNotifier {
       try {
         // Online: usa Supabase y sincroniza Hive
         final remoteTxs = await _service.fetchTransactions(userId);
-        // Mantén las transacciones locales no sincronizadas
+        // Mantén las transacciones locales no sincronizadas o pendientes de eliminar
         final localPending = box.values
-            .where((t) => t.synced == false)
+            .where((t) => t.synced == false || t.pendingDelete == true)
             .toList();
         // Elimina localmente las transacciones pendientes que nunca se sincronizaron y fueron eliminadas offline
         final localPendingToKeep = localPending
-            .where((t) => t.id != null && t.id != '')
+            .where((t) => t.id != '')
             .toList();
         await box.clear();
         // Guarda las de Supabase como sincronizadas
@@ -139,18 +140,25 @@ class TransactionProvider extends ChangeNotifier {
 
   Future<void> deleteTransaction(String transactionId, String userId) async {
     final online = await isOnline();
+    final box = Hive.box<TransactionHive>('transactions');
+    final t = box.get(transactionId);
+    if (t == null) return;
     if (online) {
       try {
         await _service.deleteTransaction(transactionId);
-      } catch (_) {
-        // Si falla la red, elimina localmente pero marca como pendiente
-        final box = Hive.box<TransactionHive>('transactions');
         await box.delete(transactionId);
+      } catch (_) {
+        // Si falla la red, marca como pendiente de eliminar
+        t.pendingDelete = true;
+        t.synced = false;
+        await t.save();
       }
       await loadTransactions(userId);
     } else {
-      final box = Hive.box<TransactionHive>('transactions');
-      await box.delete(transactionId);
+      // Solo marca como pendiente de eliminar
+      t.pendingDelete = true;
+      t.synced = false;
+      await t.save();
       await loadTransactions(userId);
     }
   }
@@ -159,7 +167,20 @@ class TransactionProvider extends ChangeNotifier {
   Future<void> syncPendingTransactions(String userId) async {
     if (!await isOnline()) return;
     final box = Hive.box<TransactionHive>('transactions');
-    final pending = box.values.where((t) => !t.synced).toList();
+    // Primero elimina en Supabase las transacciones pendientes de eliminar
+    final toDelete = box.values.where((t) => t.pendingDelete == true).toList();
+    for (final t in toDelete) {
+      try {
+        await _service.deleteTransaction(t.id);
+        await box.delete(t.id);
+      } catch (_) {
+        // Si falla, sigue pendiente
+      }
+    }
+    // Luego sincroniza las transacciones pendientes de agregar/editar
+    final pending = box.values
+        .where((t) => !t.synced && t.pendingDelete != true)
+        .toList();
     for (final t in pending) {
       final tx = Transaction.fromHive(t).copyWith(userId: userId);
       try {

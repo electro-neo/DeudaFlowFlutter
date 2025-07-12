@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+
+import 'package:hive/hive.dart';
 import 'package:provider/provider.dart';
 
 import 'client_provider.dart';
@@ -80,12 +82,26 @@ class SyncProvider extends ChangeNotifier {
           '[SYNC][PROVIDER] Reconectado a internet. Iniciando sincronización de clientes y transacciones...',
         );
         await _syncAll(context, userId);
-        // Opcional: recargar clientes después de sincronizar
+        // Refuerzo: recargar clientes solo cuando no haya pendientes de eliminar
         try {
-          await Provider.of<ClientProvider>(
+          final clientProvider = Provider.of<ClientProvider>(
             context,
             listen: false,
-          ).loadClients(userId);
+          );
+          int intentos = 0;
+          bool hayPendientes;
+          do {
+            await clientProvider.loadClients(userId);
+            final box = await Hive.openBox('clients');
+            hayPendientes = box.values.any((c) => c.pendingDelete == true);
+            if (hayPendientes) {
+              print(
+                '[SYNC][PROVIDER] Esperando a que se eliminen todos los clientes pendientes... (intento ${intentos + 1})',
+              );
+              await Future.delayed(const Duration(milliseconds: 500));
+            }
+            intentos++;
+          } while (hayPendientes && intentos < 8);
         } catch (e) {
           print(
             '[SYNC][PROVIDER][ERROR] Error recargando clientes tras sincronizar: $e',

@@ -654,22 +654,28 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       try {
                         await txProvider.deleteTransaction(t.id, widget.userId);
                         if (mounted) setState(() {});
-                        final snackBar = SnackBar(
-                          content: const Text(
-                            'Transacción eliminada correctamente',
-                          ),
-                          backgroundColor: Colors.green,
-                          duration: const Duration(milliseconds: 1200),
-                        );
-                        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                        if (mounted) {
+                          final snackBar = SnackBar(
+                            content: const Text(
+                              'Transacción eliminada correctamente',
+                            ),
+                            backgroundColor: Colors.green,
+                            duration: const Duration(milliseconds: 1200),
+                          );
+                          ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                        }
                         // No cerrar la pantalla, solo actualizar la lista
                       } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Error al eliminar: ${e.toString()}'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Error al eliminar: [${e.toString()}',
+                              ),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
                       }
                     },
                     child: Container(

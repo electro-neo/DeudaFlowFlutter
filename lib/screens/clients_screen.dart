@@ -475,24 +475,43 @@ class _ClientsScreenState extends State<ClientsScreen> {
                                               .syncPendingTransactions(
                                                 widget.userId,
                                               );
-                                          await provider.loadClients(
-                                            widget.userId,
-                                          );
+                                          // Refuerzo: Esperar a que no haya clientes pendientes de eliminar antes de recargar la lista
+                                          int intentos = 0;
+                                          bool hayPendientes;
+                                          do {
+                                            await provider.loadClients(
+                                              widget.userId,
+                                            );
+                                            final box = Hive.box<ClientHive>(
+                                              'clients',
+                                            );
+                                            hayPendientes = box.values.any(
+                                              (c) => c.pendingDelete == true,
+                                            );
+                                            if (hayPendientes) {
+                                              await Future.delayed(
+                                                const Duration(
+                                                  milliseconds: 500,
+                                                ),
+                                              );
+                                            }
+                                            intentos++;
+                                          } while (hayPendientes &&
+                                              intentos < 8);
                                           await txProvider.loadTransactions(
                                             widget.userId,
                                           );
-                                          if (mounted) {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              const SnackBar(
-                                                content: Text(
-                                                  'Sincronización forzada completada.',
-                                                ),
-                                                duration: Duration(seconds: 2),
+                                          if (!mounted) return;
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Sincronización forzada completada.',
                                               ),
-                                            );
-                                          }
+                                              duration: Duration(seconds: 2),
+                                            ),
+                                          );
                                         },
                                         tooltip: 'Forzar sincronización',
                                         child: const Icon(Icons.sync),
@@ -511,6 +530,147 @@ class _ClientsScreenState extends State<ClientsScreen> {
                                             ? 'Ocultar buscador'
                                             : 'Buscar cliente',
                                         child: const Icon(Icons.search),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      FloatingActionButton(
+                                        heroTag: 'eliminarTodos',
+                                        mini: true,
+                                        backgroundColor: Colors.red[700],
+                                        foregroundColor: Colors.white,
+                                        elevation: 2,
+                                        onPressed: () async {
+                                          final provider =
+                                              Provider.of<ClientProvider>(
+                                                context,
+                                                listen: false,
+                                              );
+                                          final txProvider =
+                                              Provider.of<TransactionProvider>(
+                                                context,
+                                                listen: false,
+                                              );
+                                          final box = Hive.box<ClientHive>(
+                                            'clients',
+                                          );
+                                          final allClients = box.values
+                                              .toList();
+                                          print(
+                                            '[ELIMINAR_TODOS] Clientes encontrados: ${allClients.length}',
+                                          );
+                                          if (allClients.isEmpty) {
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'No hay clientes para eliminar.',
+                                                ),
+                                              ),
+                                            );
+                                            return;
+                                          }
+                                          final confirm = await showDialog<bool>(
+                                            context: context,
+                                            builder: (_) => AlertDialog(
+                                              title: const Text(
+                                                'Eliminar TODOS los clientes',
+                                              ),
+                                              content: const Text(
+                                                '¿Estás seguro de eliminar TODOS los clientes y sus transacciones? Esta acción no se puede deshacer.',
+                                              ),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () => Navigator.of(
+                                                    context,
+                                                  ).pop(false),
+                                                  child: const Text('Cancelar'),
+                                                ),
+                                                TextButton(
+                                                  onPressed: () => Navigator.of(
+                                                    context,
+                                                  ).pop(true),
+                                                  child: const Text(
+                                                    'Eliminar todo',
+                                                    style: TextStyle(
+                                                      color: Colors.red,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                          if (confirm == true) {
+                                            print(
+                                              '[ELIMINAR_TODOS] Eliminando todos los clientes...',
+                                            );
+                                            for (final client in allClients) {
+                                              print(
+                                                '[ELIMINAR_TODOS] Eliminando cliente: ${client.id} (${client.name})',
+                                              );
+                                              await provider.deleteClient(
+                                                client.id,
+                                                widget.userId,
+                                              );
+                                            }
+                                            print(
+                                              '[ELIMINAR_TODOS] Sincronizando eliminaciones...',
+                                            );
+                                            await provider.syncPendingClients(
+                                              widget.userId,
+                                            );
+                                            await txProvider
+                                                .syncPendingTransactions(
+                                                  widget.userId,
+                                                );
+                                            // Refuerzo: Esperar a que no haya clientes pendientes de eliminar antes de recargar la lista
+                                            int intentos = 0;
+                                            bool hayPendientes;
+                                            do {
+                                              await provider.loadClients(
+                                                widget.userId,
+                                              );
+                                              final box = Hive.box<ClientHive>(
+                                                'clients',
+                                              );
+                                              hayPendientes = box.values.any(
+                                                (c) => c.pendingDelete == true,
+                                              );
+                                              print(
+                                                '[ELIMINAR_TODOS] Intento ${intentos + 1}: ¿Quedan clientes pendientes de eliminar? $hayPendientes',
+                                              );
+                                              if (hayPendientes) {
+                                                await Future.delayed(
+                                                  const Duration(
+                                                    milliseconds: 500,
+                                                  ),
+                                                );
+                                              }
+                                              intentos++;
+                                            } while (hayPendientes &&
+                                                intentos < 8);
+                                            print(
+                                              '[ELIMINAR_TODOS] Recargando transacciones...',
+                                            );
+                                            await txProvider.loadTransactions(
+                                              widget.userId,
+                                            );
+                                            if (!mounted) return;
+                                            print(
+                                              '[ELIMINAR_TODOS] Proceso completado.',
+                                            );
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'Todos los clientes eliminados.',
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        },
+                                        tooltip: 'Eliminar TODOS los clientes',
+                                        child: const Icon(Icons.delete_forever),
                                       ),
                                     ],
                                   ),
@@ -709,6 +869,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
                                               await txProvider.loadTransactions(
                                                 widget.userId,
                                               );
+                                              if (!mounted) return;
                                               ScaffoldMessenger.of(
                                                 context,
                                               ).showSnackBar(

@@ -31,13 +31,21 @@ class ClientHive extends HiveObject {
   factory ClientHive.fromMap(Map<String, dynamic> map) {
     final idValue = map['id'];
     final nameValue = map['name'];
-    if (idValue == null || idValue.toString() == 'null' || idValue.toString().isEmpty) {
-      throw ArgumentError("El campo 'id' es obligatorio y no puede ser null o vacío en ClientHive.fromMap");
+    if (idValue == null ||
+        idValue.toString() == 'null' ||
+        idValue.toString().isEmpty) {
+      print('[CLIENT_HIVE][ERROR] id inválido en fromMap: $map');
+      throw ArgumentError(
+        "El campo 'id' es obligatorio y no puede ser null o vacío en ClientHive.fromMap",
+      );
     }
     if (nameValue == null || nameValue.toString() == 'null') {
-      throw ArgumentError("El campo 'name' es obligatorio y no puede ser null en ClientHive.fromMap");
+      print('[CLIENT_HIVE][ERROR] name inválido en fromMap: $map');
+      throw ArgumentError(
+        "El campo 'name' es obligatorio y no puede ser null en ClientHive.fromMap",
+      );
     }
-    return ClientHive(
+    final client = ClientHive(
       id: idValue.toString(),
       name: nameValue.toString(),
       email: map['email']?.toString(),
@@ -52,6 +60,10 @@ class ClientHive extends HiveObject {
           ? map['pendingDelete'] as bool
           : (map['pendingDelete'] is int ? (map['pendingDelete'] == 1) : false),
     );
+    print(
+      '[CLIENT_HIVE][fromMap] Instancia creada: id=${client.id}, name=${client.name}, pendingDelete=${client.pendingDelete}, synced=${client.synced}',
+    );
+    return client;
   }
 
   Map<String, dynamic> toMap() => {

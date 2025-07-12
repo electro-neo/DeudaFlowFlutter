@@ -23,26 +23,46 @@ class ClientProvider extends ChangeNotifier {
         print('  - id: ${c.id}, name: ${c.name}, synced: ${c.synced}');
       }
     }
-    // 2. Procesar eliminaciones pendientes
+    // 2. Procesar eliminaciones pendientes (todas antes de sincronizar)
     for (final c in pendingDeletes) {
       if (c.id.isNotEmpty) {
         try {
           print('[SYNC] Intentando eliminar cliente ${c.id} de Supabase...');
           await _service.deleteClientAndTransactions(c.id);
-          print(
-            '[SYNC] Cliente ${c.id} eliminado de Supabase. Eliminando local...',
-          );
-          await c.delete();
-        } catch (e) {
+          // Esperar y verificar que el cliente ya no existe en Supabase antes de recargar
+          bool eliminado = false;
+          int intentos = 0;
+          while (!eliminado && intentos < 5) {
+            await Future.delayed(const Duration(milliseconds: 400));
+            final remoteClients = await _service.fetchClients(userId);
+            eliminado = !remoteClients.any((rc) => rc.id == c.id);
+            print(
+              '[SYNC][CHECK] Cliente ${c.id} eliminado en Supabase? $eliminado (intento $intentos)',
+            );
+            intentos++;
+          }
+          if (eliminado) {
+            print(
+              '[SYNC] Cliente ${c.id} eliminado de Supabase. Eliminando local...',
+            );
+            await c.delete();
+          } else {
+            print(
+              '[SYNC][WARN] Cliente ${c.id} aún aparece en Supabase tras varios intentos. No se elimina localmente para reintentar luego.',
+            );
+          }
+        } catch (e, stack) {
           print(
             '[SYNC][ERROR] No se pudo eliminar cliente ${c.id} de Supabase: $e',
           );
+          print('[SYNC][ERROR] Stacktrace: $stack');
         }
       } else {
         print('[SYNC] Cliente sin id válido, eliminado solo local.');
         await c.delete();
       }
     }
+
     // 3. LOG: Mostrar clientes pendientes de sincronizar (creación/edición)
     final pending = box.values
         .where((c) => !c.synced && !c.pendingDelete)
@@ -134,6 +154,8 @@ class ClientProvider extends ChangeNotifier {
         print('[SYNC][ERROR] Error al sincronizar cliente: $e');
       }
     }
+
+    // 5. Solo después de procesar eliminaciones y creaciones, recarga los clientes desde Supabase
     await loadClients(userId);
   }
 

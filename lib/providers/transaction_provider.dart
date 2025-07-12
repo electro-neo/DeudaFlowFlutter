@@ -87,20 +87,57 @@ class TransactionProvider extends ChangeNotifier {
     String userId,
     String clientId,
   ) async {
-    // Siempre crea la transacción en Hive como pendiente de sincronizar (offline-first)
     final box = Hive.box<TransactionHive>('transactions');
-    box.put(
-      tx.id,
-      TransactionHive(
-        id: tx.id,
-        clientId: tx.clientId,
-        type: tx.type,
-        amount: tx.amount,
-        date: tx.date,
-        description: tx.description,
-        synced: false, // Siempre pendiente por sincronizar
-      ),
-    );
+    final online = await isOnline();
+    if (online) {
+      try {
+        await _service.addTransaction(tx, userId, clientId);
+        // Guardar como sincronizada en Hive
+        box.put(
+          tx.id,
+          TransactionHive(
+            id: tx.id,
+            clientId: tx.clientId,
+            type: tx.type,
+            amount: tx.amount,
+            date: tx.date,
+            description: tx.description,
+            synced: true,
+            pendingDelete: false,
+          ),
+        );
+      } catch (_) {
+        // Si falla la red, guardar como pendiente
+        box.put(
+          tx.id,
+          TransactionHive(
+            id: tx.id,
+            clientId: tx.clientId,
+            type: tx.type,
+            amount: tx.amount,
+            date: tx.date,
+            description: tx.description,
+            synced: false,
+            pendingDelete: false,
+          ),
+        );
+      }
+    } else {
+      // Guardar como pendiente de sincronizar
+      box.put(
+        tx.id,
+        TransactionHive(
+          id: tx.id,
+          clientId: tx.clientId,
+          type: tx.type,
+          amount: tx.amount,
+          date: tx.date,
+          description: tx.description,
+          synced: false,
+          pendingDelete: false,
+        ),
+      );
+    }
     await loadTransactions(userId);
   }
 

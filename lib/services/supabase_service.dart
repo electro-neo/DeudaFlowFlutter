@@ -58,44 +58,44 @@ class SupabaseService {
         .eq('id', client.id);
   }
 
-  Future<void> deleteClientAndTransactions(String clientId) async {
+  Future<bool> deleteClientAndTransactions(String clientId) async {
     try {
       // Elimina primero todas las transacciones asociadas a este cliente
-      final txResponse = await _client
-          .from('transactions')
-          .delete()
-          .eq('client_id', clientId);
+      await _client.from('transactions').delete().eq('client_id', clientId);
       print(
-        '[SUPABASE][DELETE] Transacciones eliminadas para cliente $clientId: $txResponse',
+        '[SUPABASE][DELETE] Intento de eliminar transacciones para cliente $clientId completado.',
       );
 
       // Luego elimina el cliente
-      final clientResponse = await _client
-          .from('clients')
-          .delete()
-          .eq('id', clientId);
-      print('[SUPABASE][DELETE] Cliente eliminado $clientId: $clientResponse');
+      await _client.from('clients').delete().eq('id', clientId);
+      print(
+        '[SUPABASE][DELETE] Intento de eliminar cliente $clientId completado.',
+      );
 
-      // Validación extra: si no se eliminó ningún cliente, avisar
-      if (clientResponse is List && clientResponse.isEmpty) {
+      // Validación: Espera un momento y verifica si el cliente sigue existiendo.
+      await Future.delayed(const Duration(milliseconds: 250));
+      final check = await _client
+          .from('clients')
+          .select('id')
+          .eq('id', clientId);
+
+      if (check.isEmpty) {
         print(
-          '[SUPABASE][WARNING] Ningún cliente eliminado en Supabase para id: $clientId',
+          '[SUPABASE][CHECK][SUCCESS] Cliente $clientId eliminado exitosamente de Supabase.',
         );
+        return true;
       } else {
         print(
-          '[SUPABASE][INFO] Cliente $clientId eliminado correctamente en Supabase.',
+          '[SUPABASE][CHECK][FAIL] El cliente $clientId AÚN EXISTE en Supabase tras el intento de borrado.',
         );
+        return false;
       }
-
-      // LOG extra: Verificar si el cliente sigue existiendo tras el intento de borrado
-      final check = await _client.from('clients').select().eq('id', clientId);
-      print('[SUPABASE][CHECK] Cliente $clientId tras borrado: $check');
     } catch (e, stack) {
       print(
         '[SUPABASE][ERROR] Error al eliminar cliente y transacciones para id $clientId: $e',
       );
       print('[SUPABASE][ERROR] Stacktrace: $stack');
-      rethrow;
+      return false; // Indicar fallo en caso de excepción
     }
   }
 

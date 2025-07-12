@@ -28,37 +28,28 @@ class ClientProvider extends ChangeNotifier {
       if (c.id.isNotEmpty) {
         try {
           print('[SYNC] Intentando eliminar cliente ${c.id} de Supabase...');
-          await _service.deleteClientAndTransactions(c.id);
-          // Esperar y verificar que el cliente ya no existe en Supabase antes de recargar
-          bool eliminado = false;
-          int intentos = 0;
-          while (!eliminado && intentos < 5) {
-            await Future.delayed(const Duration(milliseconds: 400));
-            final remoteClients = await _service.fetchClients(userId);
-            eliminado = !remoteClients.any((rc) => rc.id == c.id);
+          final bool fueEliminado = await _service.deleteClientAndTransactions(
+            c.id,
+          );
+
+          if (fueEliminado) {
             print(
-              '[SYNC][CHECK] Cliente ${c.id} eliminado en Supabase? $eliminado (intento $intentos)',
-            );
-            intentos++;
-          }
-          if (eliminado) {
-            print(
-              '[SYNC] Cliente ${c.id} eliminado de Supabase. Eliminando local...',
+              '[SYNC][SUCCESS] Cliente ${c.id} confirmado como eliminado en Supabase. Eliminando de Hive...',
             );
             await c.delete();
           } else {
             print(
-              '[SYNC][WARN] Cliente ${c.id} aún aparece en Supabase tras varios intentos. No se elimina localmente para reintentar luego.',
+              '[SYNC][WARN] Falló la eliminación del cliente ${c.id} en Supabase. Se reintentará en la próxima sincronización.',
             );
           }
         } catch (e, stack) {
           print(
-            '[SYNC][ERROR] No se pudo eliminar cliente ${c.id} de Supabase: $e',
+            '[SYNC][ERROR] Excepción al intentar eliminar cliente ${c.id}: $e',
           );
           print('[SYNC][ERROR] Stacktrace: $stack');
         }
       } else {
-        print('[SYNC] Cliente sin id válido, eliminado solo local.');
+        print('[SYNC] Cliente con id local (no UUID), eliminado solo de Hive.');
         await c.delete();
       }
     }
@@ -156,7 +147,8 @@ class ClientProvider extends ChangeNotifier {
     }
 
     // 5. Solo después de procesar eliminaciones y creaciones, recarga los clientes desde Supabase
-    await loadClients(userId);
+    // await loadClients(userId); // <-- Eliminamos esta llamada
+    await _refreshClientsFromHive(); // <-- Usamos la nueva función para refrescar desde Hive
   }
 
   final SupabaseService _service = SupabaseService();
@@ -176,6 +168,26 @@ class ClientProvider extends ChangeNotifier {
     } catch (_) {
       return false;
     }
+  }
+
+  Future<void> _refreshClientsFromHive() async {
+    final box = Hive.box<ClientHive>('clients');
+    _clients = box.values
+        .where((c) => c.pendingDelete != true)
+        .map(
+          (c) => Client(
+            id: c.id,
+            name: c.name,
+            email: c.email,
+            phone: c.phone,
+            balance: c.balance,
+          ),
+        )
+        .toList();
+    notifyListeners();
+    print(
+      '[PROVIDER][REFRESH] La lista de clientes se ha actualizado desde Hive.',
+    );
   }
 
   Future<void> loadClients(String userId) async {
@@ -287,7 +299,9 @@ class ClientProvider extends ChangeNotifier {
         pendingDelete: false,
       ),
     );
-    await loadClients(userId);
+    // await loadClients(userId); // No es necesario recargar todo, solo refrescar
+    await _refreshClientsFromHive();
+
     // Si estamos online, sincroniza inmediatamente
     String finalId = client.id;
     if (await _isOnline()) {
@@ -319,7 +333,9 @@ class ClientProvider extends ChangeNotifier {
         ..synced = false;
       await c.save();
     }
-    await loadClients(userId);
+    // await loadClients(userId);
+    await _refreshClientsFromHive();
+
     // Si estamos online, sincroniza inmediatamente
     if (await _isOnline()) {
       await syncPendingClients(userId);
@@ -334,7 +350,8 @@ class ClientProvider extends ChangeNotifier {
     // 1. Marcar como pendiente de eliminar en Hive
     c.pendingDelete = true;
     await c.save();
-    await loadClients(userId);
+    // await loadClients(userId);
+    await _refreshClientsFromHive();
 
     // 2. Verificar si estamos online
     if (await _isOnline()) {

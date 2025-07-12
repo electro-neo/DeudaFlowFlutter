@@ -65,6 +65,41 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     setState(() => _loading = true);
     final txProvider = Provider.of<TransactionProvider>(context, listen: false);
     await txProvider.loadTransactions(widget.userId);
+    // --- Sincroniza el id seleccionado si fue reemplazado (por ejemplo, tras sincronización de clientes offline) ---
+    final clientProvider = Provider.of<ClientProvider>(context, listen: false);
+    if (_selectedClientId != null && _selectedClientId!.isNotEmpty) {
+      final exists = clientProvider.clients.any(
+        (c) => c.id == _selectedClientId,
+      );
+      if (!exists) {
+        // Buscar cliente por nombre (asumiendo que el nombre no cambió)
+        String? clientName;
+        // Buscar la transacción con el id antiguo
+        final txList = txProvider.transactions
+            .where((t) => t.clientId == _selectedClientId)
+            .toList();
+        if (txList.isNotEmpty) {
+          // Buscar el cliente antiguo en la lista de clientes (por id)
+          final oldClientList = clientProvider.clients
+              .where((c) => c.id == txList.first.clientId)
+              .toList();
+          if (oldClientList.isNotEmpty) {
+            clientName = oldClientList.first.name;
+          }
+        }
+        // Buscar cliente por nombre
+        if (clientName != null) {
+          final newClientList = clientProvider.clients
+              .where((c) => c.name == clientName)
+              .toList();
+          if (newClientList.isNotEmpty) {
+            setState(() {
+              _selectedClientId = newClientList.first.id;
+            });
+          }
+        }
+      }
+    }
     if (!mounted) return;
     setState(() => _loading = false);
   }

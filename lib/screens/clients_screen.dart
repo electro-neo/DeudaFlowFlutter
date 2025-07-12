@@ -240,7 +240,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
               if (newClient.balance != 0) {
                 final now = DateTime.now();
                 final tx = Transaction(
-                  id: '',
+                  id: DateTime.now().millisecondsSinceEpoch.toString(),
                   clientId: realId,
                   userId: widget.userId,
                   type: newClient.balance > 0 ? 'payment' : 'debt',

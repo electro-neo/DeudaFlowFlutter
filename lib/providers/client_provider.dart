@@ -65,9 +65,8 @@ class ClientProvider extends ChangeNotifier {
         balance: c.balance,
       );
       try {
-        if (c.id.isNotEmpty && c.id.length > 20) {
-          // id local generado (timestamp)
-          // Si el id es local, crea en Supabase y actualiza el id en Hive
+        // Si el id NO es UUID (36 caracteres), es local: hacer insert y actualizar id
+        if (c.id.isNotEmpty && c.id.length != 36) {
           final newId = await _service.addClient(client, userId);
           if (newId != null) {
             final box = Hive.box<ClientHive>('clients');
@@ -86,7 +85,12 @@ class ClientProvider extends ChangeNotifier {
               await box.put(newId, updated);
 
               // --- ACTUALIZAR TRANSACCIONES CON EL NUEVO ID DE CLIENTE ---
-              final txBox = await Hive.openBox('transactions');
+              var txBox;
+              if (Hive.isBoxOpen('transactions')) {
+                txBox = Hive.box('transactions');
+              } else {
+                txBox = await Hive.openBox('transactions');
+              }
               final txsToUpdate = txBox.values
                   .where((tx) => tx.clientId == c.id)
                   .toList();
@@ -100,7 +104,7 @@ class ClientProvider extends ChangeNotifier {
             }
           }
         } else if (c.id.isNotEmpty) {
-          // Si tiene id real, intenta actualizar
+          // Si tiene id real (UUID), intenta actualizar
           await _service.updateClient(client);
           c.synced = true;
           await c.save();

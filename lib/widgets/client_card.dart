@@ -425,6 +425,14 @@ class _ClientCardActionsState extends State<_ClientCardActions>
                       tooltip: 'Eliminar',
                       onTap: () {
                         widget.onDelete?.call();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Cliente marcado para eliminar. Se eliminará definitivamente al sincronizar.',
+                            ),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
                         _close();
                       },
                       delay: 80,

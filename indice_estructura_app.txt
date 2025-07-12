@@ -161,13 +161,81 @@ Estos permisos están declarados en `android/app/src/main/AndroidManifest.xml` y
 
 ---
 
-NUNCA BORRAR ESTOS COMANDOS
+# Índice de Formularios, Botones y Flujo de Datos (Offline-First)
 
-Ejecutar App termporal
-flutter clean
-flutter pub get
-flutter run
+## 1. Clientes (Tabla: clients / Hive: ClientHive)
 
-Guardar cambio a mi movil directamente
-flutter build apk --release
-flutter install
+### Formularios y Botones:
+- **Botón "Agregar Cliente"** (ClientsScreen):
+  - Abre ClientForm (modal/dialog).
+  - Al guardar: crea cliente en Hive (ClientHive, `synced: false`), cierra modal, recarga lista, inicia sync en 2s.
+- **Botón "Editar Cliente"** (en cada ClientCard):
+  - Abre ClientForm con datos iniciales.
+  - Al guardar: actualiza en Hive (`synced: false`), cierra modal, recarga lista, inicia sync en 2s.
+- **Botón "Eliminar Cliente"** (en cada ClientCard):
+  - Abre confirmación.
+  - Al confirmar: marca `pendingDelete: true` en Hive, recarga lista, inicia sync en 2s.
+
+### Relación con Botones:
+- Todos los botones de crear, editar y eliminar cliente operan primero en Hive y luego sincronizan a Supabase en background.
+- El estado visual de sincronización se muestra en ClientCard.
+
+---
+
+## 2. Transacciones (Tabla: transactions / Hive: TransactionHive)
+
+### Formularios y Botones:
+- **Botón "Agregar Transacción"** (en cada ClientCard y en TransactionsScreen):
+  - Abre TransactionForm (modal/dialog).
+  - Al guardar: crea transacción en Hive (`synced: false`), cierra modal, recarga lista, inicia sync en 2s.
+- **Botón "Editar Transacción"** (en cada TransactionCard):
+  - Abre TransactionForm con datos iniciales.
+  - Al guardar: actualiza en Hive (`synced: false`), cierra modal, recarga lista, inicia sync en 2s.
+- **Botón "Eliminar Transacción"** (en cada TransactionCard):
+  - Abre confirmación.
+  - Al confirmar: marca `pendingDelete: true` en Hive, recarga lista, inicia sync en 2s.
+
+### Relación con Botones:
+- Todos los botones de crear, editar y eliminar transacción operan primero en Hive y luego sincronizan a Supabase en background.
+- El estado visual de sincronización se muestra en TransactionCard (si está implementado).
+
+---
+
+## 3. Usuarios (Tabla: users)
+- **Botón "Registrar"** (RegisterScreen):
+  - Crea usuario en Supabase (no offline-first, requiere conexión).
+- **Botón "Login"** (LoginScreen):
+  - Autenticación en Supabase (no offline-first).
+
+---
+
+# Esquema de Tablas y Relación con Botones
+
+## Tabla: clients (ClientHive)
+- **Campos:** id, name, email, phone, balance, synced, pendingDelete
+- **Botones/Formularios Relacionados:**
+  - Agregar Cliente (ClientForm)
+  - Editar Cliente (ClientForm)
+  - Eliminar Cliente (ClientCard)
+
+## Tabla: transactions (TransactionHive)
+- **Campos:** id, clientId, type, amount, date, description, synced, pendingDelete
+- **Botones/Formularios Relacionados:**
+  - Agregar Transacción (TransactionForm)
+  - Editar Transacción (TransactionForm)
+  - Eliminar Transacción (TransactionCard)
+
+## Tabla: users
+- **Campos:** id, email, password, ...
+- **Botones/Formularios Relacionados:**
+  - Registrar (RegisterScreen)
+  - Login (LoginScreen)
+
+---
+
+# Resumen de Cumplimiento Offline-First
+- **Clientes y Transacciones:** Todo el flujo de creación, edición y eliminación es offline-first (Hive primero, sync a Supabase en background, feedback inmediato en UI).
+- **Usuarios:** Registro y login requieren conexión (no offline-first).
+- **Visualización:** El estado de sincronización se muestra en las tarjetas (ClientCard y, si aplica, TransactionCard).
+
+---

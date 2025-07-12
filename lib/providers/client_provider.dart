@@ -11,27 +11,54 @@ class ClientProvider extends ChangeNotifier {
   Future<void> syncPendingClients(String userId) async {
     if (!await _isOnline()) return;
     final box = Hive.box<ClientHive>('clients');
-    // Sincroniza eliminaciones pendientes
+    // 1. LOG: Mostrar todos los clientes marcados para eliminar
     final pendingDeletes = box.values
         .where((c) => c.pendingDelete == true)
         .toList();
+    if (pendingDeletes.isNotEmpty) {
+      print(
+        '[SYNC][INFO] Clientes marcados para eliminar (pendingDelete=true):',
+      );
+      for (final c in pendingDeletes) {
+        print('  - id: ${c.id}, name: ${c.name}, synced: ${c.synced}');
+      }
+    }
+    // 2. Procesar eliminaciones pendientes
     for (final c in pendingDeletes) {
       if (c.synced == false) {
-        // Nunca se sincronizó, elimínalo localmente sin intentar en Supabase
+        print(
+          '[SYNC] Cliente ${c.id} nunca sincronizado, eliminado solo local.',
+        );
         await c.delete();
         continue;
       }
       try {
+        print('[SYNC] Intentando eliminar cliente ${c.id} de Supabase...');
         await _service.deleteClientAndTransactions(c.id);
-        await c.delete(); // Elimina localmente tras sincronizar
-      } catch (_) {
+        print(
+          '[SYNC] Cliente ${c.id} eliminado de Supabase. Eliminando local...',
+        );
+        await c.delete();
+      } catch (e) {
+        print(
+          '[SYNC][ERROR] No se pudo eliminar cliente ${c.id} de Supabase: $e',
+        );
         // Si falla, sigue offline
       }
     }
-    // Sincroniza creaciones/ediciones pendientes
+    // 3. LOG: Mostrar clientes pendientes de sincronizar (creación/edición)
     final pending = box.values
         .where((c) => !c.synced && !c.pendingDelete)
         .toList();
+    if (pending.isNotEmpty) {
+      print(
+        '[SYNC][INFO] Clientes pendientes de sincronizar (creación/edición):',
+      );
+      for (final c in pending) {
+        print('  - id: ${c.id}, name: ${c.name}');
+      }
+    }
+    // 4. Procesar creaciones/ediciones pendientes
     for (final c in pending) {
       final client = Client(
         id: c.id,
@@ -41,7 +68,13 @@ class ClientProvider extends ChangeNotifier {
         balance: c.balance,
       );
       try {
-        await _service.addClient(client, userId);
+        if (c.id.isNotEmpty) {
+          // Si tiene id, intenta actualizar
+          await _service.updateClient(client);
+        } else {
+          // Si no tiene id, crea nuevo
+          await _service.addClient(client, userId);
+        }
         c.synced = true;
         await c.save();
       } catch (_) {
@@ -83,28 +116,39 @@ class ClientProvider extends ChangeNotifier {
       try {
         // Online: usa Supabase y sincroniza Hive
         final remoteClients = await _service.fetchClients(userId);
+        // Guarda los IDs de clientes locales pendientes de eliminar
+        final pendingDeleteIds = box.values
+            .where((c) => c.pendingDelete == true)
+            .map((c) => c.id)
+            .toSet();
         // Mantén los clientes locales no sincronizados ni pendientes de eliminar
         final localPending = box.values
             .where((c) => !c.synced && !c.pendingDelete)
             .toList();
         await box.clear();
-        // Guarda los de Supabase como sincronizados
+        // Guarda los de Supabase como sincronizados, excepto los que están pendientes de eliminar localmente
         for (final c in remoteClients) {
-          box.put(
-            c.id,
-            ClientHive(
-              id: c.id,
-              name: c.name,
-              email: c.email,
-              phone: c.phone,
-              balance: c.balance,
-              synced: true,
-              pendingDelete: false,
-            ),
-          );
+          if (!pendingDeleteIds.contains(c.id)) {
+            box.put(
+              c.id,
+              ClientHive(
+                id: c.id,
+                name: c.name,
+                email: c.email,
+                phone: c.phone,
+                balance: c.balance,
+                synced: true,
+                pendingDelete: false,
+              ),
+            );
+          }
         }
-        // Vuelve a guardar los locales pendientes
+        // Vuelve a guardar los locales pendientes y los pendientes de eliminar
         for (final c in localPending) {
+          box.put(c.id, c);
+        }
+        // También vuelve a guardar los pendientes de eliminar para que no se pierdan
+        for (final c in box.values.where((c) => c.pendingDelete == true)) {
           box.put(c.id, c);
         }
         // Refresca la lista desde Hive para asegurar que el estado synced es correcto
@@ -168,7 +212,11 @@ class ClientProvider extends ChangeNotifier {
         pendingDelete: false,
       ),
     );
-    await this.loadClients(userId);
+    await loadClients(userId);
+    // Si estamos online, sincroniza inmediatamente
+    if (await _isOnline()) {
+      await syncPendingClients(userId);
+    }
   }
 
   Future<void> updateClient(Client client, String userId) async {
@@ -184,7 +232,11 @@ class ClientProvider extends ChangeNotifier {
         ..synced = false;
       await c.save();
     }
-    await this.loadClients(userId);
+    await loadClients(userId);
+    // Si estamos online, sincroniza inmediatamente
+    if (await _isOnline()) {
+      await syncPendingClients(userId);
+    }
   }
 
   Future<void> deleteClient(String clientId, String userId) async {
@@ -195,6 +247,10 @@ class ClientProvider extends ChangeNotifier {
       c.pendingDelete = true;
       await c.save();
     }
-    await this.loadClients(userId);
+    await loadClients(userId);
+    // Lanza la sincronización en segundo plano después de 2 segundos
+    Future.delayed(const Duration(seconds: 2), () async {
+      await syncPendingClients(userId);
+    });
   }
 }

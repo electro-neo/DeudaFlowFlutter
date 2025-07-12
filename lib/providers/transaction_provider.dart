@@ -11,7 +11,7 @@ class TransactionProvider extends ChangeNotifier {
   List<Transaction> _transactions = [];
   List<Transaction> get transactions => _transactions;
 
-  Future<bool> _isOnline() async {
+  Future<bool> isOnline() async {
     final result = await Connectivity().checkConnectivity();
     if (result == ConnectivityResult.none) return false;
     // Prueba acceso real a internet
@@ -27,7 +27,7 @@ class TransactionProvider extends ChangeNotifier {
   }
 
   Future<void> loadTransactions(String userId) async {
-    final isOnline = await _isOnline();
+    final online = await isOnline();
     final box = await Hive.openBox<TransactionHive>('transactions');
     // MIGRACIÓN AUTOMÁTICA: Fuerza la escritura de los campos para todos los registros
     for (final t in box.values) {
@@ -35,7 +35,7 @@ class TransactionProvider extends ChangeNotifier {
       t.pendingDelete = t.pendingDelete;
       t.save();
     }
-    if (isOnline) {
+    if (online) {
       try {
         // Online: usa Supabase y sincroniza Hive
         final remoteTxs = await _service.fetchTransactions(userId);
@@ -104,8 +104,8 @@ class TransactionProvider extends ChangeNotifier {
   }
 
   Future<void> updateTransaction(Transaction tx, String userId) async {
-    final isOnline = await _isOnline();
-    if (isOnline) {
+    final online = await isOnline();
+    if (online) {
       try {
         await _service.updateTransaction(tx);
       } catch (_) {
@@ -138,8 +138,8 @@ class TransactionProvider extends ChangeNotifier {
   }
 
   Future<void> deleteTransaction(String transactionId, String userId) async {
-    final isOnline = await _isOnline();
-    if (isOnline) {
+    final online = await isOnline();
+    if (online) {
       try {
         await _service.deleteTransaction(transactionId);
       } catch (_) {
@@ -157,7 +157,7 @@ class TransactionProvider extends ChangeNotifier {
 
   /// Sincroniza los cambios locales pendientes cuando hay internet
   Future<void> syncPendingTransactions(String userId) async {
-    if (!await _isOnline()) return;
+    if (!await isOnline()) return;
     final box = Hive.box<TransactionHive>('transactions');
     final pending = box.values.where((t) => !t.synced).toList();
     for (final t in pending) {

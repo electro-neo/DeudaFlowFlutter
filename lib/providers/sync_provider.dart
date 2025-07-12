@@ -74,9 +74,26 @@ class SyncProvider extends ChangeNotifier {
     _userId = userId;
     _subscription = Connectivity().onConnectivityChanged.listen((result) async {
       final online = result != ConnectivityResult.none;
+      // Solo sincroniza si pasamos de offline a online
       if (online && !_isOnline) {
-        // Se acaba de reconectar: sincroniza clientes y transacciones pendientes con feedback
+        print(
+          '[SYNC][PROVIDER] Reconectado a internet. Iniciando sincronización de clientes y transacciones...',
+        );
         await _syncAll(context, userId);
+        // Opcional: recargar clientes después de sincronizar
+        try {
+          await Provider.of<ClientProvider>(
+            context,
+            listen: false,
+          ).loadClients(userId);
+        } catch (e) {
+          print(
+            '[SYNC][PROVIDER][ERROR] Error recargando clientes tras sincronizar: $e',
+          );
+        }
+      }
+      if (!online && _isOnline) {
+        print('[SYNC][PROVIDER] Sin conexión a internet. Modo offline.');
       }
       _isOnline = online;
       notifyListeners();

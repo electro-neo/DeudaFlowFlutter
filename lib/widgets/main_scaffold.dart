@@ -10,6 +10,53 @@ import '../providers/tab_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/currency_provider.dart';
 
+// Banner de debug para mostrar un número aleatorio que cambia en cada hot reload
+class DebugBanner extends StatefulWidget {
+  const DebugBanner({super.key});
+  @override
+  State<DebugBanner> createState() => _DebugBannerState();
+}
+
+class _DebugBannerState extends State<DebugBanner> {
+  int _randomNumber = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _generateRandom();
+  }
+
+  void _generateRandom() {
+    _randomNumber = DateTime.now().millisecondsSinceEpoch.remainder(100000);
+  }
+
+  @override
+  void didUpdateWidget(covariant DebugBanner oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _generateRandom();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      color: Colors.purple.withOpacity(0.8),
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Center(
+        child: Text(
+          'DEBUG: $_randomNumber',
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            letterSpacing: 2,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class MainScaffold extends StatefulWidget {
   final String userId;
   const MainScaffold({super.key, required this.userId});
@@ -19,14 +66,11 @@ class MainScaffold extends StatefulWidget {
 }
 
 class _MainScaffoldState extends State<MainScaffold> {
-  // final ScrollController _scrollController = ScrollController(); // No se usa
-  // El índice de tab ahora se gestiona por Provider
   void _onTab(int index) {
     Provider.of<TabProvider>(context, listen: false).setTab(index);
   }
 
   void _logout() async {
-    // Limpieza de datos de invitado
     await Future.delayed(const Duration(milliseconds: 100));
     final guestCleanup = await importGuestCleanup();
     if (guestCleanup != null) {
@@ -38,10 +82,8 @@ class _MainScaffoldState extends State<MainScaffold> {
     }
   }
 
-  // Import dinámico para evitar problemas de dependencias circulares
   Future<Function?> importGuestCleanup() async {
     try {
-      // ignore: import_of_legacy_library_into_null_safe
       final guestCleanup = await Future.value(() async {
         await guest_cleanup.GuestCleanupService.cleanupGuestData();
       });
@@ -61,27 +103,34 @@ class _MainScaffoldState extends State<MainScaffold> {
     ];
     final width = MediaQuery.of(context).size.width;
     final isWeb = identical(0, 0.0);
-    // Eliminar AppBar superior en todas las vistas principales
     if (isWeb && width >= 600) {
       return AppNavigationBar(
         currentIndex: tabIndex,
         onTap: _onTab,
         onLogout: _logout,
-        child: Scaffold(appBar: null, body: screens[tabIndex]),
+        child: Scaffold(
+          appBar: null,
+          body: screens[tabIndex],
+          bottomNavigationBar: const DebugBanner(),
+        ),
       );
     } else {
-      // --- INICIO CAMBIO: PageView para swipe ---
       return _SwipeableScaffold(
         tabIndex: tabIndex,
         onTab: _onTab,
         screens: screens,
-        bottomNavigationBar: _MobileBottomBar(
-          currentIndex: tabIndex,
-          onTab: _onTab,
-          onLogout: () {},
+        bottomNavigationBar: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const DebugBanner(),
+            _MobileBottomBar(
+              currentIndex: tabIndex,
+              onTab: _onTab,
+              onLogout: () {},
+            ),
+          ],
         ),
       );
-      // --- FIN CAMBIO ---
     }
   }
 }
@@ -170,34 +219,63 @@ class _MobileBottomBarState extends State<_MobileBottomBar> {
                                           showDialog(
                                             context: context,
                                             builder: (ctx2) {
-                                              final rate = currencyProvider.rate;
-                                              final controller = TextEditingController(text: rate.toString());
+                                              final rate =
+                                                  currencyProvider.rate;
+                                              final controller =
+                                                  TextEditingController(
+                                                    text: rate.toString(),
+                                                  );
                                               return AlertDialog(
                                                 shape: RoundedRectangleBorder(
-                                                  borderRadius: BorderRadius.circular(16),
+                                                  borderRadius:
+                                                      BorderRadius.circular(16),
                                                 ),
-                                                title: const Text('Registrar tasa USD'),
+                                                title: const Text(
+                                                  'Registrar Tasa USD',
+                                                ),
                                                 content: TextField(
                                                   controller: controller,
-                                                  decoration: const InputDecoration(
-                                                    labelText: 'Tasa USD',
-                                                    border: OutlineInputBorder(),
-                                                    isDense: true,
-                                                  ),
-                                                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                                                  decoration:
+                                                      const InputDecoration(
+                                                        labelText: 'Tasa USD',
+                                                        border:
+                                                            OutlineInputBorder(),
+                                                        isDense: true,
+                                                      ),
+                                                  keyboardType:
+                                                      TextInputType.numberWithOptions(
+                                                        decimal: true,
+                                                      ),
                                                 ),
                                                 actions: [
                                                   TextButton(
-                                                    onPressed: () => Navigator.of(ctx2).pop(),
-                                                    child: const Text('Cancelar'),
+                                                    onPressed: () =>
+                                                        Navigator.of(
+                                                          ctx2,
+                                                        ).pop(),
+                                                    child: const Text(
+                                                      'Cancelar',
+                                                    ),
                                                   ),
                                                   ElevatedButton(
                                                     onPressed: () {
-                                                      final rate = double.tryParse(controller.text.replaceAll(',', '.')) ?? 1.0;
-                                                      currencyProvider.setRate(rate);
+                                                      final rate =
+                                                          double.tryParse(
+                                                            controller.text
+                                                                .replaceAll(
+                                                                  ',',
+                                                                  '.',
+                                                                ),
+                                                          ) ??
+                                                          1.0;
+                                                      currencyProvider.setRate(
+                                                        rate,
+                                                      );
                                                       Navigator.of(ctx2).pop();
                                                     },
-                                                    child: const Text('Registrar'),
+                                                    child: const Text(
+                                                      'Registrar',
+                                                    ),
                                                   ),
                                                 ],
                                               );

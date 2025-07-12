@@ -266,14 +266,23 @@ class _ClientsScreenState extends State<ClientsScreen> {
                 );
                 await txProvider.loadTransactions(widget.userId);
                 await provider.loadClients(widget.userId);
+                // Si estamos online, sincroniza la transacción de saldo inicial inmediatamente
+                if (await txProvider.isOnline()) {
+                  await txProvider.syncPendingTransactions(widget.userId);
+                }
               }
             } else {
-              // Edición: solo actualizar en Hive
-              client.name = newClient.name;
-              client.email = newClient.email;
-              client.phone = newClient.phone;
-              await client.save();
-              await provider.loadClients(widget.userId);
+              // Edición: actualizar en Hive y marcar como pendiente de sincronizar (offline-first)
+              await provider.updateClient(
+                Client(
+                  id: client.id,
+                  name: newClient.name,
+                  email: newClient.email,
+                  phone: newClient.phone,
+                  balance: client.balance,
+                ),
+                widget.userId,
+              );
             }
             // 2. Lanzar sincronización a Supabase en segundo plano después de 2 segundos
             Future.delayed(const Duration(seconds: 2), () async {
@@ -647,11 +656,38 @@ class _ClientsScreenState extends State<ClientsScreen> {
                                               ),
                                             );
                                             if (confirm == true) {
-                                          // Siempre marca como pendiente de eliminar en Hive (offline-first)
-                                          await provider.deleteClient(
-                                            client.id,
-                                            widget.userId,
-                                          );
+                                              // Siempre marca como pendiente de eliminar en Hive (offline-first)
+                                              await provider.deleteClient(
+                                                client.id,
+                                                widget.userId,
+                                              );
+                                              // Feedback inmediato
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    'Cliente marcado para eliminar. Se eliminará definitivamente al sincronizar.',
+                                                  ),
+                                                  duration: Duration(
+                                                    seconds: 2,
+                                                  ),
+                                                ),
+                                              );
+                                              // Lanzar sincronización en segundo plano después de 2 segundos
+                                              Future.delayed(
+                                                const Duration(seconds: 2),
+                                                () async {
+                                                  await provider
+                                                      .syncPendingClients(
+                                                        widget.userId,
+                                                      );
+                                                  await txProvider
+                                                      .syncPendingTransactions(
+                                                        widget.userId,
+                                                      );
+                                                },
+                                              );
                                             }
                                           },
                                           onAddTransaction: () =>

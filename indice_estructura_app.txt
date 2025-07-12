@@ -145,3 +145,15 @@ _Este índice es un resumen estructurado y actualizado de la app, útil para doc
   - Para guardar archivos en dispositivos con Android 10 o menor.
 
 Estos permisos están declarados en `android/app/src/main/AndroidManifest.xml` y son necesarios para el funcionamiento correcto de la app.
+
+
+NUNCA BORRAR ESTOS COMANDOS
+
+Ejecutar App termporal
+flutter clean
+flutter pub get
+flutter run
+
+Guardar cambio a mi movil directamente
+flutter build apk --release
+flutter install

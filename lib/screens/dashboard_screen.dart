@@ -10,7 +10,7 @@ import '../utils/currency_utils.dart';
 import '../providers/currency_provider.dart';
 
 import '../utils/no_scrollbar_behavior.dart';
-import 'package:flutter/foundation.dart'; // Para kIsWeb
+// Para kIsWeb
 
 class DashboardScreen extends StatefulWidget {
   final String userId;

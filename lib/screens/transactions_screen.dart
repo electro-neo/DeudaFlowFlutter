@@ -80,7 +80,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       final isUSD = currencyProvider.currency == 'USD';
       final rate = currencyProvider.rate > 0 ? currencyProvider.rate : 1.0;
       final converted = isUSD ? value.toDouble() / rate : value.toDouble();
-      return isUSD ? '\$' + converted.toStringAsFixed(2) : converted.toStringAsFixed(2);
+      return isUSD ? '\$${converted.toStringAsFixed(2)}' : converted.toStringAsFixed(2);
     }
 
     final clients = clientProvider.clients;

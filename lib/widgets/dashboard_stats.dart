@@ -118,10 +118,10 @@ class DashboardStats extends StatelessWidget {
       isButton: true, // Es un botón
       onTap: goToAbonoTab, // Acción al pulsar
     );
-    // StatCard Clientes con deudas (balance > 0)
+    // StatCard Clientes con deudas (balance < 0)
     final clientesConDeuda = clients
-        .where((c) => c.balance > 0)
-        .length; // Cuenta clientes con balance positivo
+        .where((c) => c.balance < 0)
+        .length; // Cuenta clientes con balance negativo (deuda)
     final statClientesConDeuda = _StatCard(
       label: 'Clientes con deudas', // Título del statcard
       value: clientesConDeuda

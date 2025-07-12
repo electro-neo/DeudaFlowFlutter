@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/client.dart';
 import '../services/supabase_service.dart';
-import '../models/transaction.dart';
-import 'transaction_provider.dart';
 
 class ClientProvider extends ChangeNotifier {
   final SupabaseService _service = SupabaseService();

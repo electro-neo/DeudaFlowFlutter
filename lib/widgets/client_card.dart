@@ -59,6 +59,10 @@ class ClientCard extends StatelessWidget {
       syncText = 'Pendiente por sincronizar';
       syncIcon = Icons.sync;
       syncColor = Colors.orange[800];
+    } else if (client.synced) {
+      syncText = 'Sincronizado';
+      syncIcon = Icons.cloud_done;
+      syncColor = Colors.green[700];
     }
 
     final symbol = CurrencyUtils.symbol(context);
@@ -111,43 +115,65 @@ class ClientCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      saldo,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: balanceColor,
+                    // Monto alineado a la derecha
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        saldo,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: balanceColor,
+                        ),
+                        textAlign: TextAlign.right,
                       ),
-                      textAlign: TextAlign.right,
                     ),
-                    Text(
-                      statusText,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: balanceColor,
-                        fontWeight: FontWeight.w500,
+                    // Estado alineado a la derecha
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        statusText,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: balanceColor,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.right,
                       ),
-                      textAlign: TextAlign.right,
                     ),
+                    // Mensaje de sincronización alineado a la derecha y visualmente destacado
                     if (syncText != null)
                       Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Icon(syncIcon, size: 15, color: syncColor),
-                            SizedBox(width: 4),
-                            Text(
-                              syncText,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: syncColor,
-                                fontWeight: FontWeight.w700,
-                              ),
-                              textAlign: TextAlign.right,
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
                             ),
-                          ],
+                            decoration: BoxDecoration(
+                              color: syncColor?.withOpacity(0.10),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Icon(syncIcon, size: 15, color: syncColor),
+                                SizedBox(width: 4),
+                                Text(
+                                  syncText,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: syncColor,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  textAlign: TextAlign.right,
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                   ],

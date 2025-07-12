@@ -28,13 +28,28 @@ class TransactionProvider extends ChangeNotifier {
 
   Future<void> loadTransactions(String userId) async {
     final isOnline = await _isOnline();
+    final box = await Hive.openBox<TransactionHive>('transactions');
+    // MIGRACIÓN AUTOMÁTICA: Fuerza la escritura de los campos para todos los registros
+    for (final t in box.values) {
+      t.synced = t.synced;
+      t.pendingDelete = t.pendingDelete;
+      t.save();
+    }
     if (isOnline) {
       try {
         // Online: usa Supabase y sincroniza Hive
-        _transactions = await _service.fetchTransactions(userId);
-        final box = await Hive.openBox<TransactionHive>('transactions');
+        final remoteTxs = await _service.fetchTransactions(userId);
+        // Mantén las transacciones locales no sincronizadas
+        final localPending = box.values
+            .where((t) => t.synced == false)
+            .toList();
+        // Elimina localmente las transacciones pendientes que nunca se sincronizaron y fueron eliminadas offline
+        final localPendingToKeep = localPending
+            .where((t) => t.id != null && t.id != '')
+            .toList();
         await box.clear();
-        for (final t in _transactions) {
+        // Guarda las de Supabase como sincronizadas
+        for (final t in remoteTxs) {
           box.put(
             t.id,
             TransactionHive(
@@ -45,44 +60,23 @@ class TransactionProvider extends ChangeNotifier {
               date: t.date,
               description: t.description,
               synced: true,
+              pendingDelete: false,
             ),
           );
         }
+        // Vuelve a guardar las locales pendientes válidas
+        for (final t in localPendingToKeep) {
+          box.put(t.id, t);
+        }
+        // Refresca la lista desde Hive para asegurar que el estado synced es correcto
+        _transactions = box.values.map((t) => Transaction.fromHive(t)).toList();
       } catch (e) {
         // Si falla la red, carga desde Hive
-        final box = await Hive.openBox<TransactionHive>('transactions');
-        _transactions = box.values
-            .map(
-              (t) => Transaction(
-                id: t.id,
-                clientId: t.clientId,
-                userId: '',
-                type: t.type,
-                amount: t.amount,
-                description: t.description,
-                date: t.date,
-                createdAt: t.date,
-              ),
-            )
-            .toList();
+        _transactions = box.values.map((t) => Transaction.fromHive(t)).toList();
       }
     } else {
       // Offline: usa Hive
-      final box = await Hive.openBox<TransactionHive>('transactions');
-      _transactions = box.values
-          .map(
-            (t) => Transaction(
-              id: t.id,
-              clientId: t.clientId,
-              userId: '',
-              type: t.type,
-              amount: t.amount,
-              description: t.description,
-              date: t.date,
-              createdAt: t.date,
-            ),
-          )
-          .toList();
+      _transactions = box.values.map((t) => Transaction.fromHive(t)).toList();
     }
     notifyListeners();
   }
@@ -92,43 +86,21 @@ class TransactionProvider extends ChangeNotifier {
     String userId,
     String clientId,
   ) async {
-    final isOnline = await _isOnline();
-    if (isOnline) {
-      try {
-        await _service.addTransaction(tx, userId, clientId);
-      } catch (_) {
-        // Si falla la red, guarda localmente como pendiente
-        final box = Hive.box<TransactionHive>('transactions');
-        box.put(
-          tx.id,
-          TransactionHive(
-            id: tx.id,
-            clientId: tx.clientId,
-            type: tx.type,
-            amount: tx.amount,
-            date: tx.date,
-            description: tx.description,
-            synced: false,
-          ),
-        );
-      }
-      await loadTransactions(userId);
-    } else {
-      final box = Hive.box<TransactionHive>('transactions');
-      box.put(
-        tx.id,
-        TransactionHive(
-          id: tx.id,
-          clientId: tx.clientId,
-          type: tx.type,
-          amount: tx.amount,
-          date: tx.date,
-          description: tx.description,
-          synced: false,
-        ),
-      );
-      await loadTransactions(userId);
-    }
+    // Siempre crea la transacción en Hive como pendiente de sincronizar (offline-first)
+    final box = Hive.box<TransactionHive>('transactions');
+    box.put(
+      tx.id,
+      TransactionHive(
+        id: tx.id,
+        clientId: tx.clientId,
+        type: tx.type,
+        amount: tx.amount,
+        date: tx.date,
+        description: tx.description,
+        synced: false, // Siempre pendiente por sincronizar
+      ),
+    );
+    await loadTransactions(userId);
   }
 
   Future<void> updateTransaction(Transaction tx, String userId) async {
@@ -189,16 +161,7 @@ class TransactionProvider extends ChangeNotifier {
     final box = Hive.box<TransactionHive>('transactions');
     final pending = box.values.where((t) => !t.synced).toList();
     for (final t in pending) {
-      final tx = Transaction(
-        id: t.id,
-        clientId: t.clientId,
-        userId: userId,
-        type: t.type,
-        amount: t.amount,
-        description: t.description,
-        date: t.date,
-        createdAt: t.date,
-      );
+      final tx = Transaction.fromHive(t).copyWith(userId: userId);
       try {
         await _service.addTransaction(tx, userId, t.clientId);
         t.synced = true;

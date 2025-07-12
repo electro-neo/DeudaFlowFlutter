@@ -16,6 +16,11 @@ class ClientProvider extends ChangeNotifier {
         .where((c) => c.pendingDelete == true)
         .toList();
     for (final c in pendingDeletes) {
+      if (c.synced == false) {
+        // Nunca se sincronizó, elimínalo localmente sin intentar en Supabase
+        await c.delete();
+        continue;
+      }
       try {
         await _service.deleteClientAndTransactions(c.id);
         await c.delete(); // Elimina localmente tras sincronizar
@@ -67,13 +72,24 @@ class ClientProvider extends ChangeNotifier {
 
   Future<void> loadClients(String userId) async {
     final isOnline = await _isOnline();
+    final box = await Hive.openBox<ClientHive>('clients');
+    // MIGRACIÓN AUTOMÁTICA: Fuerza la escritura de los campos para todos los clientes
+    for (final c in box.values) {
+      c.synced = c.synced;
+      c.pendingDelete = c.pendingDelete;
+      c.save();
+    }
     if (isOnline) {
       try {
         // Online: usa Supabase y sincroniza Hive
-        _clients = await _service.fetchClients(userId);
-        final box = await Hive.openBox<ClientHive>('clients');
+        final remoteClients = await _service.fetchClients(userId);
+        // Mantén los clientes locales no sincronizados ni pendientes de eliminar
+        final localPending = box.values
+            .where((c) => !c.synced && !c.pendingDelete)
+            .toList();
         await box.clear();
-        for (final c in _clients) {
+        // Guarda los de Supabase como sincronizados
+        for (final c in remoteClients) {
           box.put(
             c.id,
             ClientHive(
@@ -83,13 +99,31 @@ class ClientProvider extends ChangeNotifier {
               phone: c.phone,
               balance: c.balance,
               synced: true,
+              pendingDelete: false,
             ),
           );
         }
+        // Vuelve a guardar los locales pendientes
+        for (final c in localPending) {
+          box.put(c.id, c);
+        }
+        // Refresca la lista desde Hive para asegurar que el estado synced es correcto
+        _clients = box.values
+            .where((c) => c.pendingDelete != true)
+            .map(
+              (c) => Client(
+                id: c.id,
+                name: c.name,
+                email: c.email,
+                phone: c.phone,
+                balance: c.balance,
+              ),
+            )
+            .toList();
       } catch (e) {
         // Si falla la red, carga desde Hive
-        final box = await Hive.openBox<ClientHive>('clients');
         _clients = box.values
+            .where((c) => c.pendingDelete != true)
             .map(
               (c) => Client(
                 id: c.id,
@@ -103,8 +137,8 @@ class ClientProvider extends ChangeNotifier {
       }
     } else {
       // Offline: usa Hive
-      final box = await Hive.openBox<ClientHive>('clients');
       _clients = box.values
+          .where((c) => c.pendingDelete != true)
           .map(
             (c) => Client(
               id: c.id,
@@ -120,115 +154,47 @@ class ClientProvider extends ChangeNotifier {
   }
 
   Future<void> addClient(Client client, String userId) async {
-    final isOnline = await _isOnline();
+    // Siempre crea el cliente en Hive como pendiente de sincronizar (offline-first)
     final box = Hive.box<ClientHive>('clients');
-    if (isOnline) {
-      try {
-        await _service.addClient(client, userId);
-        box.put(
-          client.id,
-          ClientHive(
-            id: client.id,
-            name: client.name,
-            email: client.email,
-            phone: client.phone,
-            balance: client.balance,
-            synced: true,
-            pendingDelete: false,
-          ),
-        );
-      } catch (_) {
-        // Si falla la red, guarda localmente como pendiente de registro
-        box.put(
-          client.id,
-          ClientHive(
-            id: client.id,
-            name: client.name,
-            email: client.email,
-            phone: client.phone,
-            balance: client.balance,
-            synced: false,
-            pendingDelete: false,
-          ),
-        );
-      }
-      await loadClients(userId);
-    } else {
-      box.put(
-        client.id,
-        ClientHive(
-          id: client.id,
-          name: client.name,
-          email: client.email,
-          phone: client.phone,
-          balance: client.balance,
-          synced: false,
-          pendingDelete: false,
-        ),
-      );
-      await loadClients(userId);
-    }
+    box.put(
+      client.id,
+      ClientHive(
+        id: client.id,
+        name: client.name,
+        email: client.email,
+        phone: client.phone,
+        balance: client.balance,
+        synced: false, // Siempre pendiente por sincronizar
+        pendingDelete: false,
+      ),
+    );
+    await this.loadClients(userId);
   }
 
   Future<void> updateClient(Client client, String userId) async {
-    final isOnline = await _isOnline();
-    if (isOnline) {
-      try {
-        await _service.updateClient(client);
-      } catch (_) {
-        // Si falla la red, marca como no sincronizado
-        final box = Hive.box<ClientHive>('clients');
-        final c = box.get(client.id);
-        if (c != null) {
-          c
-            ..name = client.name
-            ..email = client.email
-            ..phone = client.phone
-            ..balance = client.balance
-            ..synced = false;
-          await c.save();
-        }
-      }
-      await loadClients(userId);
-    } else {
-      final box = Hive.box<ClientHive>('clients');
-      final c = box.get(client.id);
-      if (c != null) {
-        c
-          ..name = client.name
-          ..email = client.email
-          ..phone = client.phone
-          ..balance = client.balance
-          ..synced = false;
-        await c.save();
-      }
-      await loadClients(userId);
+    // Siempre actualiza en Hive y marca como pendiente de sincronizar
+    final box = Hive.box<ClientHive>('clients');
+    final c = box.get(client.id);
+    if (c != null) {
+      c
+        ..name = client.name
+        ..email = client.email
+        ..phone = client.phone
+        ..balance = client.balance
+        ..synced = false;
+      await c.save();
     }
+    await this.loadClients(userId);
   }
 
   Future<void> deleteClient(String clientId, String userId) async {
-    final isOnline = await _isOnline();
+    // Siempre marca como pendiente de eliminar en Hive
     final box = Hive.box<ClientHive>('clients');
     final c = box.get(clientId);
-    if (isOnline) {
-      try {
-        await _service.deleteClientAndTransactions(clientId);
-        if (c != null) await c.delete();
-      } catch (_) {
-        // Si falla la red, marca como pendiente de eliminar
-        if (c != null) {
-          c.pendingDelete = true;
-          await c.save();
-        }
-      }
-      await loadClients(userId);
-    } else {
-      // Solo marca como pendiente de eliminar
-      if (c != null) {
-        c.pendingDelete = true;
-        await c.save();
-      }
-      await loadClients(userId);
+    if (c != null) {
+      c.pendingDelete = true;
+      await c.save();
     }
+    await this.loadClients(userId);
   }
 }

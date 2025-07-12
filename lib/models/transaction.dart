@@ -7,6 +7,7 @@ class Transaction {
   final String description;
   final DateTime date;
   final DateTime createdAt;
+  final bool? synced;
 
   Transaction({
     required this.id,
@@ -17,7 +18,46 @@ class Transaction {
     required this.description,
     required this.date,
     required this.createdAt,
+    this.synced,
   });
+
+  Transaction copyWith({
+    String? id,
+    String? clientId,
+    String? userId,
+    String? type,
+    double? amount,
+    String? description,
+    DateTime? date,
+    DateTime? createdAt,
+    bool? synced,
+  }) {
+    return Transaction(
+      id: id ?? this.id,
+      clientId: clientId ?? this.clientId,
+      userId: userId ?? this.userId,
+      type: type ?? this.type,
+      amount: amount ?? this.amount,
+      description: description ?? this.description,
+      date: date ?? this.date,
+      createdAt: createdAt ?? this.createdAt,
+      synced: synced ?? this.synced,
+    );
+  }
+
+  static Transaction fromHive(dynamic t) {
+    return Transaction(
+      id: t.id,
+      clientId: t.clientId,
+      userId: '',
+      type: t.type,
+      amount: t.amount,
+      description: t.description,
+      date: t.date,
+      createdAt: t.date,
+      synced: t.synced,
+    );
+  }
 
   factory Transaction.fromMap(Map<String, dynamic> map) => Transaction(
     id: map['id']?.toString() ?? '',
@@ -28,5 +68,10 @@ class Transaction {
     description: map['description'] ?? '',
     date: DateTime.parse(map['date']),
     createdAt: DateTime.parse(map['created_at']),
+    synced: map['synced'] is bool
+        ? map['synced'] as bool
+        : (map['synced'] is int ? (map['synced'] == 1) : null),
   );
+
+  // Elimina el factory duplicado para evitar conflicto con el método estático
 }

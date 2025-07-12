@@ -229,8 +229,13 @@ class _ClientsScreenState extends State<ClientsScreen> {
               context,
               listen: false,
             );
+            // 1. Crear SIEMPRE en Hive (offline-first)
             if (client == null) {
-              await provider.addClient(Client.fromHive(newClient), widget.userId);
+              // Guardar cliente en Hive
+              await provider.addClient(
+                Client.fromHive(newClient),
+                widget.userId,
+              );
               await provider.loadClients(widget.userId);
               final box = Hive.box<ClientHive>('clients');
               final createdClient = box.values.firstWhere(
@@ -252,24 +257,31 @@ class _ClientsScreenState extends State<ClientsScreen> {
                   description: 'Saldo inicial',
                   date: now,
                   createdAt: now,
+                  synced: false, // Siempre pendiente por sincronizar
                 );
                 await txProvider.addTransaction(
                   tx,
                   widget.userId,
                   createdClient.id,
                 );
-                // Recargar transacciones para que la UI muestre el saldo inicial
                 await txProvider.loadTransactions(widget.userId);
                 await provider.loadClients(widget.userId);
               }
             } else {
+              // Edición: solo actualizar en Hive
               client.name = newClient.name;
               client.email = newClient.email;
               client.phone = newClient.phone;
               await client.save();
               await provider.loadClients(widget.userId);
             }
-            // Ya no se cierra el modal aquí, lo hace el formulario
+            // 2. Lanzar sincronización a Supabase en segundo plano después de 2 segundos
+            Future.delayed(const Duration(seconds: 2), () async {
+              await provider.syncPendingClients(widget.userId);
+              await txProvider.syncPendingTransactions(widget.userId);
+              // Puedes agregar aquí lógica para mostrar un snackbar o actualizar la UI si lo deseas
+            });
+            // 3. El modal se cierra inmediatamente tras guardar en Hive (lo hace el formulario)
             return newClient;
           },
           readOnlyBalance: client != null,
@@ -635,10 +647,11 @@ class _ClientsScreenState extends State<ClientsScreen> {
                                               ),
                                             );
                                             if (confirm == true) {
-                                              await provider.deleteClient(
-                                                client.id,
-                                                widget.userId,
-                                              );
+                                          // Siempre marca como pendiente de eliminar en Hive (offline-first)
+                                          await provider.deleteClient(
+                                            client.id,
+                                            widget.userId,
+                                          );
                                             }
                                           },
                                           onAddTransaction: () =>

@@ -79,7 +79,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       final isUSD = currencyProvider.currency == 'USD';
       final rate = currencyProvider.rate > 0 ? currencyProvider.rate : 1.0;
       final converted = isUSD ? value.toDouble() / rate : value.toDouble();
-      return isUSD ? '\$${converted.toStringAsFixed(2)}' : converted.toStringAsFixed(2);
+      return isUSD
+          ? '\$${converted.toStringAsFixed(2)}'
+          : converted.toStringAsFixed(2);
     }
 
     final clients = clientProvider.clients;
@@ -269,8 +271,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         const SizedBox(height: 18),
         // Filtros horizontales
         Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(
+              flex: 4,
               child: SizedBox(
                 height: 52,
                 child: DropdownButtonFormField<String>(
@@ -300,6 +304,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             ),
             const SizedBox(width: 6),
             Expanded(
+              flex: 3,
               child: SizedBox(
                 height: 52,
                 child: DropdownButtonFormField<String>(
@@ -328,59 +333,57 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             ),
             const SizedBox(width: 6),
             SizedBox(
+              width: 48,
               height: 52,
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.date_range, color: Colors.black87),
-                    onPressed: () async {
-                      final picked = await showDialog<DateTimeRange>(
-                        context: context,
-                        builder: (context) {
-                          DateTimeRange tempRange =
-                              _selectedRange ??
-                              DateTimeRange(
-                                start: DateTime.now().subtract(
-                                  const Duration(days: 7),
-                                ),
-                                end: DateTime.now(),
-                              );
-                          return AlertDialog(
-                            title: const Text('Selecciona un rango'),
-                            content: SizedBox(
-                              width: 320,
-                              height: 260, // Más bajo
-                              child: CalendarDateRangePicker(
-                                initialRange: tempRange,
-                                onChanged: (range) {
-                                  tempRange = range;
-                                },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.date_range, color: Colors.black87),
+                  onPressed: () async {
+                    final picked = await showDialog<DateTimeRange>(
+                      context: context,
+                      builder: (context) {
+                        DateTimeRange tempRange =
+                            _selectedRange ??
+                            DateTimeRange(
+                              start: DateTime.now().subtract(
+                                const Duration(days: 7),
                               ),
+                              end: DateTime.now(),
+                            );
+                        return AlertDialog(
+                          title: const Text('Selecciona un rango'),
+                          content: SizedBox(
+                            width: 320,
+                            height: 260, // Más bajo
+                            child: CalendarDateRangePicker(
+                              initialRange: tempRange,
+                              onChanged: (range) {
+                                tempRange = range;
+                              },
                             ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.of(context).pop(),
-                                child: const Text('Cancelar'),
-                              ),
-                              ElevatedButton(
-                                onPressed: () =>
-                                    Navigator.of(context).pop(tempRange),
-                                child: const Text('Aceptar'),
-                              ),
-                            ],
-                          );
-                        },
-                      );
-                      if (picked != null) {
-                        setState(() => _selectedRange = picked);
-                      }
-                    },
-                  ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: const Text('Cancelar'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () =>
+                                  Navigator.of(context).pop(tempRange),
+                              child: const Text('Aceptar'),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                    if (picked != null) {
+                      setState(() => _selectedRange = picked);
+                    }
+                  },
                 ),
               ),
             ),
@@ -624,17 +627,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           duration: const Duration(milliseconds: 1200),
                         );
                         ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                        // Esperar a que se muestre el snackbar y luego cerrar la pantalla
-                        await Future.delayed(
-                          const Duration(milliseconds: 1200),
-                        );
-                        if (mounted) Navigator.of(context).maybePop();
+                        // No cerrar la pantalla, solo actualizar la lista
                       } catch (e) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(
-                              'Error al eliminar: \\${e.toString()}',
-                            ),
+                            content: Text('Error al eliminar: ${e.toString()}'),
                             backgroundColor: Colors.red,
                           ),
                         );
@@ -681,6 +678,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
                                     children: [
                                       Expanded(
                                         child: Text(
@@ -692,7 +690,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
-                                      SizedBox(width: 8),
+                                      Spacer(),
                                       Text(
                                         format(t.amount),
                                         style: TextStyle(
@@ -702,6 +700,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                           fontWeight: FontWeight.bold,
                                           fontSize: 18,
                                         ),
+                                        overflow: TextOverflow.ellipsis,
+                                        textAlign: TextAlign.right,
                                       ),
                                     ],
                                   ),
@@ -716,13 +716,21 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                             color: Colors.black54,
                                           ),
                                           overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
                                         ),
                                       ),
-                                      Text(
-                                        '${t.date.year}-${t.date.month.toString().padLeft(2, '0')}-${t.date.day.toString().padLeft(2, '0')}',
-                                        style: TextStyle(
-                                          fontSize: 12.5,
-                                          color: Colors.black45,
+                                      SizedBox(width: 8),
+                                      SizedBox(
+                                        width: 90,
+                                        child: Text(
+                                          '${t.date.year}-${t.date.month.toString().padLeft(2, '0')}-${t.date.day.toString().padLeft(2, '0')}',
+                                          style: TextStyle(
+                                            fontSize: 12.5,
+                                            color: Colors.black45,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
+                                          textAlign: TextAlign.right,
                                         ),
                                       ),
                                     ],

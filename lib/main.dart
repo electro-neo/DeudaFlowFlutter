@@ -24,29 +24,51 @@ import 'providers/tab_provider.dart';
 import 'providers/theme_provider.dart';
 import 'widgets/budgeto_theme.dart';
 
+// ...eliminada duplicidad de _initializeApp...
+Future<void> _initializeApp() async {
+  try {
+    debugPrint('Iniciando Supabase...');
+    await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+    debugPrint('Supabase inicializado');
+
+    // Captura errores globales de Supabase y de Flutter
+    FlutterError.onError = (FlutterErrorDetails details) {
+      if (details.exception.toString().contains('SocketException')) {
+        debugPrint('Supabase offline: \n[${details.exception}]');
+      } else {
+        FlutterError.presentError(details);
+      }
+    };
+
+    debugPrint('Iniciando Hive...');
+    await Hive.initFlutter();
+    debugPrint('Hive inicializado');
+    Hive.registerAdapter(ClientHiveAdapter());
+    Hive.registerAdapter(TransactionHiveAdapter());
+    debugPrint('Adapters registrados');
+    await Hive.openBox<ClientHive>('clients');
+    debugPrint('Box clients abierto');
+    await Hive.openBox<TransactionHive>('transactions');
+    debugPrint('Box transactions abierto');
+    runApp(const MyApp());
+    debugPrint('runApp ejecutado');
+  } catch (e, st) {
+    runApp(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(child: Text('Error de inicialización en móvil:\n$e')),
+        ),
+      ),
+    );
+    debugPrint('Error en inicialización: $e\n$st');
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Supabase.initialize(
-    url: supabaseUrl, // Usando la variable importada
-    anonKey: supabaseAnonKey, // Usando la variable importada
-  );
-
-  // Captura errores globales de Supabase y de Flutter
-  FlutterError.onError = (FlutterErrorDetails details) {
-    if (details.exception.toString().contains('SocketException')) {
-      // Solo loguea, no crashea
-      debugPrint('Supabase offline: \\n${details.exception}');
-    } else {
-      FlutterError.presentError(details);
-    }
-  };
-
-  await Hive.initFlutter();
-  Hive.registerAdapter(ClientHiveAdapter());
-  Hive.registerAdapter(TransactionHiveAdapter());
-  await Hive.openBox<ClientHive>('clients');
-  await Hive.openBox<TransactionHive>('transactions');
-  runApp(const MyApp());
+  await clearHiveData(); // Limpia datos locales de Hive SOLO para migración
+  _initializeApp();
+  // Quita la línea de clearHiveData después de iniciar correctamente una vez
 }
 
 class MyApp extends StatelessWidget {
@@ -154,5 +176,37 @@ class _AuthGateState extends State<AuthGate> {
         }
       },
     );
+  }
+}
+
+// Borra todas las cajas locales de Hive (solo para debug/desarrollo)
+Future<void> clearHiveData() async {
+  // Cierra y borra las cajas si están abiertas
+  try {
+    if (Hive.isBoxOpen('transactions')) {
+      await Hive.box('transactions').close();
+    }
+    await Hive.deleteBoxFromDisk('transactions');
+    debugPrint('Caja transactions borrada');
+  } catch (e) {
+    debugPrint('Error al borrar caja transactions: $e');
+  }
+  try {
+    if (Hive.isBoxOpen('clients')) {
+      await Hive.box('clients').close();
+    }
+    await Hive.deleteBoxFromDisk('clients');
+    debugPrint('Caja clients borrada');
+  } catch (e) {
+    debugPrint('Error al borrar caja clients: $e');
+  }
+  try {
+    if (Hive.isBoxOpen('session')) {
+      await Hive.box('session').close();
+    }
+    await Hive.deleteBoxFromDisk('session');
+    debugPrint('Caja session borrada');
+  } catch (e) {
+    debugPrint('Error al borrar caja session: $e');
   }
 }

@@ -11,7 +11,22 @@ class ClientProvider extends ChangeNotifier {
   Future<void> syncPendingClients(String userId) async {
     if (!await _isOnline()) return;
     final box = Hive.box<ClientHive>('clients');
-    final pending = box.values.where((c) => !c.synced).toList();
+    // Sincroniza eliminaciones pendientes
+    final pendingDeletes = box.values
+        .where((c) => c.pendingDelete == true)
+        .toList();
+    for (final c in pendingDeletes) {
+      try {
+        await _service.deleteClientAndTransactions(c.id);
+        await c.delete(); // Elimina localmente tras sincronizar
+      } catch (_) {
+        // Si falla, sigue offline
+      }
+    }
+    // Sincroniza creaciones/ediciones pendientes
+    final pending = box.values
+        .where((c) => !c.synced && !c.pendingDelete)
+        .toList();
     for (final c in pending) {
       final client = Client(
         id: c.id,
@@ -106,12 +121,24 @@ class ClientProvider extends ChangeNotifier {
 
   Future<void> addClient(Client client, String userId) async {
     final isOnline = await _isOnline();
+    final box = Hive.box<ClientHive>('clients');
     if (isOnline) {
       try {
         await _service.addClient(client, userId);
+        box.put(
+          client.id,
+          ClientHive(
+            id: client.id,
+            name: client.name,
+            email: client.email,
+            phone: client.phone,
+            balance: client.balance,
+            synced: true,
+            pendingDelete: false,
+          ),
+        );
       } catch (_) {
-        // Si falla la red, guarda localmente como pendiente
-        final box = Hive.box<ClientHive>('clients');
+        // Si falla la red, guarda localmente como pendiente de registro
         box.put(
           client.id,
           ClientHive(
@@ -121,12 +148,12 @@ class ClientProvider extends ChangeNotifier {
             phone: client.phone,
             balance: client.balance,
             synced: false,
+            pendingDelete: false,
           ),
         );
       }
       await loadClients(userId);
     } else {
-      final box = Hive.box<ClientHive>('clients');
       box.put(
         client.id,
         ClientHive(
@@ -136,6 +163,7 @@ class ClientProvider extends ChangeNotifier {
           phone: client.phone,
           balance: client.balance,
           synced: false,
+          pendingDelete: false,
         ),
       );
       await loadClients(userId);
@@ -180,18 +208,26 @@ class ClientProvider extends ChangeNotifier {
 
   Future<void> deleteClient(String clientId, String userId) async {
     final isOnline = await _isOnline();
+    final box = Hive.box<ClientHive>('clients');
+    final c = box.get(clientId);
     if (isOnline) {
       try {
         await _service.deleteClientAndTransactions(clientId);
+        if (c != null) await c.delete();
       } catch (_) {
-        // Si falla la red, elimina localmente pero marca como pendiente
-        final box = Hive.box<ClientHive>('clients');
-        await box.delete(clientId);
+        // Si falla la red, marca como pendiente de eliminar
+        if (c != null) {
+          c.pendingDelete = true;
+          await c.save();
+        }
       }
       await loadClients(userId);
     } else {
-      final box = Hive.box<ClientHive>('clients');
-      await box.delete(clientId);
+      // Solo marca como pendiente de eliminar
+      if (c != null) {
+        c.pendingDelete = true;
+        await c.save();
+      }
       await loadClients(userId);
     }
   }

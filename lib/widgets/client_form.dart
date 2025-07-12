@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../models/client.dart';
+import '../models/client_hive.dart';
 
 class ClientForm extends StatefulWidget {
-  final Future<Client> Function(Client) onSave;
-  final Client? initialClient;
+  final Future<ClientHive> Function(ClientHive) onSave;
+  final ClientHive? initialClient;
   final String userId;
   final bool readOnlyBalance;
+
   const ClientForm({
     super.key,
     required this.onSave,
@@ -91,12 +92,14 @@ class _ClientFormState extends State<ClientForm> {
       _error = null;
       _isSaving = true;
     });
-    final client = Client(
-      id: '',
-      name: _nameController.text,
-      email: _emailController.text,
+    final client = ClientHive(
+      id: widget.initialClient?.id ?? '',
+      name: _nameController.text.trim(),
+      email: _emailController.text.trim(),
       phone: phoneText,
       balance: _initialType == 'debt' ? -balance : balance,
+      synced: widget.initialClient?.synced ?? false,
+      pendingDelete: widget.initialClient?.pendingDelete ?? false,
     );
     try {
       await widget.onSave(client);

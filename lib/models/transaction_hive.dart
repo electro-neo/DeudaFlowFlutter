@@ -28,15 +28,63 @@ class TransactionHive extends HiveObject {
     this.synced = false,
   });
 
-  factory TransactionHive.fromMap(Map<String, dynamic> map) => TransactionHive(
-    id: map['id'].toString(),
-    clientId: map['clientId'].toString(),
-    type: map['type'].toString(),
-    amount: (map['amount'] as num?)?.toDouble() ?? 0.0,
-    date: DateTime.parse(map['date'].toString()),
-    description: map['description']?.toString() ?? '',
-    synced: map['synced'] ?? false,
-  );
+  factory TransactionHive.fromMap(Map<String, dynamic> map) {
+    final idValue = map['id'];
+    final clientIdValue = map['clientId'];
+    final typeValue = map['type'];
+    final dateValue = map['date'];
+    if (idValue == null ||
+        idValue.toString() == 'null' ||
+        idValue.toString().isEmpty) {
+      throw ArgumentError(
+        "El campo 'id' es obligatorio y no puede ser null o vacío en TransactionHive.fromMap",
+      );
+    }
+    if (clientIdValue == null ||
+        clientIdValue.toString() == 'null' ||
+        clientIdValue.toString().isEmpty) {
+      throw ArgumentError(
+        "El campo 'clientId' es obligatorio y no puede ser null o vacío en TransactionHive.fromMap",
+      );
+    }
+    if (typeValue == null ||
+        typeValue.toString() == 'null' ||
+        typeValue.toString().isEmpty) {
+      throw ArgumentError(
+        "El campo 'type' es obligatorio y no puede ser null o vacío en TransactionHive.fromMap",
+      );
+    }
+    if (dateValue == null ||
+        dateValue.toString() == 'null' ||
+        dateValue.toString().isEmpty) {
+      throw ArgumentError(
+        "El campo 'date' es obligatorio y no puede ser null o vacío en TransactionHive.fromMap",
+      );
+    }
+    DateTime parsedDate;
+    try {
+      parsedDate = dateValue is DateTime
+          ? dateValue
+          : DateTime.parse(dateValue.toString());
+    } catch (_) {
+      throw ArgumentError(
+        "El campo 'date' no tiene un formato válido en TransactionHive.fromMap: ${dateValue.toString()}",
+      );
+    }
+    return TransactionHive(
+      id: idValue.toString(),
+      clientId: clientIdValue.toString(),
+      type: typeValue.toString(),
+      amount: (map['amount'] is num)
+          ? (map['amount'] as num).toDouble()
+          : double.tryParse(map['amount']?.toString() ?? '') ?? 0.0,
+      date: parsedDate,
+      description: map['description']?.toString() ?? '',
+      synced: map['synced'] is bool
+          ? map['synced'] as bool
+          : (map['synced'] is int ? (map['synced'] == 1) : false),
+    );
+  }
 
   Map<String, dynamic> toMap() => {
     'id': id,

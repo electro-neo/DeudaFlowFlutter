@@ -15,6 +15,8 @@ class ClientHive extends HiveObject {
   double balance;
   @HiveField(5)
   bool synced; // true si está sincronizado con el servidor
+  @HiveField(6)
+  bool pendingDelete; // true si está pendiente de eliminar
 
   ClientHive({
     required this.id,
@@ -23,16 +25,34 @@ class ClientHive extends HiveObject {
     this.phone,
     required this.balance,
     this.synced = false,
+    this.pendingDelete = false,
   });
 
-  factory ClientHive.fromMap(Map<String, dynamic> map) => ClientHive(
-    id: map['id'].toString(),
-    name: map['name']?.toString() ?? '',
-    email: map['email']?.toString(),
-    phone: map['phone']?.toString(),
-    balance: (map['balance'] as num?)?.toDouble() ?? 0.0,
-    synced: map['synced'] ?? false,
-  );
+  factory ClientHive.fromMap(Map<String, dynamic> map) {
+    final idValue = map['id'];
+    final nameValue = map['name'];
+    if (idValue == null || idValue.toString() == 'null' || idValue.toString().isEmpty) {
+      throw ArgumentError("El campo 'id' es obligatorio y no puede ser null o vacío en ClientHive.fromMap");
+    }
+    if (nameValue == null || nameValue.toString() == 'null') {
+      throw ArgumentError("El campo 'name' es obligatorio y no puede ser null en ClientHive.fromMap");
+    }
+    return ClientHive(
+      id: idValue.toString(),
+      name: nameValue.toString(),
+      email: map['email']?.toString(),
+      phone: map['phone']?.toString(),
+      balance: (map['balance'] is num)
+          ? (map['balance'] as num).toDouble()
+          : double.tryParse(map['balance']?.toString() ?? '') ?? 0.0,
+      synced: map['synced'] is bool
+          ? map['synced'] as bool
+          : (map['synced'] is int ? (map['synced'] == 1) : false),
+      pendingDelete: map['pendingDelete'] is bool
+          ? map['pendingDelete'] as bool
+          : (map['pendingDelete'] is int ? (map['pendingDelete'] == 1) : false),
+    );
+  }
 
   Map<String, dynamic> toMap() => {
     'id': id,
@@ -41,5 +61,6 @@ class ClientHive extends HiveObject {
     'phone': phone,
     'balance': balance,
     'synced': synced,
+    'pendingDelete': pendingDelete,
   };
 }

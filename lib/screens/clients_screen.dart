@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/transaction_provider.dart';
 import '../providers/client_provider.dart';
-import '../models/client.dart';
+import 'package:hive/hive.dart';
+import '../models/client_hive.dart';
 import '../widgets/client_form.dart';
 import '../models/transaction.dart';
+import '../models/client.dart';
 import '../widgets/client_card.dart';
 import '../widgets/general_receipt_modal.dart';
 import '../widgets/transaction_form.dart';
@@ -28,7 +30,8 @@ class _ClientsScreenState extends State<ClientsScreen> {
     final txProvider = Provider.of<TransactionProvider>(context, listen: false);
     await txProvider.loadTransactions(widget.userId);
     await clientProvider.loadClients(widget.userId);
-    final clients = clientProvider.clients;
+    final box = Hive.box<ClientHive>('clients');
+    final clients = box.values.toList();
     final txs = txProvider.transactions;
     for (final client in clients) {
       final clientTxs = txs.where((t) => t.clientId == client.id);
@@ -41,20 +44,13 @@ class _ClientsScreenState extends State<ClientsScreen> {
         }
       }
       if (client.balance != newBalance) {
-        await clientProvider.updateClient(
-          Client(
-            id: client.id,
-            name: client.name,
-            email: client.email,
-            phone: client.phone,
-            balance: newBalance,
-          ),
-          widget.userId,
-        );
+        client.balance = newBalance;
+        await client.save();
       }
     }
     await clientProvider.loadClients(widget.userId);
   }
+
   final FocusScopeNode _screenFocusScopeNode = FocusScopeNode();
   bool _showSearch = false;
   String _searchText = '';
@@ -63,21 +59,25 @@ class _ClientsScreenState extends State<ClientsScreen> {
   bool _didLoadClients = false;
 
   // Método para mostrar el formulario de transacción
-  void _showTransactionForm(Client client) async {
+  void _showTransactionForm(ClientHive client) async {
     final isMobile =
         Theme.of(context).platform == TargetPlatform.android ||
         Theme.of(context).platform == TargetPlatform.iOS;
     Future<void> handleTransactionSave(Transaction tx) async {
-      final txProvider = Provider.of<TransactionProvider>(context, listen: false);
-      final clientProvider = Provider.of<ClientProvider>(context, listen: false);
-      await txProvider.addTransaction(
-        tx,
-        widget.userId,
-        client.id,
+      final txProvider = Provider.of<TransactionProvider>(
+        context,
+        listen: false,
       );
+      final clientProvider = Provider.of<ClientProvider>(
+        context,
+        listen: false,
+      );
+      await txProvider.addTransaction(tx, widget.userId, client.id);
       // Obtener el balance actualizado del cliente desde las transacciones
       await txProvider.loadTransactions(widget.userId);
-      final allTxs = txProvider.transactions.where((t) => t.clientId == client.id);
+      final allTxs = txProvider.transactions.where(
+        (t) => t.clientId == client.id,
+      );
       double newBalance = 0;
       for (final t in allTxs) {
         if (t.type == 'debt') {
@@ -86,16 +86,8 @@ class _ClientsScreenState extends State<ClientsScreen> {
           newBalance += t.amount;
         }
       }
-      await clientProvider.updateClient(
-        Client(
-          id: client.id,
-          name: client.name,
-          email: client.email,
-          phone: client.phone,
-          balance: newBalance,
-        ),
-        widget.userId,
-      );
+      client.balance = newBalance;
+      await client.save();
       Navigator.of(context).pop();
       await clientProvider.loadClients(widget.userId);
     }
@@ -216,7 +208,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
     }
   }
 
-  void _showClientForm([Client? client]) {
+  void _showClientForm([ClientHive? client]) {
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -238,9 +230,10 @@ class _ClientsScreenState extends State<ClientsScreen> {
               listen: false,
             );
             if (client == null) {
-              await provider.addClient(newClient, widget.userId);
+              await provider.addClient(Client.fromHive(newClient), widget.userId);
               await provider.loadClients(widget.userId);
-              final createdClient = provider.clients.firstWhere(
+              final box = Hive.box<ClientHive>('clients');
+              final createdClient = box.values.firstWhere(
                 (c) =>
                     c.name == newClient.name &&
                     c.email == newClient.email &&
@@ -270,16 +263,10 @@ class _ClientsScreenState extends State<ClientsScreen> {
                 await provider.loadClients(widget.userId);
               }
             } else {
-              await provider.updateClient(
-                Client(
-                  id: client.id,
-                  name: newClient.name,
-                  email: newClient.email,
-                  phone: newClient.phone,
-                  balance: client.balance,
-                ),
-                widget.userId,
-              );
+              client.name = newClient.name;
+              client.email = newClient.email;
+              client.phone = newClient.phone;
+              await client.save();
               await provider.loadClients(widget.userId);
             }
             // Ya no se cierra el modal aquí, lo hace el formulario
@@ -328,7 +315,8 @@ class _ClientsScreenState extends State<ClientsScreen> {
           body: SafeArea(
             child: Consumer<ClientProvider>(
               builder: (context, provider, child) {
-                final allClients = provider.clients;
+                final box = Hive.box<ClientHive>('clients');
+                final allClients = box.values.toList();
                 final txProvider = Provider.of<TransactionProvider>(
                   context,
                   listen: false,
@@ -342,7 +330,6 @@ class _ClientsScreenState extends State<ClientsScreen> {
                           )
                           .toList()
                     : allClients;
-                // Mostrar siempre el balance real del cliente, aunque no tenga transacciones
                 final clientsWithBalance = clients;
 
                 // --- LAYOUT INDEPENDIENTE Y MODERNO ---

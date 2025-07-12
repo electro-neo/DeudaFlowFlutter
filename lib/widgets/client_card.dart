@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/transaction_provider.dart';
+import '../models/client_hive.dart';
 import '../models/client.dart';
 import '../utils/currency_utils.dart';
 import '../providers/currency_provider.dart';
 import 'client_details_modal.dart';
 
 class ClientCard extends StatelessWidget {
-  final Client client;
+  final ClientHive client;
   final String userId;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
@@ -42,25 +43,36 @@ class ClientCard extends StatelessWidget {
     final isDeuda = balance < 0;
     final balanceColor = isDeuda ? Colors.red : Colors.green;
     // balanceText no se usa, se elimina para evitar warning
-    final statusText = balance == 0
+    String statusText = balance == 0
         ? 'Sin movimientos'
         : isDeuda
         ? 'Deuda pendiente del cliente'
         : 'Saldo a favor del cliente';
+    String? syncText;
+    IconData? syncIcon;
+    Color? syncColor;
+    if (client.pendingDelete) {
+      syncText = 'Pendiente de eliminar';
+      syncIcon = Icons.delete_forever;
+      syncColor = Colors.red[700];
+    } else if (!client.synced) {
+      syncText = 'Pendiente por sincronizar';
+      syncIcon = Icons.sync;
+      syncColor = Colors.orange[800];
+    }
 
     final symbol = CurrencyUtils.symbol(context);
     final formatted = CurrencyUtils.format(context, balance);
     final saldo = '$symbol$formatted';
 
     if (isMobile) {
-      // SOLO nombre, monto y mensaje alineados, y abre modal con los datos y botones al tocar
-      // SOLO nombre y monto alineados, y abre modal con los datos y botones al tocar
+      // Nombre ocupa el espacio disponible, monto y estado alineados a la derecha, y abre modal con los datos y botones al tocar
       return GestureDetector(
         onTap: () {
           showDialog(
             context: context,
             builder: (_) => ClientDetailsModal(
-              client: client,
+              client: Client.fromHive(client),
               userId: userId,
               onEdit: onEdit,
               onDelete: onDelete,
@@ -78,12 +90,12 @@ class ClientCard extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const CircleAvatar(child: Icon(Icons.person)),
                 const SizedBox(width: 8),
-                // Nombre a la izquierda
-                SizedBox(
-                  width: 100, // Ajusta el ancho según tu diseño
+                // Nombre ocupa el espacio disponible
+                Expanded(
                   child: Text(
                     client.name,
                     style: const TextStyle(
@@ -93,9 +105,11 @@ class ClientCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 8),
+                // Todo el bloque de saldo y estados alineado a la derecha
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       saldo,
@@ -104,6 +118,7 @@ class ClientCard extends StatelessWidget {
                         fontSize: 16,
                         color: balanceColor,
                       ),
+                      textAlign: TextAlign.right,
                     ),
                     Text(
                       statusText,
@@ -112,7 +127,29 @@ class ClientCard extends StatelessWidget {
                         color: balanceColor,
                         fontWeight: FontWeight.w500,
                       ),
+                      textAlign: TextAlign.right,
                     ),
+                    if (syncText != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Icon(syncIcon, size: 15, color: syncColor),
+                            SizedBox(width: 4),
+                            Text(
+                              syncText,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: syncColor,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              textAlign: TextAlign.right,
+                            ),
+                          ],
+                        ),
+                      ),
                   ],
                 ),
               ],
@@ -191,6 +228,24 @@ class ClientCard extends StatelessWidget {
                                   ),
                                 ),
                               ],
+                            ),
+                          if (syncText != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4.0),
+                              child: Row(
+                                children: [
+                                  Icon(syncIcon, size: 16, color: syncColor),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    syncText,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: syncColor,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                         ],
                       ),

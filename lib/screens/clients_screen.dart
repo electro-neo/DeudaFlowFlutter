@@ -231,26 +231,17 @@ class _ClientsScreenState extends State<ClientsScreen> {
             );
             // 1. Crear SIEMPRE en Hive (offline-first)
             if (client == null) {
-              // Guardar cliente en Hive
-              await provider.addClient(
+              // Guardar cliente en Hive y obtener el id real tras sincronizar
+              final realId = await provider.addClient(
                 Client.fromHive(newClient),
                 widget.userId,
               );
               await provider.loadClients(widget.userId);
-              final box = Hive.box<ClientHive>('clients');
-              final createdClient = box.values.firstWhere(
-                (c) =>
-                    c.name == newClient.name &&
-                    c.email == newClient.email &&
-                    c.phone == newClient.phone &&
-                    c.balance == newClient.balance,
-                orElse: () => newClient,
-              );
               if (newClient.balance != 0) {
                 final now = DateTime.now();
                 final tx = Transaction(
                   id: '',
-                  clientId: createdClient.id,
+                  clientId: realId,
                   userId: widget.userId,
                   type: newClient.balance > 0 ? 'payment' : 'debt',
                   amount: newClient.balance.abs(),
@@ -259,11 +250,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
                   createdAt: now,
                   synced: false, // Siempre pendiente por sincronizar
                 );
-                await txProvider.addTransaction(
-                  tx,
-                  widget.userId,
-                  createdClient.id,
-                );
+                await txProvider.addTransaction(tx, widget.userId, realId);
                 await txProvider.loadTransactions(widget.userId);
                 await provider.loadClients(widget.userId);
                 // Si estamos online, sincroniza la transacción de saldo inicial inmediatamente
@@ -463,6 +450,55 @@ class _ClientsScreenState extends State<ClientsScreen> {
                                       ),
                                       const SizedBox(width: 12),
                                       FloatingActionButton(
+                                        heroTag: 'syncClientes',
+                                        mini: true,
+                                        backgroundColor: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        foregroundColor: Colors.white,
+                                        elevation: 2,
+                                        onPressed: () async {
+                                          final provider =
+                                              Provider.of<ClientProvider>(
+                                                context,
+                                                listen: false,
+                                              );
+                                          final txProvider =
+                                              Provider.of<TransactionProvider>(
+                                                context,
+                                                listen: false,
+                                              );
+                                          await provider.syncPendingClients(
+                                            widget.userId,
+                                          );
+                                          await txProvider
+                                              .syncPendingTransactions(
+                                                widget.userId,
+                                              );
+                                          await provider.loadClients(
+                                            widget.userId,
+                                          );
+                                          await txProvider.loadTransactions(
+                                            widget.userId,
+                                          );
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'Sincronización forzada completada.',
+                                                ),
+                                                duration: Duration(seconds: 2),
+                                              ),
+                                            );
+                                          }
+                                        },
+                                        tooltip: 'Forzar sincronización',
+                                        child: const Icon(Icons.sync),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      FloatingActionButton(
                                         heroTag: 'buscarCliente',
                                         mini: true,
                                         backgroundColor: Theme.of(
@@ -656,37 +692,34 @@ class _ClientsScreenState extends State<ClientsScreen> {
                                               ),
                                             );
                                             if (confirm == true) {
-                                              // Siempre marca como pendiente de eliminar en Hive (offline-first)
                                               await provider.deleteClient(
                                                 client.id,
                                                 widget.userId,
                                               );
-                                              // Feedback inmediato
+                                              await provider.syncPendingClients(
+                                                widget.userId,
+                                              );
+                                              await txProvider
+                                                  .syncPendingTransactions(
+                                                    widget.userId,
+                                                  );
+                                              await provider.loadClients(
+                                                widget.userId,
+                                              );
+                                              await txProvider.loadTransactions(
+                                                widget.userId,
+                                              );
                                               ScaffoldMessenger.of(
                                                 context,
                                               ).showSnackBar(
                                                 const SnackBar(
                                                   content: Text(
-                                                    'Cliente marcado para eliminar. Se eliminará definitivamente al sincronizar.',
+                                                    'Cliente eliminado correctamente.',
                                                   ),
                                                   duration: Duration(
                                                     seconds: 2,
                                                   ),
                                                 ),
-                                              );
-                                              // Lanzar sincronización en segundo plano después de 2 segundos
-                                              Future.delayed(
-                                                const Duration(seconds: 2),
-                                                () async {
-                                                  await provider
-                                                      .syncPendingClients(
-                                                        widget.userId,
-                                                      );
-                                                  await txProvider
-                                                      .syncPendingTransactions(
-                                                        widget.userId,
-                                                      );
-                                                },
                                               );
                                             }
                                           },

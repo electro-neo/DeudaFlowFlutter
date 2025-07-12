@@ -92,8 +92,10 @@ class _ClientFormState extends State<ClientForm> {
       _error = null;
       _isSaving = true;
     });
+    // Generar un id único local si es nuevo
+    String newId = widget.initialClient?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
     final client = ClientHive(
-      id: widget.initialClient?.id ?? '',
+      id: newId,
       name: _nameController.text.trim(),
       email: _emailController.text.trim(),
       phone: phoneText,

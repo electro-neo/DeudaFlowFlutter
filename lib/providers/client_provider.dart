@@ -25,25 +25,22 @@ class ClientProvider extends ChangeNotifier {
     }
     // 2. Procesar eliminaciones pendientes
     for (final c in pendingDeletes) {
-      if (c.synced == false) {
-        print(
-          '[SYNC] Cliente ${c.id} nunca sincronizado, eliminado solo local.',
-        );
+      if (c.id.isNotEmpty) {
+        try {
+          print('[SYNC] Intentando eliminar cliente ${c.id} de Supabase...');
+          await _service.deleteClientAndTransactions(c.id);
+          print(
+            '[SYNC] Cliente ${c.id} eliminado de Supabase. Eliminando local...',
+          );
+          await c.delete();
+        } catch (e) {
+          print(
+            '[SYNC][ERROR] No se pudo eliminar cliente ${c.id} de Supabase: $e',
+          );
+        }
+      } else {
+        print('[SYNC] Cliente sin id válido, eliminado solo local.');
         await c.delete();
-        continue;
-      }
-      try {
-        print('[SYNC] Intentando eliminar cliente ${c.id} de Supabase...');
-        await _service.deleteClientAndTransactions(c.id);
-        print(
-          '[SYNC] Cliente ${c.id} eliminado de Supabase. Eliminando local...',
-        );
-        await c.delete();
-      } catch (e) {
-        print(
-          '[SYNC][ERROR] No se pudo eliminar cliente ${c.id} de Supabase: $e',
-        );
-        // Si falla, sigue offline
       }
     }
     // 3. LOG: Mostrar clientes pendientes de sincronizar (creación/edición)
@@ -68,17 +65,48 @@ class ClientProvider extends ChangeNotifier {
         balance: c.balance,
       );
       try {
-        if (c.id.isNotEmpty) {
-          // Si tiene id, intenta actualizar
+        if (c.id.isNotEmpty && c.id.length > 20) {
+          // id local generado (timestamp)
+          // Si el id es local, crea en Supabase y actualiza el id en Hive
+          final newId = await _service.addClient(client, userId);
+          if (newId != null) {
+            final box = Hive.box<ClientHive>('clients');
+            final old = box.get(c.id);
+            if (old != null) {
+              final updated = ClientHive(
+                id: newId,
+                name: old.name,
+                email: old.email,
+                phone: old.phone,
+                balance: old.balance,
+                synced: true,
+                pendingDelete: old.pendingDelete,
+              );
+              await box.delete(c.id);
+              await box.put(newId, updated);
+
+              // --- ACTUALIZAR TRANSACCIONES CON EL NUEVO ID DE CLIENTE ---
+              final txBox = await Hive.openBox('transactions');
+              final txsToUpdate = txBox.values
+                  .where((tx) => tx.clientId == c.id)
+                  .toList();
+              for (final tx in txsToUpdate) {
+                tx.clientId = newId;
+                await tx.save();
+              }
+              print(
+                '[SYNC][INFO] Transacciones actualizadas al nuevo id de cliente: $newId (${txsToUpdate.length} transacciones)',
+              );
+            }
+          }
+        } else if (c.id.isNotEmpty) {
+          // Si tiene id real, intenta actualizar
           await _service.updateClient(client);
-        } else {
-          // Si no tiene id, crea nuevo
-          await _service.addClient(client, userId);
+          c.synced = true;
+          await c.save();
         }
-        c.synced = true;
-        await c.save();
-      } catch (_) {
-        // Si falla, sigue offline
+      } catch (e) {
+        print('[SYNC][ERROR] Error al sincronizar cliente: $e');
       }
     }
     await loadClients(userId);
@@ -197,7 +225,7 @@ class ClientProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> addClient(Client client, String userId) async {
+  Future<String> addClient(Client client, String userId) async {
     // Siempre crea el cliente en Hive como pendiente de sincronizar (offline-first)
     final box = Hive.box<ClientHive>('clients');
     box.put(
@@ -214,9 +242,21 @@ class ClientProvider extends ChangeNotifier {
     );
     await loadClients(userId);
     // Si estamos online, sincroniza inmediatamente
+    String finalId = client.id;
     if (await _isOnline()) {
       await syncPendingClients(userId);
+      // Buscar el id real en Hive después de sincronizar
+      final updated = box.values.firstWhere(
+        (c) =>
+            c.name == client.name &&
+            c.email == client.email &&
+            c.phone == client.phone &&
+            c.balance == client.balance,
+        orElse: () => box.get(client.id)!,
+      );
+      finalId = updated.id;
     }
+    return finalId;
   }
 
   Future<void> updateClient(Client client, String userId) async {
@@ -240,17 +280,37 @@ class ClientProvider extends ChangeNotifier {
   }
 
   Future<void> deleteClient(String clientId, String userId) async {
-    // Siempre marca como pendiente de eliminar en Hive
     final box = Hive.box<ClientHive>('clients');
     final c = box.get(clientId);
-    if (c != null) {
-      c.pendingDelete = true;
-      await c.save();
-    }
+    if (c == null) return;
+
+    // 1. Marcar como pendiente de eliminar en Hive
+    c.pendingDelete = true;
+    await c.save();
     await loadClients(userId);
-    // Lanza la sincronización en segundo plano después de 2 segundos
-    Future.delayed(const Duration(seconds: 2), () async {
+
+    // 2. Verificar si estamos online
+    if (await _isOnline()) {
+      // Si hay internet, sincroniza inmediatamente (elimina en Supabase y luego en Hive)
       await syncPendingClients(userId);
+    } else {
+      // Si está offline, iniciar polling cada 2 segundos hasta que haya internet
+      _startDeletePolling(clientId, userId);
+    }
+  }
+
+  // Polling para intentar sincronizar la eliminación cuando vuelva el internet
+  void _startDeletePolling(String clientId, String userId) async {
+    Future.doWhile(() async {
+      await Future.delayed(const Duration(seconds: 2));
+      if (await _isOnline()) {
+        await syncPendingClients(userId);
+        return false; // Detener el polling
+      }
+      // Si el cliente ya no existe (fue eliminado), detener polling
+      final box = Hive.box<ClientHive>('clients');
+      if (!box.containsKey(clientId)) return false;
+      return true; // Seguir intentando
     });
   }
 }

@@ -22,17 +22,26 @@ class SupabaseService {
     return (response as List).map((e) => Transaction.fromMap(e)).toList();
   }
 
-  Future<void> addClient(Client client, String userId) async {
+  Future<String?> addClient(Client client, String userId) async {
     final now = DateTime.now().toIso8601String();
-    await _client.from('clients').insert({
-      'name': client.name,
-      'email': client.email,
-      'phone': client.phone,
-      'balance': client.balance,
-      'user_id': userId,
-      'created_at': now,
-      'updated_at': now,
-    });
+    final response = await _client
+        .from('clients')
+        .insert({
+          'name': client.name,
+          'email': client.email,
+          'phone': client.phone,
+          'balance': client.balance,
+          'user_id': userId,
+          'created_at': now,
+          'updated_at': now,
+        })
+        .select('id')
+        .single();
+    // Devuelve el id generado por Supabase si existe
+    if (response['id'] != null) {
+      return response['id'].toString();
+    }
+    return null;
   }
 
   Future<void> updateClient(Client client) async {

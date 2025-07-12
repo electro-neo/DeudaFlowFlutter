@@ -32,6 +32,21 @@ Actualización 11/07/2025 (continuación):
 - Se mejoró la disposición visual y la experiencia de usuario en el modal de recibo general para evitar overflow y mantener la accesibilidad en móvil y escritorio.
 - Se confirmó que la pantalla `GeneralReceiptScreen` no está en uso y puede eliminarse.
 
+---
+Actualización 12/07/2025:
+
+- Ahora la tarjeta de cliente (ClientCard) muestra el estado de sincronización:
+  - "Pendiente por sincronizar" (ícono naranja) si el cliente está offline o esperando sincronización.
+  - "Sincronizado" (ícono verde) si el cliente ya está sincronizado con Supabase.
+  - "Pendiente de eliminar" (ícono rojo) si el cliente está marcado para eliminar.
+- El mensaje de sincronización se muestra correctamente tanto en modo offline como online, y se actualiza en tiempo real tras la sincronización.
+- Se mejoró la lógica offline-first para clientes y transacciones, incluyendo migración automática de campos en Hive para registros antiguos.
+- Se garantiza feedback visual inmediato en la UI tras crear, editar o eliminar clientes y transacciones, incluso sin conexión.
+- Se corrigió la recarga de la lista de clientes para reflejar el estado de sincronización tras cada operación.
+- El flujo de sincronización en segundo plano (2 segundos) funciona correctamente y actualiza el estado visual.
+
 Commit sugerido:
 
 "UI/UX: Mejoras en modal de recibo general:\n- Botones de acción centrados y compactos\n- Fechas fuera del scroll\n- Mejor disposición visual y accesibilidad"
+
+"Offline-first: Estado de sincronización visual en ClientCard, migración automática Hive, feedback inmediato en UI y mejoras de sincronización en segundo plano."

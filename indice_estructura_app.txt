@@ -146,6 +146,20 @@ _Este índice es un resumen estructurado y actualizado de la app, útil para doc
 
 Estos permisos están declarados en `android/app/src/main/AndroidManifest.xml` y son necesarios para el funcionamiento correcto de la app.
 
+---
+
+## Novedades sobre Sincronización Visual y Mejoras Offline-First
+
+- La tarjeta de cliente (ClientCard) ahora muestra el estado de sincronización:
+  - "Pendiente por sincronizar" (ícono naranja) si el cliente está offline o esperando sincronización.
+  - "Sincronizado" (ícono verde) si el cliente ya está sincronizado con Supabase.
+  - "Pendiente de eliminar" (ícono rojo) si el cliente está marcado para eliminar.
+- El mensaje de sincronización se muestra correctamente tanto en modo offline como online, y se actualiza en tiempo real tras la sincronización.
+- Se mejoró la lógica offline-first para clientes y transacciones, incluyendo migración automática de campos en Hive para registros antiguos.
+- Feedback visual inmediato en la UI tras crear, editar o eliminar clientes y transacciones, incluso sin conexión.
+- El flujo de sincronización en segundo plano (2 segundos) funciona correctamente y actualiza el estado visual.
+
+---
 
 NUNCA BORRAR ESTOS COMANDOS
 

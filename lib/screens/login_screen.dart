@@ -7,7 +7,6 @@ import '../providers/transaction_provider.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 
-
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -24,6 +23,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = _emailController.text.trim();
     final sessionBox = await Hive.openBox('session');
     final savedEmail = sessionBox.get('email');
+    if (!mounted) return;
     if (savedEmail == email && email.isNotEmpty) {
       Navigator.of(context).pushReplacementNamed('/dashboard');
     } else {
@@ -71,8 +71,10 @@ class _LoginScreenState extends State<LoginScreen> {
         email: email,
         password: password,
       );
+      if (!mounted) return;
       final user = res.user;
       if (user == null) {
+        if (!mounted) return;
         setState(() {
           _error = 'Login fallido';
         });
@@ -88,6 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
             : null;
         await sessionBox.put('userName', userName ?? '');
         await sessionBox.put('email', user.email ?? email);
+        if (!mounted) return;
         // Sincronizar datos locales si hay internet
         try {
           final clientProvider = Provider.of<ClientProvider>(
@@ -101,6 +104,8 @@ class _LoginScreenState extends State<LoginScreen> {
           await clientProvider.syncPendingClients(user.id);
           await txProvider.syncPendingTransactions(user.id);
         } catch (_) {}
+        if (!mounted) return;
+        // ignore: use_build_context_synchronously
         Navigator.of(context).pushReplacementNamed('/dashboard');
       }
     } on AuthException catch (e) {
@@ -109,8 +114,10 @@ class _LoginScreenState extends State<LoginScreen> {
           e.message.toLowerCase().contains('internet')) {
         final sessionBox = await Hive.openBox('session');
         final savedEmail = sessionBox.get('email');
+        if (!mounted) return;
         if (savedEmail == email) {
           // Login offline permitido
+          // ignore: use_build_context_synchronously
           Navigator.of(context).pushReplacementNamed('/dashboard');
         } else {
           setState(() {
@@ -118,6 +125,7 @@ class _LoginScreenState extends State<LoginScreen> {
           });
         }
       } else {
+        if (!mounted) return;
         setState(() {
           _error = e.message;
         });
@@ -130,6 +138,7 @@ class _LoginScreenState extends State<LoginScreen> {
         final savedEmail = sessionBox.get('email');
         if (savedEmail == email) {
           // Login offline permitido
+          // ignore: use_build_context_synchronously
           Navigator.of(context).pushReplacementNamed('/dashboard');
         } else {
           setState(() {

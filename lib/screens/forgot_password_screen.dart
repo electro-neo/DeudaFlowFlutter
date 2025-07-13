@@ -23,9 +23,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       await Supabase.instance.client.auth.resetPasswordForEmail(
         _emailController.text.trim(),
       );
+      if (!mounted) return;
       ToastHelper.showToast(context, 'Correo de recuperación enviado.');
       Navigator.of(context).pop();
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = 'No se pudo enviar el correo.';
       });

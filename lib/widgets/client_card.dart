@@ -153,7 +153,14 @@ class ClientCard extends StatelessWidget {
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: syncColor?.withOpacity(0.10),
+                              color: syncColor != null
+                                  ? Color.fromARGB(
+                                      (0.10 * 255).round(),
+                                      (syncColor.r * 255.0).round() & 0xff,
+                                      (syncColor.g * 255.0).round() & 0xff,
+                                      (syncColor.b * 255.0).round() & 0xff,
+                                    )
+                                  : null,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Row(

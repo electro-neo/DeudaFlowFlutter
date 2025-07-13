@@ -87,7 +87,7 @@ class _ClientsScreenState extends State<ClientsScreen>
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.15),
+                            color: Colors.black.withAlpha((0.15 * 255).toInt()),
                             blurRadius: 12,
                             offset: const Offset(0, -2),
                           ),
@@ -169,7 +169,10 @@ class _ClientsScreenState extends State<ClientsScreen>
     _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
       result,
     ) async {
-      if (result != ConnectivityResult.none && !_isSyncing) {
+      // NOTA: En versiones recientes de connectivity_plus, 'result' es una lista.
+      // El warning 'unrelated_type_equality_checks' aparece si comparas una lista con un solo valor.
+      // Solución: verifica si la lista NO contiene ConnectivityResult.none para saber si hay conexión.
+      if (!result.contains(ConnectivityResult.none) && !_isSyncing) {
         await _syncAll();
       }
     });
@@ -235,7 +238,7 @@ class _ClientsScreenState extends State<ClientsScreen>
     showDialog(
       context: context,
       barrierDismissible: true,
-      barrierColor: Colors.black.withOpacity(0.25),
+      barrierColor: Colors.black.withValues(alpha: 0.25),
       builder: (dialogContext) => Dialog(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -373,11 +376,11 @@ class _ClientsScreenState extends State<ClientsScreen>
                           Container(
                             width: double.infinity,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.92),
+                              color: Colors.white.withValues(alpha: 0.92),
                               borderRadius: BorderRadius.circular(18),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.08),
+                                  color: Colors.black.withValues(alpha: 0.08),
                                   blurRadius: 14,
                                   offset: const Offset(0, 3),
                                 ),
@@ -539,7 +542,7 @@ class _ClientsScreenState extends State<ClientsScreen>
                                           );
                                           final allClients = box.values
                                               .toList();
-                                          print(
+                                          debugPrint(
                                             '[ELIMINAR_TODOS] Clientes encontrados: ${allClients.length}',
                                           );
                                           if (allClients.isEmpty) {
@@ -585,11 +588,11 @@ class _ClientsScreenState extends State<ClientsScreen>
                                             ),
                                           );
                                           if (confirm == true) {
-                                            print(
+                                            debugPrint(
                                               '[ELIMINAR_TODOS] Eliminando todos los clientes...',
                                             );
                                             for (final client in allClients) {
-                                              print(
+                                              debugPrint(
                                                 '[ELIMINAR_TODOS] Eliminando cliente: ${client.id} (${client.name})',
                                               );
                                               await provider.deleteClient(
@@ -597,7 +600,7 @@ class _ClientsScreenState extends State<ClientsScreen>
                                                 widget.userId,
                                               );
                                             }
-                                            print(
+                                            debugPrint(
                                               '[ELIMINAR_TODOS] Sincronizando eliminaciones...',
                                             );
                                             await provider.syncPendingClients(
@@ -620,7 +623,7 @@ class _ClientsScreenState extends State<ClientsScreen>
                                               hayPendientes = box.values.any(
                                                 (c) => c.pendingDelete == true,
                                               );
-                                              print(
+                                              debugPrint(
                                                 '[ELIMINAR_TODOS] Intento ${intentos + 1}: ¿Quedan clientes pendientes de eliminar? $hayPendientes',
                                               );
                                               if (hayPendientes) {
@@ -633,14 +636,14 @@ class _ClientsScreenState extends State<ClientsScreen>
                                               intentos++;
                                             } while (hayPendientes &&
                                                 intentos < 8);
-                                            print(
+                                            debugPrint(
                                               '[ELIMINAR_TODOS] Recargando transacciones...',
                                             );
                                             await txProvider.loadTransactions(
                                               widget.userId,
                                             );
                                             if (!mounted) return;
-                                            print(
+                                            debugPrint(
                                               '[ELIMINAR_TODOS] Proceso completado.',
                                             );
                                             ScaffoldMessenger.of(
@@ -740,11 +743,11 @@ class _ClientsScreenState extends State<ClientsScreen>
                         padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.80),
+                            color: Colors.white.withValues(alpha: 0.80),
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.04),
+                                color: Colors.black.withValues(alpha: 0.04),
                                 blurRadius: 10,
                                 offset: const Offset(0, 2),
                               ),
@@ -771,8 +774,8 @@ class _ClientsScreenState extends State<ClientsScreen>
                                           ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Colors.black.withOpacity(
-                                                0.03,
+                                              color: Colors.black.withValues(
+                                                alpha: 0.03,
                                               ),
                                               blurRadius: 8,
                                               offset: const Offset(0, 2),

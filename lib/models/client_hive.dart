@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'package:flutter/foundation.dart';
 part 'client_hive.g.dart';
 
 @HiveType(typeId: 0)
@@ -34,13 +35,13 @@ class ClientHive extends HiveObject {
     if (idValue == null ||
         idValue.toString() == 'null' ||
         idValue.toString().isEmpty) {
-      print('[CLIENT_HIVE][ERROR] id inválido en fromMap: $map');
+      debugPrint('[CLIENT_HIVE][ERROR] id inválido en fromMap: $map');
       throw ArgumentError(
         "El campo 'id' es obligatorio y no puede ser null o vacío en ClientHive.fromMap",
       );
     }
     if (nameValue == null || nameValue.toString() == 'null') {
-      print('[CLIENT_HIVE][ERROR] name inválido en fromMap: $map');
+      debugPrint('[CLIENT_HIVE][ERROR] name inválido en fromMap: $map');
       throw ArgumentError(
         "El campo 'name' es obligatorio y no puede ser null en ClientHive.fromMap",
       );
@@ -66,8 +67,8 @@ class ClientHive extends HiveObject {
                       ? (map['pendingDelete'] == 1)
                       : false)),
     );
-    print(
-      '[CLIENT_HIVE][fromMap] Instancia creada: id=[36m${client.id}[0m, name=[36m${client.name}[0m, pendingDelete=${client.pendingDelete}, synced=${client.synced}',
+    debugPrint(
+      '[CLIENT_HIVE][fromMap] Instancia creada: id=\x1B[36m${client.id}\x1B[0m, name=\x1B[36m${client.name}\x1B[0m, pendingDelete=${client.pendingDelete}, synced=${client.synced}',
     );
     return client;
   }

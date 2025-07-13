@@ -93,7 +93,9 @@ class _ClientFormState extends State<ClientForm> {
       _isSaving = true;
     });
     // Generar un id único local si es nuevo
-    String newId = widget.initialClient?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
+    String newId =
+        widget.initialClient?.id ??
+        DateTime.now().millisecondsSinceEpoch.toString();
     final client = ClientHive(
       id: newId,
       name: _nameController.text.trim(),
@@ -195,9 +197,15 @@ class _ClientFormState extends State<ClientForm> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       filled: true,
-                      fillColor: const Color(0xFF7C3AED).withOpacity(0.10),
-                      hoverColor: const Color(0xFF7C3AED).withOpacity(0.13),
-                      focusColor: const Color(0xFF7C3AED).withOpacity(0.16),
+                      fillColor: const Color(
+                        0xFF7C3AED,
+                      ).withValues(alpha: 0.10 * 255),
+                      hoverColor: const Color(
+                        0xFF7C3AED,
+                      ).withValues(alpha: 0.13 * 255),
+                      focusColor: const Color(
+                        0xFF7C3AED,
+                      ).withValues(alpha: 0.16 * 255),
                       floatingLabelBehavior: FloatingLabelBehavior.auto,
                       contentPadding: const EdgeInsets.symmetric(
                         vertical: 16,
@@ -215,9 +223,15 @@ class _ClientFormState extends State<ClientForm> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       filled: true,
-                      fillColor: const Color(0xFF7C3AED).withOpacity(0.10),
-                      hoverColor: const Color(0xFF7C3AED).withOpacity(0.13),
-                      focusColor: const Color(0xFF7C3AED).withOpacity(0.16),
+                      fillColor: const Color(
+                        0xFF7C3AED,
+                      ).withValues(alpha: 0.10 * 255),
+                      hoverColor: const Color(
+                        0xFF7C3AED,
+                      ).withValues(alpha: 0.13 * 255),
+                      focusColor: const Color(
+                        0xFF7C3AED,
+                      ).withValues(alpha: 0.16 * 255),
                       floatingLabelBehavior: FloatingLabelBehavior.auto,
                       contentPadding: const EdgeInsets.symmetric(
                         vertical: 16,
@@ -236,9 +250,15 @@ class _ClientFormState extends State<ClientForm> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       filled: true,
-                      fillColor: const Color(0xFF7C3AED).withOpacity(0.10),
-                      hoverColor: const Color(0xFF7C3AED).withOpacity(0.13),
-                      focusColor: const Color(0xFF7C3AED).withOpacity(0.16),
+                      fillColor: const Color(
+                        0xFF7C3AED,
+                      ).withValues(alpha: 0.10 * 255),
+                      hoverColor: const Color(
+                        0xFF7C3AED,
+                      ).withValues(alpha: 0.13 * 255),
+                      focusColor: const Color(
+                        0xFF7C3AED,
+                      ).withValues(alpha: 0.16 * 255),
                       floatingLabelBehavior: FloatingLabelBehavior.auto,
                       contentPadding: const EdgeInsets.symmetric(
                         vertical: 16,
@@ -256,7 +276,9 @@ class _ClientFormState extends State<ClientForm> {
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
                           decoration: BoxDecoration(
-                            color: colorScheme.primary.withOpacity(0.08),
+                            color: colorScheme.primary.withValues(
+                              alpha: 0.08 * 255,
+                            ),
                             borderRadius: BorderRadius.circular(24),
                             border: Border.all(
                               color: colorScheme.primary,
@@ -300,9 +322,15 @@ class _ClientFormState extends State<ClientForm> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       filled: true,
-                      fillColor: const Color(0xFF7C3AED).withOpacity(0.10),
-                      hoverColor: const Color(0xFF7C3AED).withOpacity(0.13),
-                      focusColor: const Color(0xFF7C3AED).withOpacity(0.16),
+                      fillColor: const Color(
+                        0xFF7C3AED,
+                      ).withValues(alpha: 0.10 * 255),
+                      hoverColor: const Color(
+                        0xFF7C3AED,
+                      ).withValues(alpha: 0.13 * 255),
+                      focusColor: const Color(
+                        0xFF7C3AED,
+                      ).withValues(alpha: 0.16 * 255),
                       floatingLabelBehavior: FloatingLabelBehavior.auto,
                       contentPadding: const EdgeInsets.symmetric(
                         vertical: 16,
@@ -402,7 +430,7 @@ class _ToggleTypeButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final baseColor = color;
-    final selectedColor = baseColor.withOpacity(0.13);
+    final selectedColor = baseColor.withValues(alpha: 0.13 * 255);
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(

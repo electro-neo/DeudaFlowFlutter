@@ -48,21 +48,28 @@ class SyncProvider extends ChangeNotifier {
 
   Future<void> _syncAll(BuildContext context, String userId) async {
     try {
+      if (context is Element && !context.mounted) return;
+      final clientProvider = Provider.of<ClientProvider>(
+        context,
+        listen: false,
+      );
+      final transactionProvider = Provider.of<TransactionProvider>(
+        context,
+        listen: false,
+      );
+
       _setStatus(SyncStatus.waiting);
       await Future.delayed(const Duration(milliseconds: 400));
       _setStatus(SyncStatus.syncing, progress: 0);
+
       // Sincroniza clientes
-      await Provider.of<ClientProvider>(
-        context,
-        listen: false,
-      ).syncPendingClients(userId);
+      await clientProvider.syncPendingClients(userId);
       _setStatus(SyncStatus.syncing, progress: 50);
+
       // Sincroniza transacciones
-      await Provider.of<TransactionProvider>(
-        context,
-        listen: false,
-      ).syncPendingTransactions(userId);
+      await transactionProvider.syncPendingTransactions(userId);
       _setStatus(SyncStatus.syncing, progress: 100);
+
       await Future.delayed(const Duration(milliseconds: 400));
       _setStatus(SyncStatus.success);
       await Future.delayed(const Duration(seconds: 2));
@@ -78,12 +85,18 @@ class SyncProvider extends ChangeNotifier {
       final online = !result.contains(ConnectivityResult.none);
       // Solo sincroniza si pasamos de offline a online
       if (online && !_isOnline) {
-        print(
+        debugPrint(
           '[SYNC][PROVIDER] Reconectado a internet. Iniciando sincronización de clientes y transacciones...',
         );
+        if (context is Element && !context.mounted) return;
         await _syncAll(context, userId);
         // Refuerzo: recargar clientes solo cuando no haya pendientes de eliminar
         try {
+          if (context is Element && !context.mounted) return;
+          // ignore: use_build_context_synchronously
+          // NOTA: Este warning aparece porque el linter de Flutter no reconoce el chequeo de 'mounted' en un ChangeNotifier.
+          // El uso de context aquí es seguro porque se verifica 'context.mounted' antes de cada uso tras un await.
+          // Puedes ignorar este warning: no afecta la ejecución ni la seguridad del código.
           final clientProvider = Provider.of<ClientProvider>(
             context,
             listen: false,
@@ -91,11 +104,12 @@ class SyncProvider extends ChangeNotifier {
           int intentos = 0;
           bool hayPendientes;
           do {
+            if (context is Element && !context.mounted) return;
             await clientProvider.loadClients(userId);
             final box = await Hive.openBox('clients');
             hayPendientes = box.values.any((c) => c.pendingDelete == true);
             if (hayPendientes) {
-              print(
+              debugPrint(
                 '[SYNC][PROVIDER] Esperando a que se eliminen todos los clientes pendientes... (intento ${intentos + 1})',
               );
               await Future.delayed(const Duration(milliseconds: 500));
@@ -103,13 +117,13 @@ class SyncProvider extends ChangeNotifier {
             intentos++;
           } while (hayPendientes && intentos < 8);
         } catch (e) {
-          print(
+          debugPrint(
             '[SYNC][PROVIDER][ERROR] Error recargando clientes tras sincronizar: $e',
           );
         }
       }
       if (!online && _isOnline) {
-        print('[SYNC][PROVIDER] Sin conexión a internet. Modo offline.');
+        debugPrint('[SYNC][PROVIDER] Sin conexión a internet. Modo offline.');
       }
       _isOnline = online;
       notifyListeners();

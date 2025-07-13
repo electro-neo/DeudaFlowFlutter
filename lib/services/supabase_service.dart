@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart';
 import '../models/client.dart';
 import '../models/transaction.dart';
 
@@ -62,13 +63,13 @@ class SupabaseService {
     try {
       // Elimina primero todas las transacciones asociadas a este cliente
       await _client.from('transactions').delete().eq('client_id', clientId);
-      print(
+      debugPrint(
         '[SUPABASE][DELETE] Intento de eliminar transacciones para cliente $clientId completado.',
       );
 
       // Luego elimina el cliente
       await _client.from('clients').delete().eq('id', clientId);
-      print(
+      debugPrint(
         '[SUPABASE][DELETE] Intento de eliminar cliente $clientId completado.',
       );
 
@@ -80,21 +81,21 @@ class SupabaseService {
           .eq('id', clientId);
 
       if (check.isEmpty) {
-        print(
+        debugPrint(
           '[SUPABASE][CHECK][SUCCESS] Cliente $clientId eliminado exitosamente de Supabase.',
         );
         return true;
       } else {
-        print(
+        debugPrint(
           '[SUPABASE][CHECK][FAIL] El cliente $clientId AÚN EXISTE en Supabase tras el intento de borrado.',
         );
         return false;
       }
     } catch (e, stack) {
-      print(
+      debugPrint(
         '[SUPABASE][ERROR] Error al eliminar cliente y transacciones para id $clientId: $e',
       );
-      print('[SUPABASE][ERROR] Stacktrace: $stack');
+      debugPrint('[SUPABASE][ERROR] Stacktrace: $stack');
       return false; // Indicar fallo en caso de excepción
     }
   }

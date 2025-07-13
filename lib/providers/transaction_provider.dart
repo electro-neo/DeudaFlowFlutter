@@ -26,8 +26,8 @@ class TransactionProvider extends ChangeNotifier {
     _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
       result,
     ) async {
-      if (result != ConnectivityResult.none) {
-        // Si hay conexión, intenta sincronizar pendientes
+      // Para versiones recientes de connectivity_plus: result es List<ConnectivityResult>
+      if (result.any((r) => r != ConnectivityResult.none)) {
         await syncPendingTransactionsOnConnection(userId: _lastKnownUserId);
       }
     });
@@ -69,12 +69,12 @@ class TransactionProvider extends ChangeNotifier {
     }
 
     if (effectiveUserId != null && effectiveUserId.isNotEmpty) {
-      print(
+      debugPrint(
         '[SYNC] Conexión recuperada. Sincronizando transacciones pendientes para el usuario $effectiveUserId...',
       );
       await syncPendingTransactions(effectiveUserId);
     } else {
-      print(
+      debugPrint(
         '[SYNC][WARN] Conexión recuperada, pero no se pudo encontrar un userId para sincronizar transacciones.',
       );
     }
@@ -88,7 +88,8 @@ class TransactionProvider extends ChangeNotifier {
 
   Future<bool> isOnline() async {
     final result = await Connectivity().checkConnectivity();
-    if (result.contains(ConnectivityResult.none)) return false;
+    // Para versiones recientes de connectivity_plus, result es List<ConnectivityResult>
+    if (result.every((r) => r == ConnectivityResult.none)) return false;
     // Prueba acceso real a internet
     try {
       final response = await InternetAddress.lookup('google.com');

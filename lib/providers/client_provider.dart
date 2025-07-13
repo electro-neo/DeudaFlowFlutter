@@ -17,40 +17,44 @@ class ClientProvider extends ChangeNotifier {
         .where((c) => c.pendingDelete == true)
         .toList();
     if (pendingDeletes.isNotEmpty) {
-      print(
+      debugPrint(
         '[SYNC][INFO] Clientes marcados para eliminar (pendingDelete=true):',
       );
       for (final c in pendingDeletes) {
-        print('  - id: ${c.id}, name: ${c.name}, synced: ${c.synced}');
+        debugPrint('  - id: ${c.id}, name: ${c.name}, synced: ${c.synced}');
       }
     }
     // 2. Procesar eliminaciones pendientes (todas antes de sincronizar)
     for (final c in pendingDeletes) {
       if (c.id.isNotEmpty) {
         try {
-          print('[SYNC] Intentando eliminar cliente ${c.id} de Supabase...');
+          debugPrint(
+            '[SYNC] Intentando eliminar cliente ${c.id} de Supabase...',
+          );
           final bool fueEliminado = await _service.deleteClientAndTransactions(
             c.id,
           );
 
           if (fueEliminado) {
-            print(
+            debugPrint(
               '[SYNC][SUCCESS] Cliente ${c.id} confirmado como eliminado en Supabase. Eliminando de Hive...',
             );
             await c.delete();
           } else {
-            print(
+            debugPrint(
               '[SYNC][WARN] Falló la eliminación del cliente ${c.id} en Supabase. Se reintentará en la próxima sincronización.',
             );
           }
         } catch (e, stack) {
-          print(
+          debugPrint(
             '[SYNC][ERROR] Excepción al intentar eliminar cliente ${c.id}: $e',
           );
-          print('[SYNC][ERROR] Stacktrace: $stack');
+          debugPrint('[SYNC][ERROR] Stacktrace: $stack');
         }
       } else {
-        print('[SYNC] Cliente con id local (no UUID), eliminado solo de Hive.');
+        debugPrint(
+          '[SYNC] Cliente con id local (no UUID), eliminado solo de Hive.',
+        );
         await c.delete();
       }
     }
@@ -60,11 +64,11 @@ class ClientProvider extends ChangeNotifier {
         .where((c) => !c.synced && !c.pendingDelete)
         .toList();
     if (pending.isNotEmpty) {
-      print(
+      debugPrint(
         '[SYNC][INFO] Clientes pendientes de sincronizar (creación/edición):',
       );
       for (final c in pending) {
-        print('  - id: ${c.id}, name: ${c.name}');
+        debugPrint('  - id: ${c.id}, name: ${c.name}');
       }
     }
     // 4. Procesar creaciones/ediciones pendientes
@@ -110,7 +114,7 @@ class ClientProvider extends ChangeNotifier {
                 tx.clientId = newId;
                 await tx.save();
               }
-              print(
+              debugPrint(
                 '[SYNC][INFO] Transacciones actualizadas al nuevo id de cliente: $newId (${txsToUpdate.length} transacciones)',
               );
             }
@@ -138,14 +142,14 @@ class ClientProvider extends ChangeNotifier {
               await tx.save();
             }
             if (txsToUpdate.isNotEmpty) {
-              print(
+              debugPrint(
                 '[SYNC][INFO] Transacciones antiguas actualizadas al id correcto de cliente: ${c.id} (${txsToUpdate.length} transacciones)',
               );
             }
           }
         }
       } catch (e) {
-        print('[SYNC][ERROR] Error al sincronizar cliente: $e');
+        debugPrint('[SYNC][ERROR] Error al sincronizar cliente: $e');
       }
     }
 
@@ -190,7 +194,7 @@ class ClientProvider extends ChangeNotifier {
         )
         .toList();
     notifyListeners();
-    print(
+    debugPrint(
       '[PROVIDER][REFRESH] La lista de clientes se ha actualizado desde Hive.',
     );
   }
@@ -199,18 +203,8 @@ class ClientProvider extends ChangeNotifier {
     final isOnline = await _isOnline();
     final box = await Hive.openBox<ClientHive>('clients');
     // MIGRACIÓN AUTOMÁTICA: Fuerza la escritura de los campos para todos los clientes y corrige nulls
-    for (final c in box.values) {
-      bool changed = false;
-      if (c.synced == null) {
-        c.synced = false;
-        changed = true;
-      }
-      if (c.pendingDelete == null) {
-        c.pendingDelete = false;
-        changed = true;
-      }
-      if (changed) await c.save();
-    }
+    // Aquí podría ir lógica de migración/corrección de datos si es necesario
+    // Actualmente, no se realiza migración en este punto.
     if (isOnline) {
       try {
         // Online: usa Supabase y sincroniza Hive

@@ -107,6 +107,10 @@ class ClientDetailsModal extends StatelessWidget {
                     if (onViewMovements != null) {
                       Future.delayed(Duration.zero, onViewMovements!);
                     } else {
+                      final navigator = Navigator.of(
+                        context,
+                        rootNavigator: true,
+                      );
                       final filterProvider =
                           Provider.of<TransactionFilterProvider>(
                             context,
@@ -114,14 +118,17 @@ class ClientDetailsModal extends StatelessWidget {
                           );
                       filterProvider.setClientId(client.id);
                       Future.delayed(Duration.zero, () {
-                        Navigator.of(context, rootNavigator: true).push(
-                          MaterialPageRoute(
-                            builder: (_) => TransactionsScreen(
-                              userId: userId,
-                              initialClientId: client.id,
+                        // Verifica si el contexto sigue montado antes de usarlo
+                        if (navigator.mounted) {
+                          navigator.push(
+                            MaterialPageRoute(
+                              builder: (_) => TransactionsScreen(
+                                userId: userId,
+                                initialClientId: client.id,
+                              ),
                             ),
-                          ),
-                        );
+                          );
+                        }
                       });
                     }
                   },

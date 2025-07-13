@@ -55,11 +55,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 final rate =
                     double.tryParse(rateController.text.replaceAll(',', '.')) ??
                     1.0;
-                Provider.of<CurrencyProvider>(
-                  context,
-                  listen: false,
-                ).setRate(rate);
-                Navigator.of(ctx).pop();
+                if (ctx.mounted) {
+                  Provider.of<CurrencyProvider>(
+                    ctx,
+                    listen: false,
+                  ).setRate(rate);
+                  Navigator.of(ctx).pop();
+                }
               },
               child: const Text('Registrar'),
             ),
@@ -90,6 +92,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await clientProvider.loadClients(widget.userId);
     await txProvider.loadTransactions(widget.userId);
     if (!mounted) return;
+    // ignore: use_build_context_synchronously
     setState(() => _loading = false);
   }
 
@@ -111,7 +114,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // Obtener usuario actual de Supabase o modo offline
     final user = Supabase.instance.client.auth.currentUser;
     String userName = '';
-    bool isOffline = false;
+    // bool isOffline = false; // Eliminado: no se usa
     if (user != null) {
       final meta = user.userMetadata;
       if (meta != null &&
@@ -134,7 +137,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
     } else {
       // Modo offline: obtener nombre de Hive
-      isOffline = true;
       // Aquí podrías obtener el nombre offline si tienes la lógica
       userName =
           'Invitado'; // Puedes cambiar esto por el nombre real si lo tienes
@@ -196,10 +198,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   Future.delayed(
                                     const Duration(milliseconds: 200),
                                     () {
-                                      _showRateDialog(
-                                        context,
-                                        currencyProvider.rate,
-                                      );
+                                      if (mounted) {
+                                        _showRateDialog(
+                                          context,
+                                          currencyProvider.rate,
+                                        );
+                                      }
                                     },
                                   );
                                 } else {
@@ -276,7 +280,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     offset: const Offset(0, -8),
                                     child: Container(
                                       decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.15),
+                                        color: Colors.white.withValues(
+                                          alpha: 0.15,
+                                        ),
                                         shape: BoxShape.circle,
                                       ),
                                       padding: const EdgeInsets.all(12),
@@ -383,7 +389,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     borderRadius: BorderRadius.circular(16),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.03),
+                                        color: Colors.black.withValues(
+                                          alpha: 0.03,
+                                        ),
                                         blurRadius: 8,
                                         offset: const Offset(0, 2),
                                       ),

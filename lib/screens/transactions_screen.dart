@@ -40,6 +40,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     super.initState();
     // Si el filtro de cliente está seteado en el provider, úsalo como filtro inicial
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final filterProvider = Provider.of<TransactionFilterProvider>(
         context,
         listen: false,
@@ -193,11 +194,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               child: Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.92),
+                  color: Colors.white.withValues(alpha: 0.92 * 255),
                   borderRadius: BorderRadius.circular(18),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
+                      color: Colors.black.withValues(alpha: 0.08 * 255),
                       blurRadius: 14,
                       offset: const Offset(0, 3),
                     ),
@@ -378,6 +379,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 child: IconButton(
                   icon: const Icon(Icons.date_range, color: Colors.black87),
                   onPressed: () async {
+                    if (!mounted) return;
                     final picked = await showDialog<DateTimeRange>(
                       context: context,
                       builder: (context) {
@@ -415,6 +417,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         );
                       },
                     );
+                    if (!mounted) return;
                     if (picked != null) {
                       setState(() => _selectedRange = picked);
                     }
@@ -452,7 +455,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
+                      color: Colors.black.withValues(alpha: 0.06 * 255),
                       blurRadius: 10,
                       offset: const Offset(0, 2),
                     ),
@@ -612,7 +615,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       alignment: Alignment.centerRight,
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.12),
+                        color: Colors.red.withValues(alpha: 0.12 * 255),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: const Icon(
@@ -684,7 +687,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.07),
+                            color: Colors.black.withValues(alpha: 0.07 * 255),
                             blurRadius: 8,
                             offset: Offset(0, 2),
                           ),
@@ -790,8 +793,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                             vertical: 4,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: Colors.orange.withOpacity(
-                                              0.10,
+                                            color: Colors.orange.withValues(
+                                              alpha: 0.10 * 255,
                                             ),
                                             borderRadius: BorderRadius.circular(
                                               12,
@@ -835,8 +838,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                             vertical: 4,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: Colors.green.withOpacity(
-                                              0.10,
+                                            color: Colors.green.withValues(
+                                              alpha: 0.10 * 255,
                                             ),
                                             borderRadius: BorderRadius.circular(
                                               12,

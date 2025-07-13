@@ -198,7 +198,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   borderRadius: BorderRadius.circular(18),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08 * 255),
+                      color: const Color.fromARGB(
+                        255,
+                        255,
+                        255,
+                        255,
+                      ).withValues(alpha: 0.08 * 255),
                       blurRadius: 14,
                       offset: const Offset(0, 3),
                     ),
@@ -451,17 +456,22 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               ),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: const Color.fromARGB(255, 255, 255, 255),
                   borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.06 * 255),
+                      color: const Color.fromARGB(
+                        255,
+                        164,
+                        164,
+                        164,
+                      ).withValues(alpha: 0.06 * 255),
                       blurRadius: 10,
                       offset: const Offset(0, 2),
                     ),
                   ],
                   border: Border.all(
-                    color: const Color(0xFFE6F0FF),
+                    color: const Color.fromARGB(255, 255, 255, 255),
                     width: 1.2,
                   ),
                 ),
@@ -601,7 +611,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 shrinkWrap: true,
                 physics: NeverScrollableScrollPhysics(),
                 itemCount: transactions.length,
-                separatorBuilder: (_, __) => SizedBox(height: 12),
+                separatorBuilder: (_, __) => SizedBox(height: 18),
                 itemBuilder: (context, i) {
                   final t = transactions[i];
                   final client = clients.firstWhere(
@@ -650,54 +660,73 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           false;
                     },
                     onDismissed: (direction) async {
+                      // Obtiene el provider de transacciones sin escuchar cambios
                       final txProvider = Provider.of<TransactionProvider>(
-                        context,
-                        listen: false,
+                        context, // contexto de Flutter
+                        listen: false, // no reconstruir al cambiar
                       );
                       try {
+                        // Elimina la transacción usando el provider
                         await txProvider.deleteTransaction(t.id, widget.userId);
+                        // Si el widget sigue montado, actualiza el estado para refrescar la lista
                         if (mounted) setState(() {});
+                        // Si el widget sigue montado, muestra un SnackBar de éxito
                         if (mounted) {
                           final snackBar = SnackBar(
                             content: const Text(
-                              'Transacción eliminada correctamente',
+                              'Transacción eliminada correctamente', // Mensaje de éxito
                             ),
-                            backgroundColor: Colors.green,
-                            duration: const Duration(milliseconds: 1200),
+                            backgroundColor:
+                                Colors.green, // Color de fondo verde
+                            duration: const Duration(
+                              milliseconds: 1200,
+                            ), // Duración corta
                           );
-                          ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                          ScaffoldMessenger.of(
+                            context,
+                          ).showSnackBar(snackBar); // Muestra el SnackBar
                         }
                         // No cerrar la pantalla, solo actualizar la lista
                       } catch (e) {
+                        // Si ocurre un error y el widget sigue montado, muestra un SnackBar de error
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                'Error al eliminar: [${e.toString()}',
+                                'Error al eliminar: ���[${e.toString()}', // Mensaje de error
                               ),
-                              backgroundColor: Colors.red,
+                              backgroundColor: Colors.red, // Fondo rojo
                             ),
                           );
                         }
                       }
                     },
+                    // Contenedor visual de la tarjeta de transacción
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
+                        color: Colors.white, // Fondo blanco
+                        borderRadius: BorderRadius.circular(
+                          16,
+                        ), // Bordes redondeados
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.07 * 255),
-                            blurRadius: 8,
-                            offset: Offset(0, 2),
+                            color: const Color.fromARGB(
+                              255,
+                              177,
+                              177,
+                              177,
+                            ).withValues(alpha: 0.07 * 255), // Sombra muy suave
+                            blurRadius: 8, // Difuminado de la sombra
+                            offset: Offset(0, 2), // Desplazamiento de la sombra
                           ),
                         ],
                       ),
                       child: Padding(
                         padding: EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
+                          horizontal: 10, // Espaciado horizontal interno
+                          vertical: 0, // Espaciado vertical interno
                         ),
+                        // Fila principal con los datos de la transacción
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [

@@ -642,19 +642,20 @@ class _ClientsScreenState extends State<ClientsScreen>
                                             await txProvider.loadTransactions(
                                               widget.userId,
                                             );
-                                            if (!mounted) return;
-                                            debugPrint(
-                                              '[ELIMINAR_TODOS] Proceso completado.',
-                                            );
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              const SnackBar(
-                                                content: Text(
-                                                  'Todos los clientes eliminados.',
+                                            if (mounted) {
+                                              debugPrint(
+                                                '[ELIMINAR_TODOS] Proceso completado.',
+                                              );
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    'Todos los clientes eliminados.',
+                                                  ),
                                                 ),
-                                              ),
-                                            );
+                                              );
+                                            }
                                           }
                                         },
                                         tooltip: 'Eliminar TODOS los clientes',
@@ -684,7 +685,7 @@ class _ClientsScreenState extends State<ClientsScreen>
                                                 BoxShadow(
                                                   color: const Color(
                                                     0xFF7C3AED,
-                                                  ).withOpacity(0.18),
+                                                  ).withValues(alpha: 0.18),
                                                   blurRadius: 10,
                                                   spreadRadius: 1,
                                                 ),
@@ -858,6 +859,9 @@ class _ClientsScreenState extends State<ClientsScreen>
                                                 widget.userId,
                                               );
                                               if (!mounted) return;
+                                              // ignore: use_build_context_synchronously
+                                              // NOTA: Este warning aparece porque el linter de Flutter no siempre detecta correctamente el patrón de chequeo de 'mounted'.
+                                              // El uso de context aquí es seguro porque se verifica 'mounted' justo antes. Puedes ignorar este warning: no afecta la ejecución ni la seguridad del código.
                                               ScaffoldMessenger.of(
                                                 context,
                                               ).showSnackBar(

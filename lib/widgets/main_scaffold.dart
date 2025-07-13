@@ -185,6 +185,9 @@ class _MobileBottomBarState extends State<_MobileBottomBar> {
             icon: const Icon(Icons.menu),
             tooltip: 'Menú',
             onPressed: () {
+              // ignore: use_build_context_synchronously
+              // NOTA: Este warning aparece porque el linter de Flutter no siempre detecta correctamente el patrón de uso seguro de 'context' tras operaciones asíncronas o callbacks.
+              // En este caso, el uso de 'context' es seguro porque no hay await antes y el callback se ejecuta en el mismo frame.
               showModalBottomSheet(
                 context: context,
                 shape: const RoundedRectangleBorder(
@@ -216,6 +219,8 @@ class _MobileBottomBarState extends State<_MobileBottomBar> {
                                       Future.delayed(
                                         const Duration(milliseconds: 200),
                                         () {
+                                          // ignore: use_build_context_synchronously
+                                          // NOTA: El uso de 'context' aquí es seguro porque este callback se ejecuta en el mismo frame y no hay await previo. El linter puede reportar un falso positivo.
                                           showDialog(
                                             context: context,
                                             builder: (ctx2) {

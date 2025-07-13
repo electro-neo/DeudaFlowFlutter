@@ -4,7 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../screens/dashboard_screen.dart';
 import '../screens/clients_screen.dart';
 import '../screens/transactions_screen.dart';
-import 'app_navigation_bar.dart';
+
 import '../services/guest_cleanup_service.dart' as guest_cleanup;
 import '../providers/tab_provider.dart';
 import '../providers/theme_provider.dart';
@@ -103,35 +103,280 @@ class _MainScaffoldState extends State<MainScaffold> {
     ];
     final width = MediaQuery.of(context).size.width;
     final isWeb = identical(0, 0.0);
-    if (isWeb && width >= 600) {
-      return AppNavigationBar(
-        currentIndex: tabIndex,
-        onTap: _onTab,
-        onLogout: _logout,
-        child: Scaffold(
-          appBar: null,
-          body: screens[tabIndex],
-          bottomNavigationBar: const DebugBanner(),
-        ),
-      );
-    } else {
-      return _SwipeableScaffold(
-        tabIndex: tabIndex,
-        onTab: _onTab,
-        screens: screens,
-        bottomNavigationBar: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const DebugBanner(),
-            _MobileBottomBar(
-              currentIndex: tabIndex,
-              onTab: _onTab,
-              onLogout: () {},
+    Widget fab = FloatingActionButton(
+      onPressed: () {
+        // Acción del botón +
+        if (tabIndex == 1) {
+          // Abrir formulario de cliente
+        } else if (tabIndex == 2) {
+          // Abrir formulario de transacción
+        }
+      },
+      backgroundColor: Colors.pinkAccent,
+      elevation: 6,
+      child: const Icon(Icons.add, size: 32, color: Colors.white),
+    );
+
+    return Column(
+      children: [
+        const DebugBanner(),
+        Expanded(
+          child: Scaffold(
+            appBar: null,
+            body: IndexedStack(index: tabIndex, children: screens),
+            floatingActionButton: fab,
+            floatingActionButtonLocation:
+                FloatingActionButtonLocation.centerDocked,
+            bottomNavigationBar: BottomAppBar(
+              shape: const CircularNotchedRectangle(),
+              notchMargin: 8.0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  // Lado izquierdo (2 botones)
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.dashboard),
+                        tooltip: 'Dashboard',
+                        color: tabIndex == 0
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                        onPressed: () => _onTab(0),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.people),
+                        tooltip: 'Clientes',
+                        color: tabIndex == 1
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                        onPressed: () => _onTab(1),
+                      ),
+                    ],
+                  ),
+                  // Lado derecho (2 botones)
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.list_alt),
+                        tooltip: 'Movimientos',
+                        color: tabIndex == 2
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                        onPressed: () => _onTab(2),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.menu),
+                        tooltip: 'Menú',
+                        onPressed: () {
+                          showModalBottomSheet(
+                            context: context,
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(16),
+                              ),
+                            ),
+                            builder: (ctx) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 24,
+                                  horizontal: 24,
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    const SizedBox(height: 16),
+                                    // Toggle USD/VES
+                                    Consumer<CurrencyProvider>(
+                                      builder: (context, currencyProvider, _) {
+                                        return Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            const Icon(
+                                              Icons.attach_money_rounded,
+                                            ),
+                                            Switch(
+                                              value:
+                                                  currencyProvider.currency ==
+                                                  'USD',
+                                              onChanged: (val) {
+                                                if (val) {
+                                                  currencyProvider.setCurrency(
+                                                    'USD',
+                                                  );
+                                                  Future.delayed(
+                                                    const Duration(
+                                                      milliseconds: 200,
+                                                    ),
+                                                    () {
+                                                      showDialog(
+                                                        context: context,
+                                                        builder: (ctx2) {
+                                                          final rate =
+                                                              currencyProvider
+                                                                  .rate;
+                                                          final controller =
+                                                              TextEditingController(
+                                                                text: rate
+                                                                    .toString(),
+                                                              );
+                                                          return AlertDialog(
+                                                            shape: RoundedRectangleBorder(
+                                                              borderRadius:
+                                                                  BorderRadius.circular(
+                                                                    16,
+                                                                  ),
+                                                            ),
+                                                            title: const Text(
+                                                              'Registrar Tasa USD',
+                                                            ),
+                                                            content: TextField(
+                                                              controller:
+                                                                  controller,
+                                                              decoration:
+                                                                  const InputDecoration(
+                                                                    labelText:
+                                                                        'Tasa USD',
+                                                                    border:
+                                                                        OutlineInputBorder(),
+                                                                    isDense:
+                                                                        true,
+                                                                  ),
+                                                              keyboardType:
+                                                                  TextInputType.numberWithOptions(
+                                                                    decimal:
+                                                                        true,
+                                                                  ),
+                                                            ),
+                                                            actions: [
+                                                              TextButton(
+                                                                onPressed: () =>
+                                                                    Navigator.of(
+                                                                      ctx2,
+                                                                    ).pop(),
+                                                                child:
+                                                                    const Text(
+                                                                      'Cancelar',
+                                                                    ),
+                                                              ),
+                                                              ElevatedButton(
+                                                                onPressed: () {
+                                                                  final rate =
+                                                                      double.tryParse(
+                                                                        controller
+                                                                            .text
+                                                                            .replaceAll(
+                                                                              ',',
+                                                                              '.',
+                                                                            ),
+                                                                      ) ??
+                                                                      1.0;
+                                                                  currencyProvider
+                                                                      .setRate(
+                                                                        rate,
+                                                                      );
+                                                                  Navigator.of(
+                                                                    ctx2,
+                                                                  ).pop();
+                                                                },
+                                                                child: const Text(
+                                                                  'Registrar',
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          );
+                                                        },
+                                                      );
+                                                    },
+                                                  );
+                                                } else {
+                                                  currencyProvider.setCurrency(
+                                                    'VES',
+                                                  );
+                                                }
+                                              },
+                                            ),
+                                            const Text('USD'),
+                                          ],
+                                        );
+                                      },
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 8,
+                                      ),
+                                      child: Consumer<ThemeProvider>(
+                                        builder: (context, themeProvider, _) =>
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                const Icon(Icons.brightness_6),
+                                                Switch(
+                                                  value:
+                                                      themeProvider.isDarkMode,
+                                                  onChanged: (val) {
+                                                    themeProvider.toggleTheme(
+                                                      val,
+                                                    );
+                                                  },
+                                                ),
+                                                Text(
+                                                  themeProvider.isDarkMode
+                                                      ? 'Dark'
+                                                      : 'Light',
+                                                ),
+                                              ],
+                                            ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    ElevatedButton.icon(
+                                      icon: const Icon(
+                                        Icons.logout,
+                                        color: Colors.red,
+                                      ),
+                                      label: const Text(
+                                        'Cerrar sesión',
+                                        style: TextStyle(color: Colors.red),
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.white,
+                                        foregroundColor: Colors.red,
+                                        elevation: 0,
+                                        side: const BorderSide(
+                                          color: Colors.red,
+                                        ),
+                                      ),
+                                      onPressed: () {
+                                        Navigator.of(ctx).pop();
+                                        final mainState = context
+                                            .findAncestorStateOfType<
+                                              _MainScaffoldState
+                                            >();
+                                        mainState?._logout();
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
         ),
-      );
-    }
+      ],
+    );
   }
 }
 

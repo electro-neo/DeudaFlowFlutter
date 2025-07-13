@@ -112,7 +112,7 @@ class _MainScaffoldState extends State<MainScaffold> {
           // Abrir formulario de transacción
         }
       },
-      backgroundColor: Colors.pinkAccent,
+      backgroundColor: const Color.fromARGB(255, 123, 48, 242),
       elevation: 6,
       child: const Icon(Icons.add, size: 32, color: Colors.white),
     );
@@ -131,10 +131,11 @@ class _MainScaffoldState extends State<MainScaffold> {
               shape: const CircularNotchedRectangle(),
               notchMargin: 8.0,
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: <Widget>[
                   // Lado izquierdo (2 botones)
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
                         icon: const Icon(Icons.dashboard),
@@ -144,6 +145,7 @@ class _MainScaffoldState extends State<MainScaffold> {
                             : null,
                         onPressed: () => _onTab(0),
                       ),
+                      const SizedBox(width: 20),
                       IconButton(
                         icon: const Icon(Icons.people),
                         tooltip: 'Clientes',
@@ -154,8 +156,10 @@ class _MainScaffoldState extends State<MainScaffold> {
                       ),
                     ],
                   ),
+                  const SizedBox(width: 32), // Espacio para el FAB
                   // Lado derecho (2 botones)
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
                         icon: const Icon(Icons.list_alt),
@@ -165,6 +169,7 @@ class _MainScaffoldState extends State<MainScaffold> {
                             : null,
                         onPressed: () => _onTab(2),
                       ),
+                      const SizedBox(width: 20),
                       IconButton(
                         icon: const Icon(Icons.menu),
                         tooltip: 'Menú',

@@ -77,7 +77,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _loadData();
     // Inicializa el estado de SyncProvider para que el banner se muestre correctamente
     Future.microtask(() {
-      Provider.of<SyncProvider>(context, listen: false).initializeConnectionStatus();
+      Provider.of<SyncProvider>(
+        context,
+        listen: false,
+      ).initializeConnectionStatus();
     });
   }
 

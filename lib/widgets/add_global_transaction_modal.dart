@@ -153,293 +153,312 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
     final clients = context.watch<ClientProvider>().clients;
     final colorScheme = Theme.of(context).colorScheme;
     final symbol = "";
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Título principal eliminado
-        const SizedBox(height: 16),
-        // Subtítulo contextual
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8.0),
-          child: Text(
-            'Agregar Transacción para ${_selectedClient?.name ?? ''}',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: colorScheme.primary,
-            ),
-          ),
-        ),
-        // Campo Cliente (debajo del subtítulo contextual)
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Cliente',
-                style: TextStyle(fontWeight: FontWeight.bold),
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Título principal eliminado
+            const SizedBox(height: 16),
+            // Subtítulo contextual
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Text(
+                'Agregar Transacción para ${_selectedClient?.name ?? ''}',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.primary,
+                ),
               ),
-              Autocomplete<Client>(
-                optionsBuilder: (TextEditingValue textEditingValue) {
-                  if (textEditingValue.text.isEmpty) {
-                    return clients;
-                  }
-                  return clients.where(
-                    (Client c) =>
-                        c.name.toLowerCase().contains(
-                          textEditingValue.text.toLowerCase(),
-                        ) ||
-                        (c.email?.toLowerCase().contains(
+            ),
+            // Campo Cliente (debajo del subtítulo contextual)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Cliente',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Autocomplete<Client>(
+                    optionsBuilder: (TextEditingValue textEditingValue) {
+                      if (textEditingValue.text.isEmpty) {
+                        return clients;
+                      }
+                      return clients.where(
+                        (Client c) =>
+                            c.name.toLowerCase().contains(
                               textEditingValue.text.toLowerCase(),
-                            ) ??
-                            false) ||
-                        (c.phone?.toLowerCase().contains(
-                              textEditingValue.text.toLowerCase(),
-                            ) ??
-                            false),
-                  );
-                },
-                displayStringForOption: (Client c) => c.name,
-                fieldViewBuilder:
-                    (context, controller, focusNode, onFieldSubmitted) {
-                      return TextField(
-                        controller: controller,
-                        focusNode: focusNode,
-                        decoration: const InputDecoration(
-                          labelText: 'Buscar o seleccionar cliente',
-                          border: OutlineInputBorder(),
-                          isDense: true,
+                            ) ||
+                            (c.email?.toLowerCase().contains(
+                                  textEditingValue.text.toLowerCase(),
+                                ) ??
+                                false) ||
+                            (c.phone?.toLowerCase().contains(
+                                  textEditingValue.text.toLowerCase(),
+                                ) ??
+                                false),
+                      );
+                    },
+                    displayStringForOption: (Client c) => c.name,
+                    fieldViewBuilder:
+                        (context, controller, focusNode, onFieldSubmitted) {
+                          return TextField(
+                            controller: controller,
+                            focusNode: focusNode,
+                            decoration: const InputDecoration(
+                              labelText: 'Buscar o seleccionar cliente',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                          );
+                        },
+                    onSelected: (Client c) =>
+                        setState(() => _selectedClient = c),
+                    optionsViewBuilder: (context, onSelected, options) {
+                      return Align(
+                        alignment: Alignment.topLeft,
+                        child: Material(
+                          elevation: 4.0,
+                          child: SizedBox(
+                            height: 200,
+                            child: ListView.builder(
+                              padding: EdgeInsets.zero,
+                              itemCount: options.length,
+                              itemBuilder: (context, index) {
+                                final Client c = options.elementAt(index);
+                                return ListTile(
+                                  title: Text(c.name),
+                                  subtitle: c.email != null
+                                      ? Text(c.email!)
+                                      : null,
+                                  onTap: () => onSelected(c),
+                                );
+                              },
+                            ),
+                          ),
                         ),
                       );
                     },
-                onSelected: (Client c) => setState(() => _selectedClient = c),
-                optionsViewBuilder: (context, onSelected, options) {
-                  return Align(
-                    alignment: Alignment.topLeft,
-                    child: Material(
-                      elevation: 4.0,
-                      child: SizedBox(
-                        height: 200,
-                        child: ListView.builder(
-                          padding: EdgeInsets.zero,
-                          itemCount: options.length,
-                          itemBuilder: (context, index) {
-                            final Client c = options.elementAt(index);
-                            return ListTile(
-                              title: Text(c.name),
-                              subtitle: c.email != null ? Text(c.email!) : null,
-                              onTap: () => onSelected(c),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              _type == 'debt'
-                  ? Icons.trending_down
-                  : _type == 'payment'
-                  ? Icons.trending_up
-                  : Icons.swap_horiz,
-              color: _type == 'debt'
-                  ? Colors.red
-                  : _type == 'payment'
-                  ? Colors.green
-                  : Colors.grey,
-              size: 32,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              _type == 'debt'
-                  ? 'Registrar Deuda'
-                  : _type == 'payment'
-                  ? 'Registrar Abono'
-                  : 'Selecciona tipo',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Center(
-          child: GestureDetector(
-            onHorizontalDragEnd: (details) {
-              setState(() {
-                if (_type == 'debt') {
-                  _type = 'payment';
-                } else {
-                  _type = 'debt';
-                }
-              });
-            },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              decoration: BoxDecoration(
-                color: colorScheme.primary.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: colorScheme.primary, width: 1.5),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _ToggleTypeButton(
-                    selected: _type == 'debt',
-                    icon: Icons.trending_down,
-                    label: 'Deuda',
-                    color: Colors.red,
-                    onTap: () => setState(() => _type = 'debt'),
-                  ),
-                  _ToggleTypeButton(
-                    selected: _type == 'payment',
-                    icon: Icons.trending_up,
-                    label: 'Abono',
-                    color: Colors.green,
-                    onTap: () => setState(() => _type = 'payment'),
                   ),
                 ],
               ),
             ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _amountController,
-          decoration: InputDecoration(
-            labelText: 'Monto',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            prefixIcon: Padding(
-              padding: const EdgeInsets.only(left: 8, right: 4),
-              child: Text(
-                symbol,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  _type == 'debt'
+                      ? Icons.trending_down
+                      : _type == 'payment'
+                      ? Icons.trending_up
+                      : Icons.swap_horiz,
+                  color: _type == 'debt'
+                      ? Colors.red
+                      : _type == 'payment'
+                      ? Colors.green
+                      : Colors.grey,
+                  size: 32,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _type == 'debt'
+                      ? 'Registrar Deuda'
+                      : _type == 'payment'
+                      ? 'Registrar Abono'
+                      : 'Selecciona tipo',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Center(
+              child: GestureDetector(
+                onHorizontalDragEnd: (details) {
+                  setState(() {
+                    if (_type == 'debt') {
+                      _type = 'payment';
+                    } else {
+                      _type = 'debt';
+                    }
+                  });
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: colorScheme.primary, width: 1.5),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 4,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _ToggleTypeButton(
+                        selected: _type == 'debt',
+                        icon: Icons.trending_down,
+                        label: 'Deuda',
+                        color: Colors.red,
+                        onTap: () => setState(() => _type = 'debt'),
+                      ),
+                      _ToggleTypeButton(
+                        selected: _type == 'payment',
+                        icon: Icons.trending_up,
+                        label: 'Abono',
+                        color: Colors.green,
+                        onTap: () => setState(() => _type = 'payment'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-            prefixIconConstraints: const BoxConstraints(
-              minWidth: 0,
-              minHeight: 0,
-            ),
-            isDense: true,
-          ),
-          keyboardType: TextInputType.numberWithOptions(decimal: true),
-          textInputAction: TextInputAction.next,
-        ),
-        const SizedBox(height: 12),
-        GestureDetector(
-          onTap: _pickDate,
-          child: AbsorbPointer(
-            child: TextField(
+            const SizedBox(height: 12),
+            TextField(
+              controller: _amountController,
               decoration: InputDecoration(
-                labelText: 'Fecha',
+                labelText: 'Monto',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                prefixIcon: Icon(Icons.event),
+                prefixIcon: Padding(
+                  padding: const EdgeInsets.only(left: 8, right: 4),
+                  child: Text(
+                    symbol,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                prefixIconConstraints: const BoxConstraints(
+                  minWidth: 0,
+                  minHeight: 0,
+                ),
                 isDense: true,
               ),
-              controller: TextEditingController(
-                text:
-                    '${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.year}',
-              ),
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              textInputAction: TextInputAction.next,
             ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _descriptionController,
-          decoration: InputDecoration(
-            labelText: 'Descripción',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            prefixIcon: Icon(Icons.description),
-            isDense: true,
-          ),
-          maxLines: 2,
-        ),
-        if (_error != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: GestureDetector(
-              onLongPress: () {
-                Clipboard.setData(ClipboardData(text: _error!));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Error copiado al portapapeles'),
-                  ),
-                );
-              },
-              child: SelectableText(
-                _error!,
-                style: const TextStyle(color: Colors.red),
-              ),
-            ),
-          ),
-        const SizedBox(height: 18),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: colorScheme.primary,
-              foregroundColor: Colors.white,
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-            icon: _loading
-                ? SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: _pickDate,
+              child: AbsorbPointer(
+                child: TextField(
+                  decoration: InputDecoration(
+                    labelText: 'Fecha',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  )
-                : Icon(_type == 'debt' ? Icons.save : Icons.check_circle),
-            label: Text(
-              _loading
-                  ? 'Guardando...'
-                  : (_type == 'debt' ? 'Guardar Deuda' : 'Guardar Abono'),
-            ),
-            onPressed: _loading ? null : _save,
-          ),
-        ),
-        const SizedBox(height: 10),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: colorScheme.primary,
-              side: BorderSide(color: colorScheme.primary, width: 1.5),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                    prefixIcon: Icon(Icons.event),
+                    isDense: true,
+                  ),
+                  controller: TextEditingController(
+                    text:
+                        '${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.year}',
+                  ),
+                ),
               ),
-              padding: const EdgeInsets.symmetric(vertical: 13),
             ),
-            icon: const Icon(Icons.close),
-            label: const Text('Cerrar'),
-            onPressed: () {
-              if (Navigator.of(context).canPop()) {
-                Navigator.of(context).pop();
-              }
-            },
-          ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _descriptionController,
+              decoration: InputDecoration(
+                labelText: 'Descripción',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                prefixIcon: Icon(Icons.description),
+                isDense: true,
+              ),
+              maxLines: 2,
+            ),
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: GestureDetector(
+                  onLongPress: () {
+                    Clipboard.setData(ClipboardData(text: _error!));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Error copiado al portapapeles'),
+                      ),
+                    );
+                  },
+                  child: SelectableText(
+                    _error!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+              ),
+            const SizedBox(height: 18),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                icon: _loading
+                    ? SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
+                      )
+                    : Icon(_type == 'debt' ? Icons.save : Icons.check_circle),
+                label: Text(
+                  _loading
+                      ? 'Guardando...'
+                      : (_type == 'debt' ? 'Guardar Deuda' : 'Guardar Abono'),
+                ),
+                onPressed: _loading ? null : _save,
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: colorScheme.primary,
+                  side: BorderSide(color: colorScheme.primary, width: 1.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                ),
+                icon: const Icon(Icons.close),
+                label: const Text('Cerrar'),
+                onPressed: () {
+                  if (Navigator.of(context).canPop()) {
+                    Navigator.of(context).pop();
+                  }
+                },
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

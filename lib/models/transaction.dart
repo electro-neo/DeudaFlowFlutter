@@ -9,6 +9,7 @@ class Transaction {
   final DateTime createdAt;
   final bool? synced;
   final bool? pendingDelete;
+  final String? localId;
 
   Transaction({
     required this.id,
@@ -21,6 +22,7 @@ class Transaction {
     required this.createdAt,
     this.synced,
     this.pendingDelete,
+    this.localId,
   });
 
   Transaction copyWith({
@@ -34,6 +36,7 @@ class Transaction {
     DateTime? createdAt,
     bool? synced,
     bool? pendingDelete,
+    String? localId,
   }) {
     return Transaction(
       id: id ?? this.id,
@@ -46,6 +49,7 @@ class Transaction {
       createdAt: createdAt ?? this.createdAt,
       synced: synced ?? this.synced,
       pendingDelete: pendingDelete ?? this.pendingDelete,
+      localId: localId ?? this.localId,
     );
   }
 
@@ -79,6 +83,7 @@ class Transaction {
     pendingDelete: map['pendingDelete'] is bool
         ? map['pendingDelete'] as bool
         : (map['pendingDelete'] is int ? (map['pendingDelete'] == 1) : null),
+    localId: map['local_id']?.toString(),
   );
 
   // Elimina el factory duplicado para evitar conflicto con el método estático

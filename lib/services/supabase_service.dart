@@ -106,7 +106,7 @@ class SupabaseService {
     String clientId,
   ) async {
     final now = DateTime.now().toIso8601String();
-    await _client.from('transactions').insert({
+    final response = await _client.from('transactions').upsert({
       'client_id': clientId,
       'user_id': userId,
       'type': tx.type,
@@ -115,7 +115,14 @@ class SupabaseService {
       'date': tx.date
           .toIso8601String(), // Usa la fecha seleccionada en el formulario
       'created_at': now,
-    });
+      'local_id': tx.id, // id local generado en Hive
+    }, onConflict: 'local_id').select();
+    if (response is List && response.isEmpty) {
+      debugPrint(
+        '[SUPABASE][ERROR] No se pudo insertar/upsert la transacción (respuesta vacía): $response',
+      );
+      throw Exception('No se pudo insertar la transacción');
+    }
   }
 
   Future<void> updateTransaction(Transaction tx) async {

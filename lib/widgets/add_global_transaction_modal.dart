@@ -90,8 +90,9 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
     }
     try {
       final now = DateTime.now();
+      final localId = DateTime.now().millisecondsSinceEpoch.toString();
       final transaction = Transaction(
-        id: '',
+        id: localId, // id local único
         clientId: _selectedClient!.id,
         userId: widget.userId,
         type: _type!,

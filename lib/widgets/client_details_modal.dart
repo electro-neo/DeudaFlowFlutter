@@ -5,6 +5,7 @@ import '../providers/transaction_filter_provider.dart';
 import '../screens/transactions_screen.dart';
 import '../widgets/transaction_form.dart';
 import '../providers/transaction_provider.dart';
+import '../providers/client_provider.dart';
 import '../widgets/general_receipt_modal.dart';
 
 class ClientDetailsModal extends StatelessWidget {
@@ -133,8 +134,40 @@ class ClientDetailsModal extends StatelessWidget {
                             dialogContext,
                             rootNavigator: true,
                           ).pop(),
-                          onSave: (tx) {
-                            // Aquí puedes manejar el guardado si lo necesitas
+                          onSave: (tx) async {
+                            // Guarda la transacción y refresca clientes para actualizar el balance
+                            final txProvider = Provider.of<TransactionProvider>(
+                              dialogContext,
+                              listen: false,
+                            );
+                            final clientProvider = Provider.of<ClientProvider>(
+                              dialogContext,
+                              listen: false,
+                            );
+                            await txProvider.addTransaction(
+                              tx,
+                              userId,
+                              client.id,
+                            );
+                            await txProvider.loadTransactions(userId);
+                            await clientProvider.loadClients(userId);
+                            if (Navigator.of(
+                              dialogContext,
+                              rootNavigator: true,
+                            ).canPop()) {
+                              Navigator.of(
+                                dialogContext,
+                                rootNavigator: true,
+                              ).pop();
+                            }
+                            // Opcional: mostrar un snackbar de éxito
+                            ScaffoldMessenger.of(dialogContext).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Transacción guardada correctamente',
+                                ),
+                              ),
+                            );
                           },
                         ),
                       );

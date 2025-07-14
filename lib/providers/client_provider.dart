@@ -6,6 +6,7 @@ import '../models/client.dart';
 import '../models/client_hive.dart';
 import '../models/transaction_hive.dart';
 import '../services/supabase_service.dart';
+import 'transaction_provider.dart';
 
 class ClientProvider extends ChangeNotifier {
   /// Sincroniza los clientes locales pendientes cuando hay internet
@@ -253,10 +254,19 @@ class ClientProvider extends ChangeNotifier {
                 name: c.name,
                 email: c.email,
                 phone: c.phone,
-                balance: c.balance,
+                balance: c.balance, // Este valor será recalculado localmente
               ),
             )
             .toList();
+        // Recalcula los balances de todos los clientes después de cargar desde Supabase
+        try {
+          // Recalcula balances usando la función estática para evitar crear un nuevo provider
+          await TransactionProvider.recalculateAllClientsBalancesStatic();
+        } catch (e) {
+          debugPrint(
+            '[SYNC][WARN] No se pudo recalcular balances tras sync: $e',
+          );
+        }
       } catch (e) {
         // Si falla la red, carga desde Hive
         _clients = box.values

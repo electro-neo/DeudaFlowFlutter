@@ -9,6 +9,42 @@ import '../models/client_hive.dart';
 import '../services/supabase_service.dart';
 
 class TransactionProvider extends ChangeNotifier {
+  /// Permite recalcular balances de todos los clientes desde cualquier parte del código (ej: tras sync)
+  static Future<void> recalculateAllClientsBalancesStatic() async {
+    final clientBox = Hive.isBoxOpen('clients')
+        ? Hive.box<ClientHive>('clients')
+        : await Hive.openBox<ClientHive>('clients');
+    for (final client in clientBox.values) {
+      await TransactionProvider._recalculateClientBalanceStatic(client.id);
+    }
+  }
+
+  static Future<void> _recalculateClientBalanceStatic(String clientId) async {
+    final clientBox = Hive.isBoxOpen('clients')
+        ? Hive.box<ClientHive>('clients')
+        : await Hive.openBox<ClientHive>('clients');
+    final txBox = Hive.isBoxOpen('transactions')
+        ? Hive.box<TransactionHive>('transactions')
+        : await Hive.openBox<TransactionHive>('transactions');
+    final client = clientBox.get(clientId);
+    if (client == null) return;
+    final txs = txBox.values.where(
+      (t) => t.clientId == clientId && t.pendingDelete != true,
+    );
+    double newBalance = 0;
+    for (final t in txs) {
+      if (t.type == 'debt') {
+        newBalance -= t.amount;
+      } else if (t.type == 'payment') {
+        newBalance += t.amount;
+      }
+    }
+    if (client.balance != newBalance) {
+      client.balance = newBalance;
+      await client.save();
+    }
+  }
+
   final SupabaseService _service = SupabaseService();
   List<Transaction> _transactions = [];
   List<Transaction> get transactions =>
@@ -119,6 +155,30 @@ class TransactionProvider extends ChangeNotifier {
       try {
         // Online: usa Supabase y sincroniza Hive
         final remoteTxs = await _service.fetchTransactions(userId);
+        // --- RECONCILIACIÓN DE IDS: Si el local_id coincide con una transacción local pendiente, actualiza el id local por el UUID real de Supabase ---
+        final localTxs = box.values.toList();
+        for (final remote in remoteTxs) {
+          final localMatches = localTxs
+              .where((t) => t.id == (remote.localId ?? ''))
+              .toList();
+          if (localMatches.isNotEmpty && remote.id != localMatches.first.id) {
+            final localMatch = localMatches.first;
+            // Actualiza el id local por el UUID real de Supabase
+            final updated = TransactionHive(
+              id: remote.id,
+              clientId: localMatch.clientId,
+              type: localMatch.type,
+              amount: localMatch.amount,
+              date: localMatch.date,
+              description: localMatch.description,
+              synced: true,
+              pendingDelete: false,
+              userId: localMatch.userId,
+            );
+            await box.delete(localMatch.id);
+            await box.put(updated.id, updated);
+          }
+        }
         // Mantén las transacciones locales no sincronizadas o pendientes de eliminar
         final localPending = box.values
             .where((t) => t.synced == false || t.pendingDelete == true)
@@ -353,26 +413,60 @@ class TransactionProvider extends ChangeNotifier {
         // Si falla, sigue pendiente
       }
     }
-    // Luego sincroniza las transacciones pendientes de agregar/editar
+
+    // Obtén las transacciones remotas para reconciliar antes de subir
+    List<Transaction> remoteTxs = [];
+    try {
+      remoteTxs = await _service.fetchTransactions(userId);
+    } catch (_) {}
+
+    // Sincroniza las transacciones pendientes de agregar/editar
     final pending = box.values
         .where((t) => !t.synced && t.pendingDelete != true)
         .toList();
     for (final t in pending) {
-      final tx = Transaction.fromHive(t).copyWith(userId: userId);
-      try {
-        await _service.addTransaction(tx, userId, t.clientId);
-        t.synced = true;
-        await t.save();
-      } catch (_) {
-        // Si falla, sigue offline
+      // Busca si ya existe en remoto por local_id
+      final idx = remoteTxs.indexWhere(
+        (r) => r.localId != null && r.localId == t.id,
+      );
+      if (idx != -1) {
+        final remoteMatch = remoteTxs[idx];
+        // Ya existe en Supabase, actualiza el registro local con el UUID y márcala como sincronizada
+        final updated = TransactionHive(
+          id: remoteMatch.id,
+          clientId: t.clientId,
+          type: t.type,
+          amount: t.amount,
+          date: t.date,
+          description: t.description,
+          synced: true,
+          pendingDelete: false,
+          userId: t.userId,
+        );
+        await box.delete(t.id); // Elimina la local con id temporal
+        await box.put(updated.id, updated); // Guarda con el UUID real
+      } else {
+        // No existe en Supabase, súbela normalmente
+        final tx = Transaction.fromHive(t).copyWith(userId: userId);
+        try {
+          await _service.addTransaction(tx, userId, t.clientId);
+          t.synced = true;
+          await t.save();
+        } catch (e, stack) {
+          debugPrint(
+            '[SYNC][ERROR] No se pudo subir la transacción offline con id ${t.id}: $e',
+          );
+          debugPrint('[SYNC][STACK] $stack');
+          // Si falla, sigue offline
+        }
       }
     }
 
     // Refuerzo: recarga desde Supabase y actualiza el estado local
     try {
-      final remoteTxs = await _service.fetchTransactions(userId);
+      final remoteTxsReload = await _service.fetchTransactions(userId);
       // Marca como sincronizadas todas las que existen en Supabase
-      for (final remote in remoteTxs) {
+      for (final remote in remoteTxsReload) {
         final local = box.get(remote.id);
         if (local != null) {
           local.synced = true;

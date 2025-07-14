@@ -81,10 +81,11 @@ class _TransactionFormState extends State<TransactionForm> {
     }
     try {
       final now = DateTime.now();
+      final localId = DateTime.now().millisecondsSinceEpoch.toString();
       if (widget.onSave != null) {
         widget.onSave!(
           Transaction(
-            id: '',
+            id: localId, // id local único
             clientId: _selectedClient!.id,
             userId: widget.userId,
             type: _type!,
@@ -99,16 +100,8 @@ class _TransactionFormState extends State<TransactionForm> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Transacción guardada correctamente')),
         );
-        // Cerrar automáticamente el modal después de guardar
-        Future.delayed(const Duration(milliseconds: 350), () {
-          if (widget.onClose != null) {
-            widget.onClose!();
-          } else {
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
-            }
-          }
-        });
+        // El cierre del modal lo maneja el callback onClose del padre
+        // (No hacer Navigator.of(context).pop() aquí)
       }
     } catch (e) {
       setState(() {

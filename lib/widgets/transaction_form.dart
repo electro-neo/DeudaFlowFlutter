@@ -44,13 +44,12 @@ class _TransactionFormState extends State<TransactionForm> {
       _error = null;
       _loading = true;
     });
+    // Validaciones
     if (_selectedClient == null) {
       setState(() {
         _error = 'Debes seleccionar un cliente';
         _loading = false;
       });
-      // Log error en consola
-      // ignore: avoid_print
       print('[TransactionForm ERROR] Debes seleccionar un cliente');
       return;
     }
@@ -89,10 +88,10 @@ class _TransactionFormState extends State<TransactionForm> {
           (i) => chars[(rand >> (i * 5)) % chars.length],
         ).join();
       }
-
       final localId =
           randomLetters(2) + DateTime.now().millisecondsSinceEpoch.toString();
       if (widget.onSave != null) {
+        await Future.delayed(const Duration(milliseconds: 350)); // Simula espera de guardado
         widget.onSave!(
           Transaction(
             id: localId, // id local único
@@ -111,8 +110,14 @@ class _TransactionFormState extends State<TransactionForm> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Transacción guardada correctamente')),
         );
-        // El cierre del modal lo maneja el callback onClose del padre
-        // (No hacer Navigator.of(context).pop() aquí)
+        // Cierra el modal automáticamente al guardar
+        Future.delayed(const Duration(milliseconds: 200), () {
+          if (widget.onClose != null) {
+            widget.onClose!();
+          } else {
+            Navigator.of(context, rootNavigator: true).pop();
+          }
+        });
       }
     } catch (e) {
       setState(() {

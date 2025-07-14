@@ -480,9 +480,9 @@ class _ClientsScreenState extends State<ClientsScreen>
                                           builder: (context, child) {
                                             return Transform.rotate(
                                               angle: _isSyncing
-                                                  ? _syncController.value *
+                                                  ? -_syncController.value *
                                                         6.28319
-                                                  : 0, // 2*pi
+                                                  : 0, // 2*pi (sentido inverso)
                                               child: Icon(
                                                 Icons.sync,
                                                 color: _isSyncing

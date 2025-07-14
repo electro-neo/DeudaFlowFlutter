@@ -65,3 +65,21 @@ Actualización 12/07/2025 (sincronización offline/online robusta):
 Commit sugerido:
 
 "Sync robusto offline/online: userId persistente, recarga desde Supabase tras sincronizar, feedback inmediato en UI, migración Hive y polling seguro."
+
+---
+Actualización 14/07/2025:
+
+- Refactor y mejora visual de los modales de transacción y recibo general: ahora los campos aparecen en orden lógico, los dropdowns son compactos y los overlays son consistentes.
+- El FloatingActionButton (FAB) se oculta automáticamente cuando el teclado está abierto para mejorar la experiencia en formularios.
+- El banner de sincronización ahora tiene ancho dinámico y un LED parpadeante para todos los estados.
+- Las tarjetas de estadísticas del dashboard pueden ajustarse individualmente en tamaño y posición, con comentarios claros en el código para futuras modificaciones.
+- El modal de recibo general filtra correctamente las transacciones por fecha y muestra mensajes claros si no hay movimientos en el rango seleccionado.
+- El PDF exportado de recibo general ahora muestra totales por cliente y globales, con soporte para conversión de moneda (USD/VES) según el toggle y la tasa actual.
+- Se integró la lógica de conversión de moneda en el modal y el PDF, usando CurrencyProvider y CurrencyUtils, y se eliminó cualquier carácter nulo o símbolo incorrecto.
+- El símbolo "$" se muestra correctamente en el PDF y en el modal cuando la moneda es USD, y nunca en VES.
+- Limpieza de variables no usadas y warnings menores en el código.
+- Mejoras menores de UI y feedback visual en los listados y modales.
+
+Commit sugerido:
+
+"UI/UX: Refactor y mejoras visuales en modales y formularios\n- Orden lógico de campos\n- Dropdowns compactos\n- FAB oculta con teclado\n- Banner de sincronización dinámico\n- Tarjetas de estadísticas ajustables\n- Filtrado y mensajes claros en modal de recibo general\n- Soporte completo para conversión de moneda en PDF y modal\n- Limpieza de código y mejoras menores."

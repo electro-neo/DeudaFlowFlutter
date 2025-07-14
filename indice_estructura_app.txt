@@ -1,3 +1,16 @@
+Para abrir desde navegador web
+flutter run -d web-server --web-port=8080
+
+Ejecutar App termporal
+flutter clean
+flutter pub get
+flutter run
+
+Guardar cambio a mi movil directamente
+flutter build apk --release
+flutter install
+
+
 # Índice de Páginas, Widgets, Botones y Lógica de la App Deuda-Flow-Flutter
 
 ## Estructura General
@@ -249,3 +262,15 @@ Estos permisos están declarados en `android/app/src/main/AndroidManifest.xml` y
 - El polling y la lógica de feedback visual en la UI se mejoraron para todos los flujos offline/online.
 
 ---
+Actualización 14/07/2025:
+
+- Se refactorizó y mejoró la experiencia visual de los modales de transacción, listas, dropdowns y mensajes de sincronización.
+- El FAB ahora se oculta automáticamente al abrir el teclado en formularios.
+- El banner de sincronización tiene ancho dinámico y LED parpadeante para todos los estados.
+- Las tarjetas de estadísticas del dashboard pueden ajustarse individualmente en tamaño y posición, con comentarios en el código para facilitar cambios futuros.
+- El modal de recibo general filtra correctamente por fecha y muestra mensajes claros si no hay movimientos en el rango.
+- El PDF de recibo general muestra totales por cliente y globales, y soporta conversión de moneda (USD/VES) según el toggle y la tasa.
+- La lógica de conversión de moneda está integrada en el modal y el PDF, usando CurrencyProvider y CurrencyUtils.
+- El símbolo "$" se muestra correctamente en el PDF y en el modal solo cuando la moneda es USD.
+- Limpieza de variables no usadas y warnings menores.
+- Mejoras menores de UI y feedback visual en listados y modales.

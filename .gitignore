@@ -43,3 +43,16 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+Supabase DeudaFlow: 23893937d
+
+flutter run -d web-server --web-port=8080
+
+Ejecutar App termporal
+flutter clean
+flutter pub get
+flutter run
+
+Guardar cambio a mi movil directamente
+flutter build apk --release
+flutter install

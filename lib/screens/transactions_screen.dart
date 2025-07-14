@@ -812,43 +812,40 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                   if (t.synced == false)
                                     Padding(
                                       padding: const EdgeInsets.only(
-                                        top: 4,
-                                        bottom: 2,
+                                        top: 2,
+                                        bottom: 1,
                                       ),
                                       child: Row(
                                         children: [
-                                          const Spacer(), // Empuja el contenido a la derecha
+                                          const Spacer(),
                                           Container(
                                             padding: const EdgeInsets.symmetric(
-                                              horizontal: 10,
-                                              vertical: 4,
+                                              horizontal: 7,
+                                              vertical: 2,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: Colors.orange.withValues(
-                                                alpha: 0.10 * 255,
+                                              color: Colors.orange.withOpacity(
+                                                0.09,
                                               ),
                                               borderRadius:
-                                                  BorderRadius.circular(12),
+                                                  BorderRadius.circular(10),
                                             ),
                                             child: Row(
                                               mainAxisSize: MainAxisSize.min,
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.center,
                                               children: [
                                                 Icon(
                                                   Icons.sync,
-                                                  size: 16,
+                                                  size: 12,
                                                   color: Colors.orange,
                                                 ),
-                                                SizedBox(width: 8),
+                                                SizedBox(width: 4),
                                                 Text(
-                                                  'Pendiente por sincronizar',
+                                                  'Pendiente',
                                                   style: TextStyle(
-                                                    fontSize: 13,
+                                                    fontSize: 11,
                                                     color: Colors.orange[800],
-                                                    fontWeight: FontWeight.w700,
+                                                    fontWeight: FontWeight.w600,
                                                   ),
-                                                  textAlign: TextAlign.center,
                                                 ),
                                               ],
                                             ),
@@ -859,43 +856,40 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                   if (t.synced == true)
                                     Padding(
                                       padding: const EdgeInsets.only(
-                                        top: 4,
-                                        bottom: 2,
+                                        top: 2,
+                                        bottom: 1,
                                       ),
                                       child: Row(
                                         children: [
-                                          const Spacer(), // Empuja el contenido a la derecha
+                                          const Spacer(),
                                           Container(
                                             padding: const EdgeInsets.symmetric(
-                                              horizontal: 10,
-                                              vertical: 4,
+                                              horizontal: 7,
+                                              vertical: 2,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: Colors.green.withValues(
-                                                alpha: 0.10 * 255,
+                                              color: Colors.green.withOpacity(
+                                                0.09,
                                               ),
                                               borderRadius:
-                                                  BorderRadius.circular(12),
+                                                  BorderRadius.circular(10),
                                             ),
                                             child: Row(
                                               mainAxisSize: MainAxisSize.min,
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.center,
                                               children: [
                                                 Icon(
                                                   Icons.cloud_done,
-                                                  size: 16,
+                                                  size: 12,
                                                   color: Colors.green,
                                                 ),
-                                                SizedBox(width: 8),
+                                                SizedBox(width: 4),
                                                 Text(
                                                   'Sincronizado',
                                                   style: TextStyle(
-                                                    fontSize: 13,
+                                                    fontSize: 11,
                                                     color: Colors.green[800],
-                                                    fontWeight: FontWeight.w700,
+                                                    fontWeight: FontWeight.w600,
                                                   ),
-                                                  textAlign: TextAlign.center,
                                                 ),
                                               ],
                                             ),

@@ -104,17 +104,24 @@ class _MainScaffoldState extends State<MainScaffold> {
     ];
     final width = MediaQuery.of(context).size.width;
     final isWeb = identical(0, 0.0);
-    Widget fab = FloatingActionButton(
-      onPressed: () {
-        showDialog(
-          context: context,
-          builder: (ctx) => AddGlobalTransactionModal(userId: widget.userId),
-        );
-      },
-      backgroundColor: const Color.fromARGB(255, 123, 48, 242),
-      elevation: 6,
-      child: const Icon(Icons.add, size: 32, color: Colors.white),
-    );
+    // Detectar si el teclado está visible
+    final viewInsets = MediaQuery.of(context).viewInsets;
+    final isKeyboardVisible = viewInsets.bottom > 0.0;
+
+    Widget? fab = isKeyboardVisible
+        ? null
+        : FloatingActionButton(
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (ctx) =>
+                    AddGlobalTransactionModal(userId: widget.userId),
+              );
+            },
+            backgroundColor: const Color.fromARGB(255, 123, 48, 242),
+            elevation: 6,
+            child: const Icon(Icons.add, size: 32, color: Colors.white),
+          );
 
     return Column(
       children: [

@@ -162,15 +162,13 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Título principal eliminado
-            const SizedBox(height: 16),
-            // Subtítulo contextual
+            // Título principal (antes subtítulo contextual)
             Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
+              padding: const EdgeInsets.only(bottom: 16.0),
               child: Text(
                 'Agregar Transacción para ${_selectedClient?.name ?? ''}',
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: colorScheme.primary,
                 ),
@@ -179,75 +177,88 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
             // Campo Cliente (debajo del subtítulo contextual)
             Padding(
               padding: const EdgeInsets.only(bottom: 8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Cliente',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Autocomplete<Client>(
-                    optionsBuilder: (TextEditingValue textEditingValue) {
-                      if (textEditingValue.text.isEmpty) {
-                        return clients;
-                      }
-                      return clients.where(
-                        (Client c) =>
-                            c.name.toLowerCase().contains(
+              child: Autocomplete<Client>(
+                optionsBuilder: (TextEditingValue textEditingValue) {
+                  if (textEditingValue.text.isEmpty) {
+                    return clients;
+                  }
+                  return clients.where(
+                    (Client c) =>
+                        c.name.toLowerCase().contains(
+                          textEditingValue.text.toLowerCase(),
+                        ) ||
+                        (c.email?.toLowerCase().contains(
                               textEditingValue.text.toLowerCase(),
-                            ) ||
-                            (c.email?.toLowerCase().contains(
-                                  textEditingValue.text.toLowerCase(),
-                                ) ??
-                                false) ||
-                            (c.phone?.toLowerCase().contains(
-                                  textEditingValue.text.toLowerCase(),
-                                ) ??
-                                false),
-                      );
-                    },
-                    displayStringForOption: (Client c) => c.name,
-                    fieldViewBuilder:
-                        (context, controller, focusNode, onFieldSubmitted) {
-                          return TextField(
-                            controller: controller,
-                            focusNode: focusNode,
-                            decoration: const InputDecoration(
-                              labelText: 'Buscar o seleccionar cliente',
-                              border: OutlineInputBorder(),
-                              isDense: true,
-                            ),
-                          );
-                        },
-                    onSelected: (Client c) =>
-                        setState(() => _selectedClient = c),
-                    optionsViewBuilder: (context, onSelected, options) {
-                      return Align(
-                        alignment: Alignment.topLeft,
-                        child: Material(
-                          elevation: 4.0,
-                          child: SizedBox(
-                            height: 200,
-                            child: ListView.builder(
-                              padding: EdgeInsets.zero,
-                              itemCount: options.length,
-                              itemBuilder: (context, index) {
-                                final Client c = options.elementAt(index);
-                                return ListTile(
-                                  title: Text(c.name),
-                                  subtitle: c.email != null
-                                      ? Text(c.email!)
-                                      : null,
-                                  onTap: () => onSelected(c),
-                                );
-                              },
-                            ),
-                          ),
+                            ) ??
+                            false) ||
+                        (c.phone?.toLowerCase().contains(
+                              textEditingValue.text.toLowerCase(),
+                            ) ??
+                            false),
+                  );
+                },
+                displayStringForOption: (Client c) => c.name,
+                fieldViewBuilder:
+                    (context, controller, focusNode, onFieldSubmitted) {
+                      return TextField(
+                        controller: controller,
+                        focusNode: focusNode,
+                        decoration: const InputDecoration(
+                          labelText: 'Buscar o seleccionar cliente',
+                          border: OutlineInputBorder(),
+                          isDense: true,
                         ),
                       );
                     },
-                  ),
-                ],
+                onSelected: (Client c) => setState(() => _selectedClient = c),
+                optionsViewBuilder: (context, onSelected, options) {
+                  return Align(
+                    alignment: Alignment.topLeft,
+                    child: Material(
+                      elevation: 4.0,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxHeight: (options.length * 44.0).clamp(44.0, 200.0),
+                        ),
+                        child: ListView.builder(
+                          padding: EdgeInsets.zero,
+                          shrinkWrap: true,
+                          itemCount: options.length,
+                          itemBuilder: (context, index) {
+                            final Client c = options.elementAt(index);
+                            return InkWell(
+                              onTap: () => onSelected(c),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(c.name),
+                                    if (c.email != null)
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                          top: 1.5,
+                                        ),
+                                        child: Text(
+                                          c.email!,
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.bodySmall,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
             Row(
@@ -272,7 +283,7 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
                       ? 'Registrar Deuda'
                       : _type == 'payment'
                       ? 'Registrar Abono'
-                      : 'Selecciona tipo',
+                      : 'Selecciona tipo de movimiento',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),

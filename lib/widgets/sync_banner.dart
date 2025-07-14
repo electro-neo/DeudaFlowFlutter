@@ -53,9 +53,10 @@ class _RealConnectivityBannerState extends State<_RealConnectivityBanner> {
     bool blinking = false;
     String text = '';
     Widget? action;
+    // Parpadeo para todos los estados, pero con diferente color
     if (_isReallyOnline == false) {
       ledColor = Colors.red;
-      blinking = false;
+      blinking = true;
       text = 'Offline: Trabajando con datos locales';
     } else {
       switch (widget.sync.status) {
@@ -71,12 +72,12 @@ class _RealConnectivityBannerState extends State<_RealConnectivityBanner> {
           break;
         case SyncStatus.success:
           ledColor = Colors.green;
-          blinking = false;
+          blinking = true;
           text = 'Sincronizado';
           break;
         case SyncStatus.error:
           ledColor = Colors.red;
-          blinking = false;
+          blinking = true;
           text = 'Error de sincronización';
           action = TextButton(
             onPressed: () {
@@ -90,7 +91,7 @@ class _RealConnectivityBannerState extends State<_RealConnectivityBanner> {
           break;
         default:
           ledColor = Colors.green;
-          blinking = false;
+          blinking = true;
           text = 'Sincronizado';
       }
     }
@@ -160,50 +161,48 @@ class _BannerWidgetState extends State<_BannerWidget>
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Container(
-        // Elimina width: double.infinity para que el banner solo use el ancho necesario
-        constraints: const BoxConstraints(
-          maxWidth:
-              260, // Ajuste intermedio para evitar overflow y no ser tan ancho
-        ),
-        decoration: BoxDecoration(
-          color: Colors.black87,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-        child: Row(
-          mainAxisSize: MainAxisSize.max,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            AnimatedBuilder(
-              animation: _animation,
-              builder: (context, child) => Opacity(
-                opacity: widget.blinking ? _animation.value : 1,
-                child: Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: widget.ledColor,
-                    shape: BoxShape.circle,
+      child: IntrinsicWidth(
+        child: Container(
+          // Elimina width: double.infinity y maxWidth para que el ancho sea dinámico
+          decoration: BoxDecoration(
+            color: Colors.black87,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              AnimatedBuilder(
+                animation: _animation,
+                builder: (context, child) => Opacity(
+                  opacity: widget.blinking ? _animation.value : 1,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: widget.ledColor,
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                widget.text,
-                style: const TextStyle(color: Colors.white, fontSize: 13),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1, // Solo una línea
-                textAlign: TextAlign.center,
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  widget.text,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1, // Solo una línea
+                  textAlign: TextAlign.center,
+                ),
               ),
-            ),
-            if (widget.action != null) ...[
-              const SizedBox(width: 6),
-              widget.action!,
+              if (widget.action != null) ...[
+                const SizedBox(width: 6),
+                widget.action!,
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

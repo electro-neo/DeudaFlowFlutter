@@ -143,77 +143,69 @@ class _TransactionFormState extends State<TransactionForm> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final symbol =
-        ""; // Si necesitas el símbolo de moneda, usa CurrencyUtils.symbol(context)
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420, maxHeight: 600),
-        child: Card(
-          elevation: 8,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          color: Colors.white,
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Título sin botón X
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8.0),
-                    child: Text(
-                      'Agregar Transacción para ${_selectedClient?.name ?? ''}',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.primary,
+    final symbol = "";
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: 420,
+              maxHeight: MediaQuery.of(context).size.height * 0.95,
+            ),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.zero,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Título sin botón X
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Text(
+                        'Agregar Transacción para ${_selectedClient?.name ?? ''}',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.primary,
+                        ),
                       ),
                     ),
-                  ),
-                  // El campo de cliente se elimina aquí porque el cliente ya se selecciona desde el ClientCard
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        _type == 'debt'
-                            ? Icons.trending_down
-                            : _type == 'payment'
-                            ? Icons.trending_up
-                            : Icons.swap_horiz,
-                        color: _type == 'debt'
-                            ? Colors.red
-                            : _type == 'payment'
-                            ? Colors.green
-                            : Colors.grey,
-                        size: 32,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _type == 'debt'
-                            ? 'Registrar Deuda'
-                            : _type == 'payment'
-                            ? 'Registrar Abono'
-                            : 'Selecciona tipo',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: GestureDetector(
-                      onHorizontalDragEnd: (details) {
-                        setState(() {
-                          if (_type == 'debt') {
-                            _type = 'payment';
-                          } else {
-                            _type = 'debt';
-                          }
-                        });
-                      },
+                    // El campo de cliente se elimina aquí porque el cliente ya se selecciona desde el ClientCard
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _type == 'debt'
+                              ? Icons.trending_down
+                              : _type == 'payment'
+                              ? Icons.trending_up
+                              : Icons.swap_horiz,
+                          color: _type == 'debt'
+                              ? Colors.red
+                              : _type == 'payment'
+                              ? Colors.green
+                              : Colors.grey,
+                          size: 32,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _type == 'debt'
+                              ? 'Registrar Deuda'
+                              : _type == 'payment'
+                              ? 'Registrar Abono'
+                              : 'Selecciona tipo',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    // Selector igual al de add_global_transaction_modal.dart
+                    Center(
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         decoration: BoxDecoration(
@@ -225,8 +217,8 @@ class _TransactionFormState extends State<TransactionForm> {
                           ),
                         ),
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 4,
+                          horizontal: 5,
+                          vertical: 1,
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -238,6 +230,7 @@ class _TransactionFormState extends State<TransactionForm> {
                               color: Colors.red,
                               onTap: () => setState(() => _type = 'debt'),
                             ),
+                            SizedBox(width: 45), // Igual separación visual
                             _ToggleTypeButton(
                               selected: _type == 'payment',
                               icon: Icons.trending_up,
@@ -249,155 +242,157 @@ class _TransactionFormState extends State<TransactionForm> {
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _amountController,
-                    decoration: InputDecoration(
-                      labelText: 'Monto',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _amountController,
+                      decoration: InputDecoration(
+                        labelText: 'Monto',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        prefixIcon: Padding(
+                          padding: const EdgeInsets.only(left: 8, right: 4),
+                          child: Text(
+                            symbol,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        prefixIconConstraints: const BoxConstraints(
+                          minWidth: 0,
+                          minHeight: 0,
+                        ),
+                        isDense: true,
                       ),
-                      prefixIcon: Padding(
-                        padding: const EdgeInsets.only(left: 8, right: 4),
-                        child: Text(
-                          symbol,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                      keyboardType: TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      textInputAction: TextInputAction.next,
+                    ),
+                    const SizedBox(height: 12),
+                    GestureDetector(
+                      onTap: _pickDate,
+                      child: AbsorbPointer(
+                        child: TextField(
+                          decoration: InputDecoration(
+                            labelText: 'Fecha',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            prefixIcon: Icon(Icons.event),
+                            isDense: true,
+                          ),
+                          controller: TextEditingController(
+                            text:
+                                '${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.year}',
                           ),
                         ),
                       ),
-                      prefixIconConstraints: const BoxConstraints(
-                        minWidth: 0,
-                        minHeight: 0,
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _descriptionController,
+                      decoration: InputDecoration(
+                        labelText: 'Descripción',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        prefixIcon: Icon(Icons.description),
+                        isDense: true,
                       ),
-                      isDense: true,
+                      maxLines: 2,
                     ),
-                    keyboardType: TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    textInputAction: TextInputAction.next,
-                  ),
-                  const SizedBox(height: 12),
-                  GestureDetector(
-                    onTap: _pickDate,
-                    child: AbsorbPointer(
-                      child: TextField(
-                        decoration: InputDecoration(
-                          labelText: 'Fecha',
-                          border: OutlineInputBorder(
+                    if (_error != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: GestureDetector(
+                          onLongPress: () {
+                            Clipboard.setData(ClipboardData(text: _error!));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Error copiado al portapapeles'),
+                              ),
+                            );
+                          },
+                          child: SelectableText(
+                            _error!,
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 18),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: colorScheme.primary,
+                          foregroundColor: Colors.white,
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          prefixIcon: Icon(Icons.event),
-                          isDense: true,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        controller: TextEditingController(
-                          text:
-                              '${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.year}',
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _descriptionController,
-                    decoration: InputDecoration(
-                      labelText: 'Descripción',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      prefixIcon: Icon(Icons.description),
-                      isDense: true,
-                    ),
-                    maxLines: 2,
-                  ),
-                  if (_error != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: GestureDetector(
-                        onLongPress: () {
-                          Clipboard.setData(ClipboardData(text: _error!));
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Error copiado al portapapeles'),
-                            ),
-                          );
-                        },
-                        child: SelectableText(
-                          _error!,
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 18),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: colorScheme.primary,
-                        foregroundColor: Colors.white,
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      icon: _loading
-                          ? SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
+                        icon: _loading
+                            ? SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
                                 ),
+                              )
+                            : Icon(
+                                _type == 'debt'
+                                    ? Icons.save
+                                    : Icons.check_circle,
                               ),
-                            )
-                          : Icon(
-                              _type == 'debt' ? Icons.save : Icons.check_circle,
-                            ),
-                      label: Text(
-                        _loading
-                            ? 'Guardando...'
-                            : (_type == 'debt'
-                                  ? 'Guardar Deuda'
-                                  : 'Guardar Abono'),
-                      ),
-                      onPressed: _loading ? null : _save,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: colorScheme.primary,
-                        side: BorderSide(
-                          color: colorScheme.primary,
-                          width: 1.5,
+                        label: Text(
+                          _loading
+                              ? 'Guardando...'
+                              : (_type == 'debt'
+                                    ? 'Guardar Deuda'
+                                    : 'Guardar Abono'),
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        onPressed: _loading ? null : _save,
                       ),
-                      icon: const Icon(Icons.close),
-                      label: const Text('Cerrar'),
-                      onPressed: () {
-                        if (widget.onClose != null) {
-                          widget.onClose!();
-                        } else {
-                          Navigator.of(context, rootNavigator: true).pop();
-                        }
-                      },
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: colorScheme.primary,
+                          side: BorderSide(
+                            color: colorScheme.primary,
+                            width: 1.5,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                        ),
+                        icon: const Icon(Icons.close),
+                        label: const Text('Cerrar'),
+                        onPressed: () {
+                          if (widget.onClose != null) {
+                            widget.onClose!();
+                          } else {
+                            Navigator.of(context, rootNavigator: true).pop();
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -421,25 +416,32 @@ class _ToggleTypeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final baseColor = color;
+    final selectedColor = baseColor.withOpacity(0.13);
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 180),
         margin: const EdgeInsets.symmetric(horizontal: 2),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? color.withOpacity(0.15) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
+          color: selected ? selectedColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: selected ? baseColor : Colors.transparent,
+            width: selected ? 1.5 : 1,
+          ),
         ),
         child: Row(
           children: [
-            Icon(icon, color: color, size: 20),
+            Icon(icon, color: baseColor, size: 18),
             const SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
-                color: color,
-                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                color: baseColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
               ),
             ),
           ],

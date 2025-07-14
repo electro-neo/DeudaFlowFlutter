@@ -271,14 +271,12 @@ class _ClientFormState extends State<ClientForm> {
                   const SizedBox(height: 14),
                   if (!(widget.initialClient != null && widget.readOnlyBalance))
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
+                      padding: const EdgeInsets.only(bottom: 5.0),
                       child: Center(
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
                           decoration: BoxDecoration(
-                            color: colorScheme.primary.withValues(
-                              alpha: 0.08 * 255,
-                            ),
+                            color: colorScheme.primary.withOpacity(0.08),
                             borderRadius: BorderRadius.circular(24),
                             border: Border.all(
                               color: colorScheme.primary,
@@ -286,12 +284,13 @@ class _ClientFormState extends State<ClientForm> {
                             ),
                           ),
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 4,
+                            horizontal: 5,
+                            vertical: 1,
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              // Botón deslizable para "Deuda"
                               _ToggleTypeButton(
                                 selected: _initialType == 'debt',
                                 icon: Icons.trending_down,
@@ -300,6 +299,11 @@ class _ClientFormState extends State<ClientForm> {
                                 onTap: () =>
                                     setState(() => _initialType = 'debt'),
                               ),
+                              // Espacio extra entre los dos selectores
+                              SizedBox(
+                                width: 45,
+                              ), // Puedes ajustar el ancho aquí
+                              // Botón deslizable para "Abono"
                               _ToggleTypeButton(
                                 selected: _initialType == 'payment',
                                 icon: Icons.trending_up,

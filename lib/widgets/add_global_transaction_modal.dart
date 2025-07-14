@@ -302,46 +302,33 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
             ),
             const SizedBox(height: 16),
             Center(
-              child: GestureDetector(
-                onHorizontalDragEnd: (details) {
-                  setState(() {
-                    if (_type == 'debt') {
-                      _type = 'payment';
-                    } else {
-                      _type = 'debt';
-                    }
-                  });
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  decoration: BoxDecoration(
-                    color: colorScheme.primary.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: colorScheme.primary, width: 1.5),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 4,
-                    vertical: 4,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _ToggleTypeButton(
-                        selected: _type == 'debt',
-                        icon: Icons.trending_down,
-                        label: 'Deuda',
-                        color: Colors.red,
-                        onTap: () => setState(() => _type = 'debt'),
-                      ),
-                      _ToggleTypeButton(
-                        selected: _type == 'payment',
-                        icon: Icons.trending_up,
-                        label: 'Abono',
-                        color: Colors.green,
-                        onTap: () => setState(() => _type = 'payment'),
-                      ),
-                    ],
-                  ),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: colorScheme.primary, width: 1.5),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _ToggleTypeButton(
+                      selected: _type == 'debt',
+                      icon: Icons.trending_down,
+                      label: 'Deuda',
+                      color: Colors.red,
+                      onTap: () => setState(() => _type = 'debt'),
+                    ),
+                    SizedBox(width: 45), // Espacio igual que en client_form
+                    _ToggleTypeButton(
+                      selected: _type == 'payment',
+                      icon: Icons.trending_up,
+                      label: 'Abono',
+                      color: Colors.green,
+                      onTap: () => setState(() => _type = 'payment'),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -499,25 +486,32 @@ class _ToggleTypeButton extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) {
+    final baseColor = color;
+    final selectedColor = baseColor.withOpacity(0.13);
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 180),
         margin: const EdgeInsets.symmetric(horizontal: 2),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? color.withOpacity(0.15) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
+          color: selected ? selectedColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: selected ? baseColor : Colors.transparent,
+            width: selected ? 1.5 : 1,
+          ),
         ),
         child: Row(
           children: [
-            Icon(icon, color: color, size: 20),
+            Icon(icon, color: baseColor, size: 18),
             const SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
-                color: color,
-                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                color: baseColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
               ),
             ),
           ],

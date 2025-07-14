@@ -1,0 +1,153 @@
+main_scaffold.dart
+    FAB (FloatingActionButton):
+    Icono: Icons.add
+    Función: Abrir modal para agregar transacción global
+
+    add_global_transaction_modal.dart
+        Campos: "Monto" (TextField), "Descripción" (TextField), "Fecha" (DatePicker)
+        Botones: "Guardar" (ElevatedButton) y "Cancelar" (TextButton)
+        Guardar Deuda / Guardar Abono (ElevatedButton.icon): Guarda la transacción global
+        Cerrar (OutlinedButton.icon): Cierra el modal
+    sync_banner.dart
+        Texto: "Sincronizando datos..."
+        Icono: LED parpadeante según estado de sincronización
+        Ancho dinámico para adaptarse al contenido
+
+app_navigation_bar.dart
+    IconButton (Barra superior):
+    "Inicio" (icono: Icons.home): Redirige a la pantalla de inicio
+    "Buscar" (icono: Icons.search): Abre modal de búsqueda
+    "Notificaciones" (icono: Icons.notifications): Abre modal de notificaciones
+    "Ajustes" (icono: Icons.settings): Abre modal de ajustes
+
+IconButton (Barra inferior):
+    "Dashboard" (icono: Icons.dashboard)
+    "Clientes" (icono: Icons.people)
+    "Movimientos" (icono: Icons.list_alt)
+    "Menú" (icono: Icons.menu): Abre un modal con más opciones
+        Modal de menú:
+        Switch: Cambiar entre USD/VES
+        Switch: Cambiar tema claro/oscuro
+        Cerrar sesión:
+        ElevatedButton.icon
+        Nombre: "Cerrar sesión"
+        Función: Cerrar sesión y salir de la app
+
+transactions_screen.dart
+    IconButton (icono de calendario): Seleccionar rango de fechas
+    Cancelar (TextButton): Cierra el modal de selección de fechas
+    Aceptar (ElevatedButton): Confirma el rango de fechas
+    IconButton (icono de limpiar): Limpiar rango de fechas
+    Eliminar transacción (ElevatedButton): Elimina una transacción
+    Cancelar eliminación (TextButton): Cancela la eliminación
+    Agregar transacción (FloatingActionButton): Abre modal para agregar transacción
+
+    transaction_form.dart
+        Guardar Deuda / Guardar Abono (ElevatedButton.icon): Guarda la transacción
+        Cerrar (OutlinedButton.icon): Cierra el formulario
+        Campos: "Monto" (TextField), "Descripción" (TextField), "Fecha" (DatePicker)
+        Botones: "Guardar" (ElevatedButton) y "Cancelar" (TextButton)
+
+
+login_screen.dart
+    Entrar (ElevatedButton): Iniciar sesión
+    Ingresar sin conexión (OutlinedButton.icon): Login offline
+    Registrarse (TextButton): Ir a registro
+    ¿Olvidaste tu contraseña? (TextButton): Recuperar contraseña
+    Probar como invitado (OutlinedButton.icon): Login como invitado
+
+register_screen.dart
+    Registrarse (ElevatedButton): Crear cuenta
+    Volver (TextButton): Regresar a inicio de sesión
+
+forgot_password_screen.dart
+    Enviar (ElevatedButton): Enviar solicitud de recuperación de contraseña
+    Volver (TextButton): Regresar a inicio de sesión
+
+reset_password_screen.dart
+    Cambiar contraseña (ElevatedButton): Cambiar contraseña
+    Volver (TextButton): Regresar a inicio de sesión
+
+dashboard_screen.dart
+    IconButton (icono de calendario): Seleccionar rango de fechas
+    Cancelar (TextButton): Cierra el modal de selección de fechas
+    Aceptar (ElevatedButton): Confirma el rango de fechas
+    IconButton (icono de limpiar): Limpiar rango de fechas
+    Ver transacciones (ElevatedButton): Ir a pantalla de transacciones
+    Ver clientes (ElevatedButton): Ir a pantalla de clientes
+    Ver movimientos (ElevatedButton): Ir a pantalla de movimientos
+    Ver estadísticas (ElevatedButton): Ir a pantalla de estadísticas
+    Cerrar sesión (ElevatedButton): Cerrar sesión y salir de la app
+    Cambiar moneda (Switch): Cambia entre USD y VES
+    Cambiar tema (Switch): Cambia entre tema claro y oscuro
+    Botón de ayuda (IconButton): Abre modal de ayuda
+        Modal de ayuda:
+        Texto: "¿Necesitas ayuda?"
+        Botones: "Contactar soporte" y "FAQ"
+        Funciones: Abrir enlace a soporte y FAQ
+    Botón de feedback (IconButton): Abre modal de feedback
+        Modal de feedback:  
+        Texto: "¿Tienes comentarios?"
+        Campos: "Tu comentario" (TextField)
+        Botón: "Enviar" (ElevatedButton)
+    Botón de notificaciones (IconButton): Abre modal de notificaciones
+        Modal de notificaciones:
+        Lista de notificaciones
+        Botón: "Marcar todo como leído" (ElevatedButton)
+    Botón de sincronización (IconButton): Inicia sincronización manual
+        Modal de sincronización:
+        Texto: "Sincronizando datos..."
+        Botón: "Cancelar" (TextButton)  
+    Botón de exportar datos (IconButton): Abre modal de exportación
+        Modal de exportación:
+        Texto: "Exportar datos"
+        Botones: "Exportar a CSV" y "Exportar a PDF"
+        Funciones: Exportar datos a los formatos seleccionados
+    Botón de ajustes (IconButton): Abre modal de ajustes
+        Modal de ajustes:
+        Texto: "Ajustes de la aplicación"
+        Campos: "Idioma" (Dropdown), "Notificaciones" (Switch), "Tema" (Switch)
+    
+clients_screen.dart
+    Registrar Cliente (FloatingActionButton): Agrega un cliente
+    Recibo general (FloatingActionButton): Muestra recibo general
+    Forzar sincronización (FloatingActionButton): Sincroniza datos
+    Buscar cliente (FloatingActionButton): Activa el buscador
+    Eliminar TODOS los clientes (FloatingActionButton): Elimina todos los clientes
+    Eliminar cliente (TextButton): Elimina un cliente específico
+    Cancelar eliminación (TextButton): Cancela la eliminación de cliente
+
+    
+
+    client_details_modal.dart
+        Campos: "Nombre" (TextField), "Teléfono" (TextField), "Correo" (TextField)
+        Botones: "Guardar" (ElevatedButton) y "Cancelar" (TextButton)
+        Guardar Cliente (ElevatedButton.icon): Guarda los detalles del cliente
+        Cerrar (OutlinedButton.icon): Cierra el modal
+        IconButton: Acciones rápidas sobre clientes (editar, eliminar, ver detalles, menú, recibo, etc.)
+        client_card_actions_fab.dart
+            Editar cliente (IconButton): Abre modal para editar cliente
+            Eliminar cliente (IconButton): Elimina el cliente
+            Ver detalles (IconButton): Muestra detalles del cliente
+            Menú (IconButton): Abre menú de acciones rápidas
+            Recibo (IconButton): Muestra recibo del cliente
+
+
+    general_receipt_modal.dart
+        Campos: "Cliente" (TextField), "Monto" (TextField), "Fecha" (DatePicker)
+        Botones: "Imprimir" (ElevatedButton) y "Cancelar" (TextButton)
+        Exportar/Imprimir (ElevatedButton.icon): Exporta o imprime el recibo general
+        Cerrar (OutlinedButton.icon): Cierra el modal
+
+    receipt_modal.dart
+        Campos: "Cliente" (TextField), "Monto" (TextField), "Fecha" (DatePicker)
+        Botones: "Imprimir" (ElevatedButton) y "Cancelar" (TextButton)
+        Exportar/Imprimir (ElevatedButton.icon): Exporta o imprime el recibo
+        Cerrar (OutlinedButton.icon): Cierra el modal
+
+
+not_found_screen.dart
+    Texto: "Página no encontrada"
+    Botón: "Volver al inicio" (ElevatedButton): Redirige a la pantalla de inicio    
+    Icono: Icons.error_outline
+

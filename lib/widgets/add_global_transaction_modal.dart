@@ -157,13 +157,21 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          'Agregar transacción',
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-        ),
+        // Título principal eliminado
         const SizedBox(height: 16),
+        // Subtítulo contextual
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: Text(
+            'Agregar Transacción para ${_selectedClient?.name ?? ''}',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: colorScheme.primary,
+            ),
+          ),
+        ),
+        // Campo Cliente (debajo del subtítulo contextual)
         Padding(
           padding: const EdgeInsets.only(bottom: 8.0),
           child: Column(
@@ -232,17 +240,6 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
                 },
               ),
             ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8.0),
-          child: Text(
-            'Agregar Transacción para ${_selectedClient?.name ?? ''}',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: colorScheme.primary,
-            ),
           ),
         ),
         Row(

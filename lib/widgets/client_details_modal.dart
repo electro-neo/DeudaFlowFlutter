@@ -3,6 +3,7 @@ import '../models/client.dart';
 import 'package:provider/provider.dart';
 import '../providers/transaction_filter_provider.dart';
 import '../screens/transactions_screen.dart';
+import '../widgets/transaction_form.dart';
 
 class ClientDetailsModal extends StatelessWidget {
   final Client client;
@@ -97,7 +98,25 @@ class ClientDetailsModal extends StatelessWidget {
                 IconButton(
                   icon: const Icon(Icons.add),
                   tooltip: 'Agregar deuda/abono',
-                  onPressed: onAddTransaction,
+                  onPressed: () {
+                    Navigator.of(context, rootNavigator: true).pop();
+                    Future.delayed(Duration.zero, () {
+                      showDialog(
+                        context: context,
+                        builder: (dialogContext) => TransactionForm(
+                          userId: userId,
+                          initialClient: client,
+                          onClose: () => Navigator.of(
+                            dialogContext,
+                            rootNavigator: true,
+                          ).pop(),
+                          onSave: (tx) {
+                            // Aquí puedes manejar el guardado si lo necesitas
+                          },
+                        ),
+                      );
+                    });
+                  },
                 ),
                 IconButton(
                   icon: const Icon(Icons.list),

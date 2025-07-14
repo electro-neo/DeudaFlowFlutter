@@ -131,33 +131,128 @@ class DashboardStats extends StatelessWidget {
     );
     //
     // Orden personalizado: Clientes y Saldo neto arriba, Deuda total y Total abonado abajo
+    // --- INICIO: Layout 2x2 (dos filas, dos columnas) para los statcards ---
+    // Puedes ajustar los SizedBox(width) y SizedBox(height) para el tamaño y separación
+    // --- INICIO: Layout 2x2 con ancho individual por statcard ---
+    // --- INICIO: Configuración individual de ancho y márgenes para cada statcard ---
+    // width* controla el ancho de cada statcard
+    // marginLeft* controla el margen izquierdo de cada statcard (espacio a la izquierda)
+    // --- INICIO: Layout 2x2 (dos filas, dos columnas) para los statcards ---
+    // Puedes ajustar los SizedBox(width) y SizedBox(height) para el tamaño y separación
+    // --- INICIO: Layout 2x2 con ancho individual por statcard ---
+    // Puedes ajustar individualmente el ancho y los márgenes de cada statcard cambiando los valores abajo
+
+    // --- FILA SUPERIOR ---
+    // Statcard de la IZQUIERDA ARRIBA (Clientes):
+    // widthClientes: ancho del statcard de clientes (izquierda arriba)
+    // marginLeftClientes: margen izquierdo del statcard de clientes
+    // marginRightClientes: margen derecho del statcard de clientes (espacio entre clientes y clientes con deuda)
+    // marginBottomClientes: margen inferior del statcard de clientes (espacio debajo de la tarjeta)
+    const double widthClientes = 160;
+    const double marginLeftClientes = 0;
+    const double marginRightClientes = 3;
+    const double marginBottomClientes = 0;
+
+    // Statcard de la DERECHA ARRIBA (Clientes con deudas):
+    // widthClientesConDeuda: ancho del statcard de clientes con deudas (derecha arriba)
+    // marginLeftClientesConDeuda: margen izquierdo del statcard de clientes con deudas (espacio entre clientes y clientes con deudas)
+    // marginRightClientesConDeuda: margen derecho del statcard de clientes con deudas
+    // marginBottomClientesConDeuda: margen inferior del statcard de clientes con deudas
+    const double widthClientesConDeuda = 160;
+    const double marginLeftClientesConDeuda = 3;
+    const double marginRightClientesConDeuda = 0;
+    const double marginBottomClientesConDeuda = 0;
+
+    // --- FILA INFERIOR ---
+    // Statcard de la IZQUIERDA ABAJO (Deuda total):
+    // widthDeuda: ancho del statcard de deuda total (izquierda abajo)
+    // marginLeftDeuda: margen izquierdo del statcard de deuda total
+    // marginRightDeuda: margen derecho del statcard de deuda total (espacio entre deuda y abonado)
+    // marginTopDeuda: margen superior del statcard de deuda total (espacio arriba de la tarjeta)
+    const double widthDeuda = 160;
+    const double marginLeftDeuda = 0;
+    const double marginRightDeuda = 3;
+    const double marginTopDeuda = 0;
+
+    // Statcard de la DERECHA ABAJO (Total abonado):
+    // widthAbonado: ancho del statcard de total abonado (derecha abajo)
+    // marginLeftAbonado: margen izquierdo del statcard de total abonado (espacio entre deuda y abonado)
+    // marginRightAbonado: margen derecho del statcard de total abonado
+    // marginTopAbonado: margen superior del statcard de total abonado
+    const double widthAbonado = 160;
+    const double marginLeftAbonado = 3;
+    const double marginRightAbonado = 0;
+    const double marginTopAbonado = 0;
+
+    // --- FIN DE LOS AJUSTES DE ANCHOS Y MÁRGENES ---
+    // Para mover o cambiar el tamaño de cada statcard, modifica los valores de width* y margin* correspondientes arriba.
+    // Ahora también puedes ajustar el margen inferior de los statcards de la fila superior (marginBottomClientes, marginBottomClientesConDeuda)
+    // y el margen superior de los statcards de la fila inferior (marginTopDeuda, marginTopAbonado).
+    // Ejemplo: para separar más verticalmente Clientes y Deuda total, aumenta marginBottomClientes o marginTopDeuda.
+
     return Center(
       child: SizedBox(
-        width:
-            1000, // Mucho más ancho para evitar saltos de línea en los labels
+        width: 600, // Ancho total del área de statcards
         child: Column(
           children: [
+            // --- FILA SUPERIOR: Clientes (izquierda) y Clientes con deudas (derecha) ---
             Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Expanded(child: statClientes), // Statcard de clientes
-                const SizedBox(width: 16), // Espacio entre statcards
-                Expanded(
+                // Statcard IZQUIERDA ARRIBA (Clientes)
+                Container(
+                  margin: EdgeInsets.only(
+                    left: marginLeftClientes,
+                    right: marginRightClientes,
+                    bottom: marginBottomClientes,
+                  ),
+                  width: widthClientes,
+                  child: statClientes,
+                ),
+                // Statcard DERECHA ARRIBA (Clientes con deudas)
+                Container(
+                  margin: EdgeInsets.only(
+                    left: marginLeftClientesConDeuda,
+                    right: marginRightClientesConDeuda,
+                    bottom: marginBottomClientesConDeuda,
+                  ),
+                  width: widthClientesConDeuda,
                   child: statClientesConDeuda,
-                ), // Statcard de clientes con deudas
+                ),
               ],
             ),
-            const SizedBox(height: 16), // Espacio vertical
+            const SizedBox(height: 18), // Espacio vertical entre filas
+            // --- FILA INFERIOR: Deuda total (izquierda) y Total abonado (derecha) ---
             Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Expanded(child: statDeuda), // Statcard de deuda total
-                const SizedBox(width: 16), // Espacio entre statcards
-                Expanded(child: statAbonado), // Statcard de total abonado
+                // Statcard IZQUIERDA ABAJO (Deuda total)
+                Container(
+                  margin: EdgeInsets.only(
+                    left: marginLeftDeuda,
+                    right: marginRightDeuda,
+                    top: marginTopDeuda,
+                  ),
+                  width: widthDeuda,
+                  child: statDeuda,
+                ),
+                // Statcard DERECHA ABAJO (Total abonado)
+                Container(
+                  margin: EdgeInsets.only(
+                    left: marginLeftAbonado,
+                    right: marginRightAbonado,
+                    top: marginTopAbonado,
+                  ),
+                  width: widthAbonado,
+                  child: statAbonado,
+                ),
               ],
             ),
           ],
         ),
       ),
     );
+    // --- FIN: Cambia los valores de width* y marginLeft*/marginRight* para ajustar cada lado de cada statcard ---
   }
 }
 

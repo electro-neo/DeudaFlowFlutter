@@ -161,8 +161,7 @@ class _TransactionFormState extends State<TransactionForm> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8.0),
                     child: Text(
-                      'Agregar Transacción para ' +
-                          (_selectedClient?.name ?? ''),
+                      'Agregar Transacción para ${_selectedClient?.name ?? ''}',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
@@ -414,8 +413,8 @@ class _ToggleTypeButton extends StatelessWidget {
     required this.label,
     required this.color,
     required this.onTap,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

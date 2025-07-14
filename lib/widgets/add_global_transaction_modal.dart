@@ -5,8 +5,6 @@ import '../models/client.dart';
 import '../models/transaction.dart';
 import '../providers/client_provider.dart';
 import '../providers/transaction_provider.dart';
-import '../providers/currency_provider.dart';
-import 'transaction_form.dart';
 
 class AddGlobalTransactionModal extends StatelessWidget {
   final String userId;

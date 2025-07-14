@@ -145,50 +145,59 @@ class DashboardStats extends StatelessWidget {
     // --- FILA SUPERIOR ---
     // Statcard de la IZQUIERDA ARRIBA (Clientes):
     // widthClientes: ancho del statcard de clientes (izquierda arriba)
+    // heightClientes: alto del statcard de clientes
     // marginLeftClientes: margen izquierdo del statcard de clientes
     // marginRightClientes: margen derecho del statcard de clientes (espacio entre clientes y clientes con deuda)
     // marginBottomClientes: margen inferior del statcard de clientes (espacio debajo de la tarjeta)
     const double widthClientes = 160;
+    const double heightClientes = 180;
     const double marginLeftClientes = 0;
-    const double marginRightClientes = 3;
+    const double marginRightClientes = 1;
     const double marginBottomClientes = 0;
 
     // Statcard de la DERECHA ARRIBA (Clientes con deudas):
     // widthClientesConDeuda: ancho del statcard de clientes con deudas (derecha arriba)
+    // heightClientesConDeuda: alto del statcard de clientes con deudas
     // marginLeftClientesConDeuda: margen izquierdo del statcard de clientes con deudas (espacio entre clientes y clientes con deudas)
     // marginRightClientesConDeuda: margen derecho del statcard de clientes con deudas
     // marginBottomClientesConDeuda: margen inferior del statcard de clientes con deudas
     const double widthClientesConDeuda = 160;
-    const double marginLeftClientesConDeuda = 3;
+    const double heightClientesConDeuda = 180;
+    const double marginLeftClientesConDeuda = 1;
     const double marginRightClientesConDeuda = 0;
     const double marginBottomClientesConDeuda = 0;
 
     // --- FILA INFERIOR ---
     // Statcard de la IZQUIERDA ABAJO (Deuda total):
     // widthDeuda: ancho del statcard de deuda total (izquierda abajo)
+    // heightDeuda: alto del statcard de deuda total
     // marginLeftDeuda: margen izquierdo del statcard de deuda total
     // marginRightDeuda: margen derecho del statcard de deuda total (espacio entre deuda y abonado)
     // marginTopDeuda: margen superior del statcard de deuda total (espacio arriba de la tarjeta)
     const double widthDeuda = 160;
+    const double heightDeuda = 180;
     const double marginLeftDeuda = 0;
-    const double marginRightDeuda = 3;
+    const double marginRightDeuda = 1;
     const double marginTopDeuda = 0;
 
     // Statcard de la DERECHA ABAJO (Total abonado):
     // widthAbonado: ancho del statcard de total abonado (derecha abajo)
+    // heightAbonado: alto del statcard de total abonado
     // marginLeftAbonado: margen izquierdo del statcard de total abonado (espacio entre deuda y abonado)
     // marginRightAbonado: margen derecho del statcard de total abonado
     // marginTopAbonado: margen superior del statcard de total abonado
     const double widthAbonado = 160;
-    const double marginLeftAbonado = 3;
+    const double heightAbonado = 180;
+    const double marginLeftAbonado = 1;
     const double marginRightAbonado = 0;
     const double marginTopAbonado = 0;
 
     // --- FIN DE LOS AJUSTES DE ANCHOS Y MÁRGENES ---
-    // Para mover o cambiar el tamaño de cada statcard, modifica los valores de width* y margin* correspondientes arriba.
-    // Ahora también puedes ajustar el margen inferior de los statcards de la fila superior (marginBottomClientes, marginBottomClientesConDeuda)
-    // y el margen superior de los statcards de la fila inferior (marginTopDeuda, marginTopAbonado).
-    // Ejemplo: para separar más verticalmente Clientes y Deuda total, aumenta marginBottomClientes o marginTopDeuda.
+    // Para mover o cambiar el tamaño de cada statcard, modifica los valores de width*, height* y margin* correspondientes arriba.
+    // Ahora también puedes ajustar el margen inferior de los statcards de la fila superior (marginBottomClientes, marginBottomClientesConDeuda),
+    // el margen superior de los statcards de la fila inferior (marginTopDeuda, marginTopAbonado),
+    // y el alto de cada statcard (height*).
+    // Ejemplo: para hacer más alto el statcard de Clientes, aumenta heightClientes.
 
     return Center(
       child: SizedBox(
@@ -207,6 +216,7 @@ class DashboardStats extends StatelessWidget {
                     bottom: marginBottomClientes,
                   ),
                   width: widthClientes,
+                  height: heightClientes,
                   child: statClientes,
                 ),
                 // Statcard DERECHA ARRIBA (Clientes con deudas)
@@ -217,11 +227,12 @@ class DashboardStats extends StatelessWidget {
                     bottom: marginBottomClientesConDeuda,
                   ),
                   width: widthClientesConDeuda,
+                  height: heightClientesConDeuda,
                   child: statClientesConDeuda,
                 ),
               ],
             ),
-            const SizedBox(height: 18), // Espacio vertical entre filas
+            const SizedBox(height: 1), // Espacio vertical entre filas
             // --- FILA INFERIOR: Deuda total (izquierda) y Total abonado (derecha) ---
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -234,6 +245,7 @@ class DashboardStats extends StatelessWidget {
                     top: marginTopDeuda,
                   ),
                   width: widthDeuda,
+                  height: heightDeuda,
                   child: statDeuda,
                 ),
                 // Statcard DERECHA ABAJO (Total abonado)
@@ -244,6 +256,7 @@ class DashboardStats extends StatelessWidget {
                     top: marginTopAbonado,
                   ),
                   width: widthAbonado,
+                  height: heightAbonado,
                   child: statAbonado,
                 ),
               ],
@@ -292,11 +305,16 @@ class _StatCard extends StatelessWidget {
         children: [
           Icon(icon, color: color ?? Colors.blue, size: 40),
           const SizedBox(height: 10),
+          // Valor principal (monto/cantidad) con tamaño de fuente más grande
           FittedBox(
             fit: BoxFit.scaleDown,
             child: Text(
               value,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 28, // <-- Cambia aquí el tamaño del monto
+                letterSpacing: 0.5,
+              ),
               softWrap: false,
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
@@ -318,7 +336,7 @@ class _StatCard extends StatelessWidget {
                 child: Text(
                   label,
                   style: const TextStyle(
-                    fontSize: 15,
+                    fontSize: 16,
                     fontWeight: FontWeight.w500,
                     color: Color(0xFF7B7B7B),
                   ),

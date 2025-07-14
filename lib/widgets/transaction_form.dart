@@ -413,7 +413,6 @@ class _ToggleTypeButton extends StatelessWidget {
     required this.label,
     required this.color,
     required this.onTap,
-    super.key,
   });
 
   @override

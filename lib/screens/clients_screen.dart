@@ -438,10 +438,11 @@ class _ClientsScreenState extends State<ClientsScreen>
                                         foregroundColor: Colors.white,
                                         elevation: 2,
                                         onPressed: () {
+                                          // Convierte ClientHive a Client para el modal
                                           final clientData = allClients
                                               .map(
                                                 (c) => {
-                                                  'client': c,
+                                                  'client': Client.fromHive(c),
                                                   'transactions': txProvider
                                                       .transactions
                                                       .where(

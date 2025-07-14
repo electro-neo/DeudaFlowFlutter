@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../providers/transaction_filter_provider.dart';
 import '../screens/transactions_screen.dart';
 import '../widgets/transaction_form.dart';
+import '../providers/transaction_provider.dart';
+import '../widgets/general_receipt_modal.dart';
 
 class ClientDetailsModal extends StatelessWidget {
   final Client client;
@@ -78,7 +80,28 @@ class ClientDetailsModal extends StatelessWidget {
                 IconButton(
                   icon: const Icon(Icons.receipt_long),
                   tooltip: 'Recibo',
-                  onPressed: onReceipt,
+                  onPressed: () {
+                    Navigator.of(context, rootNavigator: true).pop();
+                    Future.delayed(Duration.zero, () {
+                      final txProvider = Provider.of<TransactionProvider>(
+                        context,
+                        listen: false,
+                      );
+                      final clientData = [
+                        {
+                          'client': client,
+                          'transactions': txProvider.transactions
+                              .where((tx) => tx.clientId == client.id)
+                              .toList(),
+                        },
+                      ];
+                      showDialog(
+                        context: context,
+                        builder: (_) =>
+                            GeneralReceiptModal(clientData: clientData),
+                      );
+                    });
+                  },
                 ),
                 IconButton(
                   icon: const Icon(Icons.edit),

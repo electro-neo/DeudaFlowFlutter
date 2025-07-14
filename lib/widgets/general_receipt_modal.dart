@@ -42,7 +42,8 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                 59,
                 999,
               );
-              return !txDate.isBefore(from) && !txDate.isAfter(to);
+              final inRange = !txDate.isBefore(from) && !txDate.isAfter(to);
+              return inRange;
             } else if (fromDate != null) {
               final from = DateTime(
                 fromDate!.year,
@@ -52,7 +53,8 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                 0,
                 0,
               );
-              return !txDate.isBefore(from);
+              final inRange = !txDate.isBefore(from);
+              return inRange;
             } else if (toDate != null) {
               final to = DateTime(
                 toDate!.year,
@@ -63,7 +65,8 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                 59,
                 999,
               );
-              return !txDate.isAfter(to);
+              final inRange = !txDate.isAfter(to);
+              return inRange;
             }
             return true;
           }).toList();
@@ -179,6 +182,7 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                         client.phone.toString().trim().isNotEmpty)
                     ? client.phone.toString()
                     : 'Sin Información';
+                final filteredTxs = e['filteredTxs'] as List<dynamic>;
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -188,6 +192,35 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                     ),
                     Text('Teléfono: $phone'),
                     Text('ID: ${client.id}'),
+                    const SizedBox(height: 8),
+                    if (filteredTxs.isEmpty)
+                      const Text(
+                        'No hay movimientos en el rango seleccionado.',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    if (filteredTxs.isNotEmpty)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ...filteredTxs.map((tx) {
+                            String tipo = tx.type;
+                            if (tipo == 'payment') {
+                              tipo = 'Abono';
+                            } else if (tipo == 'debt') {
+                              tipo = 'Deuda';
+                            }
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 2.0,
+                              ),
+                              child: Text(
+                                '• $tipo - ${tx.amount} - ${tx.date.day.toString().padLeft(2, '0')}/${tx.date.month.toString().padLeft(2, '0')}/${tx.date.year}',
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
                     const SizedBox(height: 12),
                   ],
                 );

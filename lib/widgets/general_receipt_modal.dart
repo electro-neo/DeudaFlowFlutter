@@ -218,11 +218,21 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                             } else if (tipo == 'debt') {
                               tipo = 'Deuda';
                             }
-                            // Se usa CurrencyUtils.format que ya se encarga de la conversión y el símbolo
-                            final monto = CurrencyUtils.format(
+                            // Se usa CurrencyUtils.format que ya se encarga de la conversión
+                            final rawMonto = CurrencyUtils.format(
                               context,
                               tx.amount,
                             );
+                            // Obtener símbolo de moneda si es USD
+                            final currencySymbol = CurrencyUtils.symbol(
+                              context,
+                            );
+                            // Asegurar que el símbolo esté al inicio si es USD
+                            final monto =
+                                currencySymbol.isNotEmpty &&
+                                    !rawMonto.trim().startsWith(currencySymbol)
+                                ? '$currencySymbol$rawMonto'
+                                : rawMonto;
                             return Padding(
                               padding: const EdgeInsets.symmetric(
                                 vertical: 2.0,

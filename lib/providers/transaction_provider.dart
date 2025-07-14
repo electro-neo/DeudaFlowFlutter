@@ -272,37 +272,51 @@ class TransactionProvider extends ChangeNotifier {
         ? Hive.box<TransactionHive>('transactions')
         : await Hive.openBox<TransactionHive>('transactions');
     final online = await isOnline();
-    // Guarda el userId más reciente
     _lastKnownUserId = userId;
+
+    // --- GENERAR localId CONSISTENTE (2 letras mayúsculas + timestamp) ---
+    String _randomLetters(int n) {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      final rand = DateTime.now().microsecondsSinceEpoch;
+      return List.generate(
+        n,
+        (i) => chars[(rand >> (i * 5)) % chars.length],
+      ).join();
+    }
+
+    final localId =
+        _randomLetters(2) + DateTime.now().millisecondsSinceEpoch.toString();
+    final txWithLocalId = tx.localId != null && tx.localId!.isNotEmpty
+        ? tx
+        : tx.copyWith(id: localId, localId: localId);
+
     if (online) {
       try {
-        await _service.addTransaction(tx, userId, clientId);
-        // Guardar como sincronizada en Hive
+        await _service.addTransaction(txWithLocalId, userId, clientId);
         box.put(
-          tx.id,
+          txWithLocalId.id,
           TransactionHive(
-            id: tx.id,
-            clientId: tx.clientId,
-            type: tx.type,
-            amount: tx.amount,
-            date: tx.date,
-            description: tx.description,
+            id: txWithLocalId.id,
+            clientId: txWithLocalId.clientId,
+            type: txWithLocalId.type,
+            amount: txWithLocalId.amount,
+            date: txWithLocalId.date,
+            description: txWithLocalId.description,
             synced: true,
             pendingDelete: false,
             userId: userId,
           ),
         );
       } catch (_) {
-        // Si falla la red, guardar como pendiente
         box.put(
-          tx.id,
+          txWithLocalId.id,
           TransactionHive(
-            id: tx.id,
-            clientId: tx.clientId,
-            type: tx.type,
-            amount: tx.amount,
-            date: tx.date,
-            description: tx.description,
+            id: txWithLocalId.id,
+            clientId: txWithLocalId.clientId,
+            type: txWithLocalId.type,
+            amount: txWithLocalId.amount,
+            date: txWithLocalId.date,
+            description: txWithLocalId.description,
             synced: false,
             pendingDelete: false,
             userId: userId,
@@ -310,16 +324,15 @@ class TransactionProvider extends ChangeNotifier {
         );
       }
     } else {
-      // Guardar como pendiente de sincronizar
       box.put(
-        tx.id,
+        txWithLocalId.id,
         TransactionHive(
-          id: tx.id,
-          clientId: tx.clientId,
-          type: tx.type,
-          amount: tx.amount,
-          date: tx.date,
-          description: tx.description,
+          id: txWithLocalId.id,
+          clientId: txWithLocalId.clientId,
+          type: txWithLocalId.type,
+          amount: txWithLocalId.amount,
+          date: txWithLocalId.date,
+          description: txWithLocalId.description,
           synced: false,
           pendingDelete: false,
           userId: userId,

@@ -81,7 +81,17 @@ class _TransactionFormState extends State<TransactionForm> {
     }
     try {
       final now = DateTime.now();
-      final localId = DateTime.now().millisecondsSinceEpoch.toString();
+      String _randomLetters(int n) {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        final rand = DateTime.now().microsecondsSinceEpoch;
+        return List.generate(
+          n,
+          (i) => chars[(rand >> (i * 5)) % chars.length],
+        ).join();
+      }
+
+      final localId =
+          _randomLetters(2) + DateTime.now().millisecondsSinceEpoch.toString();
       if (widget.onSave != null) {
         widget.onSave!(
           Transaction(
@@ -93,6 +103,7 @@ class _TransactionFormState extends State<TransactionForm> {
             description: _descriptionController.text,
             date: _selectedDate,
             createdAt: now,
+            localId: localId,
           ),
         );
       }

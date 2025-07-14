@@ -80,9 +80,10 @@ class ClientProvider extends ChangeNotifier {
         email: c.email,
         phone: c.phone,
         balance: c.balance,
+        localId: c.localId,
       );
       try {
-        // Si el id NO es UUID (36 caracteres), es local: hacer insert y actualizar id
+        // Si el id NO es UUID (36 caracteres), es local: hacer upsert por local_id y reconciliar
         if (c.id.isNotEmpty && c.id.length != 36) {
           final newId = await _service.addClient(client, userId);
           if (newId != null) {
@@ -97,6 +98,7 @@ class ClientProvider extends ChangeNotifier {
                 balance: old.balance,
                 synced: true,
                 pendingDelete: old.pendingDelete,
+                localId: old.localId,
               );
               await box.delete(c.id);
               await box.put(newId, updated);
@@ -303,18 +305,28 @@ class ClientProvider extends ChangeNotifier {
   Future<String> addClient(Client client, String userId) async {
     // Siempre crea el cliente en Hive como pendiente de sincronizar (offline-first)
     final box = Hive.box<ClientHive>('clients');
-    box.put(
-      client.id,
-      ClientHive(
-        id: client.id,
-        name: client.name,
-        email: client.email,
-        phone: client.phone,
-        balance: client.balance,
-        synced: false, // Siempre pendiente por sincronizar
-        pendingDelete: false,
-      ),
+    String _randomLetters(int n) {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      final rand = DateTime.now().microsecondsSinceEpoch;
+      return List.generate(
+        n,
+        (i) => chars[(rand >> (i * 5)) % chars.length],
+      ).join();
+    }
+
+    final localId =
+        _randomLetters(2) + DateTime.now().millisecondsSinceEpoch.toString();
+    final clientHive = ClientHive(
+      id: client.id,
+      name: client.name,
+      email: client.email,
+      phone: client.phone,
+      balance: client.balance,
+      synced: false,
+      pendingDelete: false,
+      localId: client.localId ?? localId,
     );
+    box.put(client.id, clientHive);
     // await loadClients(userId); // No es necesario recargar todo, solo refrescar
     await _refreshClientsFromHive();
 

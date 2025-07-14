@@ -18,6 +18,8 @@ class ClientHive extends HiveObject {
   bool synced; // true si está sincronizado con el servidor
   @HiveField(6)
   bool pendingDelete; // true si está pendiente de eliminar
+  @HiveField(7)
+  String? localId;
 
   ClientHive({
     required this.id,
@@ -27,6 +29,7 @@ class ClientHive extends HiveObject {
     required this.balance,
     this.synced = false,
     this.pendingDelete = false,
+    this.localId,
   });
 
   factory ClientHive.fromMap(Map<String, dynamic> map) {
@@ -66,6 +69,7 @@ class ClientHive extends HiveObject {
                 : (map['pendingDelete'] is int
                       ? (map['pendingDelete'] == 1)
                       : false)),
+      localId: map['local_id']?.toString(),
     );
     debugPrint(
       '[CLIENT_HIVE][fromMap] Instancia creada: id=\x1B[36m${client.id}\x1B[0m, name=\x1B[36m${client.name}\x1B[0m, pendingDelete=${client.pendingDelete}, synced=${client.synced}',
@@ -81,5 +85,6 @@ class ClientHive extends HiveObject {
     'balance': balance,
     'synced': synced,
     'pendingDelete': pendingDelete,
+    'local_id': localId,
   };
 }

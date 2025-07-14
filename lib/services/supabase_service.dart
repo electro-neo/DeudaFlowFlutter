@@ -27,7 +27,7 @@ class SupabaseService {
     final now = DateTime.now().toIso8601String();
     final response = await _client
         .from('clients')
-        .insert({
+        .upsert({
           'name': client.name,
           'email': client.email,
           'phone': client.phone,
@@ -35,7 +35,8 @@ class SupabaseService {
           'user_id': userId,
           'created_at': now,
           'updated_at': now,
-        })
+          'local_id': client.localId ?? client.id,
+        }, onConflict: 'local_id')
         .select('id')
         .single();
     // Devuelve el id generado por Supabase si existe

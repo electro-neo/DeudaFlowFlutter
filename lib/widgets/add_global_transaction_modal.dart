@@ -90,7 +90,17 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
     }
     try {
       final now = DateTime.now();
-      final localId = DateTime.now().millisecondsSinceEpoch.toString();
+      String _randomLetters(int n) {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        final rand = DateTime.now().microsecondsSinceEpoch;
+        return List.generate(
+          n,
+          (i) => chars[(rand >> (i * 5)) % chars.length],
+        ).join();
+      }
+
+      final localId =
+          _randomLetters(2) + DateTime.now().millisecondsSinceEpoch.toString();
       final transaction = Transaction(
         id: localId, // id local único
         clientId: _selectedClient!.id,
@@ -100,6 +110,7 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
         description: _descriptionController.text,
         date: _selectedDate,
         createdAt: now,
+        localId: localId,
       );
       // Guardar usando TransactionProvider
       final txProvider = Provider.of<TransactionProvider>(

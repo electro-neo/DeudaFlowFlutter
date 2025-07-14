@@ -9,6 +9,7 @@ import '../services/guest_cleanup_service.dart' as guest_cleanup;
 import '../providers/tab_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/currency_provider.dart';
+import 'add_global_transaction_modal.dart';
 
 // Banner de debug para mostrar un número aleatorio que cambia en cada hot reload
 class DebugBanner extends StatefulWidget {
@@ -105,12 +106,10 @@ class _MainScaffoldState extends State<MainScaffold> {
     final isWeb = identical(0, 0.0);
     Widget fab = FloatingActionButton(
       onPressed: () {
-        // Acción del botón +
-        if (tabIndex == 1) {
-          // Abrir formulario de cliente
-        } else if (tabIndex == 2) {
-          // Abrir formulario de transacción
-        }
+        showDialog(
+          context: context,
+          builder: (ctx) => AddGlobalTransactionModal(userId: widget.userId),
+        );
       },
       backgroundColor: const Color.fromARGB(255, 123, 48, 242),
       elevation: 6,

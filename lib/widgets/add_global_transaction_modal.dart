@@ -1,29 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../models/transaction.dart';
+import 'package:provider/provider.dart';
 import '../models/client.dart';
-// import '../providers/currency_provider.dart';
-// import '../utils/currency_utils.dart';
+import '../models/transaction.dart';
+import '../providers/client_provider.dart';
+import '../providers/transaction_provider.dart';
+import '../providers/currency_provider.dart';
+import 'transaction_form.dart';
 
-class TransactionForm extends StatefulWidget {
-  final void Function(Transaction)? onSave;
+class AddGlobalTransactionModal extends StatelessWidget {
   final String userId;
-  final VoidCallback? onClose;
-  const TransactionForm({
-    super.key,
-    required this.userId,
-    this.onSave,
-    this.onClose,
-  });
+  const AddGlobalTransactionModal({super.key, required this.userId});
 
   @override
-  State<TransactionForm> createState() => _TransactionFormState();
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420, maxHeight: 600),
+        child: Card(
+          elevation: 8,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          color: Colors.white,
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: _GlobalTransactionForm(userId: userId),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _TransactionFormState extends State<TransactionForm> {
+class _GlobalTransactionForm extends StatefulWidget {
+  final String userId;
+  const _GlobalTransactionForm({required this.userId});
+
+  @override
+  State<_GlobalTransactionForm> createState() => _GlobalTransactionFormState();
+}
+
+class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
-  String? _type; // No seleccionado por defecto
+  String? _type;
   DateTime _selectedDate = DateTime.now();
   Client? _selectedClient;
   String? _error;
@@ -39,9 +62,7 @@ class _TransactionFormState extends State<TransactionForm> {
         _error = 'Debes seleccionar un cliente';
         _loading = false;
       });
-      // Log error en consola
-      // ignore: avoid_print
-      print('[TransactionForm ERROR] Debes seleccionar un cliente');
+      print('[GlobalTransactionForm ERROR] Debes seleccionar un cliente');
       return;
     }
     if (_type == null) {
@@ -49,7 +70,7 @@ class _TransactionFormState extends State<TransactionForm> {
         _error = 'Debes seleccionar Deuda o Abono';
         _loading = false;
       });
-      print('[TransactionForm ERROR] Debes seleccionar Deuda o Abono');
+      print('[GlobalTransactionForm ERROR] Debes seleccionar Deuda o Abono');
       return;
     }
     final amount = double.tryParse(_amountController.text);
@@ -58,7 +79,7 @@ class _TransactionFormState extends State<TransactionForm> {
         _error = 'Monto inválido';
         _loading = false;
       });
-      print('[TransactionForm ERROR] Monto inválido');
+      print('[GlobalTransactionForm ERROR] Monto inválido');
       return;
     }
     if (_descriptionController.text.trim().isEmpty) {
@@ -66,37 +87,38 @@ class _TransactionFormState extends State<TransactionForm> {
         _error = 'Descripción obligatoria';
         _loading = false;
       });
-      print('[TransactionForm ERROR] Descripción obligatoria');
+      print('[GlobalTransactionForm ERROR] Descripción obligatoria');
       return;
     }
     try {
       final now = DateTime.now();
-      if (widget.onSave != null) {
-        widget.onSave!(
-          Transaction(
-            id: '',
-            clientId: _selectedClient!.id,
-            userId: widget.userId,
-            type: _type!,
-            amount: amount,
-            description: _descriptionController.text,
-            date: _selectedDate,
-            createdAt: now,
-          ),
-        );
-      }
+      final transaction = Transaction(
+        id: '',
+        clientId: _selectedClient!.id,
+        userId: widget.userId,
+        type: _type!,
+        amount: amount,
+        description: _descriptionController.text,
+        date: _selectedDate,
+        createdAt: now,
+      );
+      // Guardar usando TransactionProvider
+      final txProvider = Provider.of<TransactionProvider>(
+        context,
+        listen: false,
+      );
+      await txProvider.addTransaction(
+        transaction,
+        widget.userId,
+        _selectedClient!.id,
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Transacción guardada correctamente')),
         );
-        // Cerrar automáticamente el modal después de guardar
         Future.delayed(const Duration(milliseconds: 350), () {
-          if (widget.onClose != null) {
-            widget.onClose!();
-          } else {
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
-            }
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
           }
         });
       }
@@ -105,7 +127,7 @@ class _TransactionFormState extends State<TransactionForm> {
         _error = 'Error inesperado: $e';
         _loading = false;
       });
-      print('[TransactionForm ERROR] Error inesperado: $e');
+      print('[GlobalTransactionForm ERROR] Error inesperado: $e');
       return;
     } finally {
       if (mounted) {
@@ -128,14 +150,90 @@ class _TransactionFormState extends State<TransactionForm> {
 
   @override
   Widget build(BuildContext context) {
+    final clients = context.watch<ClientProvider>().clients;
     final colorScheme = Theme.of(context).colorScheme;
-    final symbol =
-        ""; // Si necesitas el símbolo de moneda, usa CurrencyUtils.symbol(context)
+    final symbol = "";
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Título sin botón X
+        Text(
+          'Agregar transacción',
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Cliente',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Autocomplete<Client>(
+                optionsBuilder: (TextEditingValue textEditingValue) {
+                  if (textEditingValue.text.isEmpty) {
+                    return clients;
+                  }
+                  return clients.where(
+                    (Client c) =>
+                        c.name.toLowerCase().contains(
+                          textEditingValue.text.toLowerCase(),
+                        ) ||
+                        (c.email?.toLowerCase().contains(
+                              textEditingValue.text.toLowerCase(),
+                            ) ??
+                            false) ||
+                        (c.phone?.toLowerCase().contains(
+                              textEditingValue.text.toLowerCase(),
+                            ) ??
+                            false),
+                  );
+                },
+                displayStringForOption: (Client c) => c.name,
+                fieldViewBuilder:
+                    (context, controller, focusNode, onFieldSubmitted) {
+                      return TextField(
+                        controller: controller,
+                        focusNode: focusNode,
+                        decoration: const InputDecoration(
+                          labelText: 'Buscar o seleccionar cliente',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                      );
+                    },
+                onSelected: (Client c) => setState(() => _selectedClient = c),
+                optionsViewBuilder: (context, onSelected, options) {
+                  return Align(
+                    alignment: Alignment.topLeft,
+                    child: Material(
+                      elevation: 4.0,
+                      child: SizedBox(
+                        height: 200,
+                        child: ListView.builder(
+                          padding: EdgeInsets.zero,
+                          itemCount: options.length,
+                          itemBuilder: (context, index) {
+                            final Client c = options.elementAt(index);
+                            return ListTile(
+                              title: Text(c.name),
+                              subtitle: c.email != null ? Text(c.email!) : null,
+                              onTap: () => onSelected(c),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.only(bottom: 8.0),
           child: Text(
@@ -147,7 +245,6 @@ class _TransactionFormState extends State<TransactionForm> {
             ),
           ),
         ),
-        // El campo de cliente se elimina aquí porque el cliente ya se selecciona desde el ClientCard
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -338,7 +435,11 @@ class _TransactionFormState extends State<TransactionForm> {
             ),
             icon: const Icon(Icons.close),
             label: const Text('Cerrar'),
-            onPressed: widget.onClose ?? () => Navigator.of(context).pop(),
+            onPressed: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+            },
           ),
         ),
       ],

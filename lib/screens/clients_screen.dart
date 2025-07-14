@@ -55,10 +55,8 @@ class _ClientsScreenState extends State<ClientsScreen>
         listen: false,
       );
       await txProvider.addTransaction(tx, widget.userId, client.id);
-      // Ya no recalculamos el balance manualmente aquí, el provider lo hace automáticamente
       if (!mounted) return;
       Navigator.of(context).pop();
-      await clientProvider.loadClients(widget.userId);
     }
 
     if (isMobile) {
@@ -67,54 +65,45 @@ class _ClientsScreenState extends State<ClientsScreen>
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
         builder: (context) {
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              final viewInsets = MediaQuery.of(context).viewInsets;
-              final maxHeight = constraints.maxHeight * 0.95;
-              return DraggableScrollableSheet(
-                initialChildSize: 0.85,
-                minChildSize: 0.5,
-                maxChildSize: 0.95,
-                expand: false,
-                builder: (context, scrollController) {
-                  return Padding(
-                    padding: EdgeInsets.only(bottom: viewInsets.bottom),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.transparent,
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(24),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withAlpha((0.15 * 255).toInt()),
-                            blurRadius: 12,
-                            offset: const Offset(0, -2),
-                          ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(maxHeight: maxHeight),
-                        child: SingleChildScrollView(
-                          controller: scrollController,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              TransactionForm(
-                                clientId: client.id,
-                                userId: widget.userId,
-                                onSave: handleTransactionSave,
-                                onClose: () => Navigator.of(context).pop(),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+          final maxHeight = MediaQuery.of(context).size.height * 0.92;
+          return DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.7,
+            minChildSize: 0.5,
+            maxChildSize: 0.92,
+            builder: (context, scrollController) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(24),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha((0.15 * 255).toInt()),
+                      blurRadius: 12,
+                      offset: const Offset(0, -2),
                     ),
-                  );
-                },
+                  ],
+                ),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxHeight: maxHeight),
+                  child: SingleChildScrollView(
+                    controller: scrollController,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TransactionForm(
+                          userId: widget.userId,
+                          onSave: handleTransactionSave,
+                          onClose: () => Navigator.of(context).pop(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               );
             },
           );
@@ -145,7 +134,6 @@ class _ClientsScreenState extends State<ClientsScreen>
               child: Material(
                 color: Colors.transparent,
                 child: TransactionForm(
-                  clientId: client.id,
                   userId: widget.userId,
                   onSave: handleTransactionSave,
                   onClose: () => Navigator.of(context).pop(),

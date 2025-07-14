@@ -6,10 +6,40 @@ import 'package:path_provider/path_provider.dart';
 import '../models/client.dart';
 import '../models/transaction.dart';
 
+// --- Utilidad para conversión y formateo de moneda en PDF ---
+double convertAmount(num value, bool convert, double? rate) {
+  if (convert && rate != null && rate > 0) {
+    return value.toDouble() / rate;
+  }
+  return value.toDouble();
+}
+
+String formatAmount(
+  num value,
+  bool convert,
+  double? rate, {
+  String symbol = '',
+  int decimals = 2,
+}) {
+  final converted = convertAmount(value, convert, rate);
+  final parts = converted.toStringAsFixed(decimals).split('.');
+  final intPart = parts[0].replaceAllMapped(
+    RegExp(r'\B(?=(\d{3})+(?!\d))'),
+    (match) => '.',
+  );
+  final decPart = parts.length > 1 ? ',${parts[1]}' : '';
+  // Usar el símbolo proporcionado (puede estar vacío para moneda local)
+  final safeSymbol = symbol;
+  return '$safeSymbol$intPart$decPart';
+}
+
 // --- PDF builder para recibo general con movimientos filtrados ---
 pw.Document buildGeneralReceiptWithMovementsPDF(
-  List<Map<String, dynamic>> filtered,
-) {
+  List<Map<String, dynamic>> filtered, {
+  bool convertCurrency = false,
+  double? conversionRate,
+  String currencySymbol = '',
+}) {
   final pdf = pw.Document();
   double totalDeudaGeneral = 0;
   double totalAbonoGeneral = 0;
@@ -23,6 +53,11 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                 : 'Recibo General de Clientes',
             style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
           ),
+          if (convertCurrency && conversionRate != null && conversionRate > 0)
+            pw.Text(
+              'Nota: Todos los montos han sido convertidos a la tasa $conversionRate.',
+              style: pw.TextStyle(fontSize: 10, fontStyle: pw.FontStyle.italic),
+            ),
           pw.SizedBox(height: 10),
         ];
         for (final e in filtered) {
@@ -32,11 +67,27 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
           double totalAbono = 0;
           for (final tx in txs) {
             if (tx.type == 'deuda' || tx.type == 'debt') {
-              totalDeuda += (tx.amount as num).toDouble();
-              totalDeudaGeneral += (tx.amount as num).toDouble();
+              totalDeuda += convertAmount(
+                tx.amount as num,
+                convertCurrency,
+                conversionRate,
+              );
+              totalDeudaGeneral += convertAmount(
+                tx.amount as num,
+                convertCurrency,
+                conversionRate,
+              );
             } else if (tx.type == 'abono' || tx.type == 'payment') {
-              totalAbono += (tx.amount as num).toDouble();
-              totalAbonoGeneral += (tx.amount as num).toDouble();
+              totalAbono += convertAmount(
+                tx.amount as num,
+                convertCurrency,
+                conversionRate,
+              );
+              totalAbonoGeneral += convertAmount(
+                tx.amount as num,
+                convertCurrency,
+                conversionRate,
+              );
             }
           }
           if (filtered.length == 1) {
@@ -48,7 +99,7 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                       text: 'Nombre Cliente: ',
                       style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                     ),
-                    pw.TextSpan(text: '${client.name}'),
+                    pw.TextSpan(text: client.name),
                   ],
                 ),
               ),
@@ -105,7 +156,7 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                       ),
                     ),
                     pw.TextSpan(
-                      text: '${client.id}',
+                      text: client.id,
                       style: pw.TextStyle(fontSize: 10),
                     ),
                   ],
@@ -125,7 +176,12 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                               : 'Abono',
                           tx.description,
                           tx.date.toLocal().toString().split(' ')[0],
-                          (tx.amount as num).toStringAsFixed(2),
+                          formatAmount(
+                            tx.amount as num,
+                            convertCurrency,
+                            conversionRate,
+                            symbol: currencySymbol,
+                          ),
                         ],
                       )
                       .toList(),
@@ -134,7 +190,7 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                 pw.Container(
                   alignment: pw.Alignment.centerRight,
                   child: pw.Text(
-                    'Total Deuda: ${totalDeuda.toStringAsFixed(2)}   /   Total Abono: ${totalAbono.toStringAsFixed(2)}',
+                    'Total Deuda: ${formatAmount(totalDeuda, false, null, symbol: currencySymbol)}   /   Total Abono: ${formatAmount(totalAbono, false, null, symbol: currencySymbol)}',
                     style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                   ),
                 ),
@@ -149,7 +205,7 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                       text: 'Nombre Cliente: ',
                       style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                     ),
-                    pw.TextSpan(text: '${client.name}'),
+                    pw.TextSpan(text: client.name),
                   ],
                 ),
               ),
@@ -206,7 +262,7 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                       ),
                     ),
                     pw.TextSpan(
-                      text: '${client.id}',
+                      text: client.id,
                       style: pw.TextStyle(fontSize: 10),
                     ),
                   ],
@@ -226,7 +282,12 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                               : 'Abono',
                           tx.description,
                           tx.date.toLocal().toString().split(' ')[0],
-                          (tx.amount as num).toStringAsFixed(2),
+                          formatAmount(
+                            tx.amount as num,
+                            convertCurrency,
+                            conversionRate,
+                            symbol: currencySymbol,
+                          ),
                         ],
                       )
                       .toList(),
@@ -235,7 +296,7 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                 pw.Container(
                   alignment: pw.Alignment.centerRight,
                   child: pw.Text(
-                    'Total Deuda: ${totalDeuda.toStringAsFixed(2)}   /   Total Abono: ${totalAbono.toStringAsFixed(2)}',
+                    'Total Deuda: ${formatAmount(totalDeuda, false, null, symbol: currencySymbol)}   /   Total Abono: ${formatAmount(totalAbono, false, null, symbol: currencySymbol)}',
                     style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                   ),
                 ),
@@ -246,7 +307,7 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
         if (filtered.length > 1) {
           widgets.add(
             pw.Text(
-              'Total deuda general: ${totalDeudaGeneral.toStringAsFixed(2)}   /   Total abono general: ${totalAbonoGeneral.toStringAsFixed(2)}',
+              'Total deuda general: ${formatAmount(totalDeudaGeneral, false, null, symbol: currencySymbol)}   /   Total abono general: ${formatAmount(totalAbonoGeneral, false, null, symbol: currencySymbol)}',
               style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14),
             ),
           );
@@ -354,16 +415,32 @@ Future<void> exportAndShareClientReceiptPDF(
 }
 
 Future<void> exportGeneralReceiptWithMovementsPDF(
-  List<Map<String, dynamic>> filtered,
-) async {
-  final pdf = buildGeneralReceiptWithMovementsPDF(filtered);
+  List<Map<String, dynamic>> filtered, {
+  bool convertCurrency = false,
+  double? conversionRate,
+  String currencySymbol = '',
+}) async {
+  final pdf = buildGeneralReceiptWithMovementsPDF(
+    filtered,
+    convertCurrency: convertCurrency,
+    conversionRate: conversionRate,
+    currencySymbol: currencySymbol,
+  );
   await Printing.layoutPdf(onLayout: (format) async => pdf.save());
 }
 
 Future<void> exportAndShareGeneralReceiptWithMovementsPDF(
-  List<Map<String, dynamic>> filtered,
-) async {
-  final pdf = buildGeneralReceiptWithMovementsPDF(filtered);
+  List<Map<String, dynamic>> filtered, {
+  bool convertCurrency = false,
+  double? conversionRate,
+  String currencySymbol = '',
+}) async {
+  final pdf = buildGeneralReceiptWithMovementsPDF(
+    filtered,
+    convertCurrency: convertCurrency,
+    conversionRate: conversionRate,
+    currencySymbol: currencySymbol,
+  );
   final bytes = await pdf.save();
   final dir = await getTemporaryDirectory();
   final file = File('${dir.path}/recibo_general.pdf');

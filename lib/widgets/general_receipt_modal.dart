@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../models/client.dart';
 import '../utils/pdf_utils.dart';
 import 'package:flutter/foundation.dart';
+import 'package:provider/provider.dart';
+import '../providers/currency_provider.dart';
+import '../utils/currency_utils.dart';
 
 /// Estructura: [{client: Client, transactions: List<Transaction>}]
 
@@ -183,6 +186,12 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                     ? client.phone.toString()
                     : 'Sin Información';
                 final filteredTxs = e['filteredTxs'] as List<dynamic>;
+                final currencyProvider = Provider.of<CurrencyProvider>(
+                  context,
+                  listen: false,
+                );
+                final convertCurrency = currencyProvider.currency == 'USD';
+
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -209,12 +218,17 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                             } else if (tipo == 'debt') {
                               tipo = 'Deuda';
                             }
+                            // Se usa CurrencyUtils.format que ya se encarga de la conversión y el símbolo
+                            final monto = CurrencyUtils.format(
+                              context,
+                              tx.amount,
+                            );
                             return Padding(
                               padding: const EdgeInsets.symmetric(
                                 vertical: 2.0,
                               ),
                               child: Text(
-                                '• $tipo - ${tx.amount} - ${tx.date.day.toString().padLeft(2, '0')}/${tx.date.month.toString().padLeft(2, '0')}/${tx.date.year}',
+                                '• $tipo - $monto - ${tx.date.day.toString().padLeft(2, '0')}/${tx.date.month.toString().padLeft(2, '0')}/${tx.date.year}',
                                 style: const TextStyle(fontSize: 14),
                               ),
                             );
@@ -264,13 +278,29 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                           ),
                         ),
                         onPressed: () async {
+                          final currencyProvider =
+                              Provider.of<CurrencyProvider>(
+                                context,
+                                listen: false,
+                              );
+                          final convertCurrency =
+                              currencyProvider.currency == 'USD';
+                          final conversionRate = currencyProvider.rate;
+                          // Usar el símbolo de dólar correcto
+                          final currencySymbol = convertCurrency ? '\$' : '';
                           if (isMobile) {
                             await exportAndShareGeneralReceiptWithMovementsPDF(
                               filtered,
+                              convertCurrency: convertCurrency,
+                              conversionRate: conversionRate,
+                              currencySymbol: currencySymbol,
                             );
                           } else {
                             await exportGeneralReceiptWithMovementsPDF(
                               filtered,
+                              convertCurrency: convertCurrency,
+                              conversionRate: conversionRate,
+                              currencySymbol: currencySymbol,
                             );
                           }
                         },

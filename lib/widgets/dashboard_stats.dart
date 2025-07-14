@@ -26,26 +26,25 @@ class DashboardStats extends StatelessWidget {
       context,
       value,
     ); // Formatea números de moneda
-    // Calcular totales SOLO a partir de transacciones
-    double totalDeuda = 0; // Total de deuda
-    double totalAbonado = 0; // Total abonado
-    double totalSaldo = 0; // Saldo neto
+    // Calcular totales
+    // Deuda total: suma de los balances negativos de los clientes (deuda real pendiente)
+    double totalDeuda = 0;
+    for (final c in clients) {
+      debugPrint(
+        '[DashboardStats][DEBUG] Cliente: ${c.name}, Balance: ${c.balance}',
+      );
+      if (c.balance < 0) totalDeuda += -c.balance;
+    }
+    debugPrint('[DashboardStats][DEBUG] Deuda total calculada: $totalDeuda');
+    // Total abonado y saldo neto siguen calculados desde transacciones
+    double totalAbonado = 0;
+    double totalSaldo = 0;
     if (transactions.isNotEmpty) {
-      totalDeuda = transactions
-          .where((t) => t.type == 'debt') // Filtra transacciones de tipo deuda
-          .fold<double>(
-            0,
-            (sum, t) => sum + t.amount,
-          ); // Suma los montos de deuda
       totalAbonado = transactions
-          .where(
-            (t) => t.type == 'payment',
-          ) // Filtra transacciones de tipo abono
-          .fold<double>(
-            0,
-            (sum, t) => sum + t.amount,
-          ); // Suma los montos abonados
-      totalSaldo = totalDeuda - totalAbonado; // Calcula el saldo neto
+          .where((t) => t.type == 'payment')
+          .fold<double>(0, (sum, t) => sum + t.amount);
+      // El saldo neto puede calcularse como suma de balances de todos los clientes
+      totalSaldo = clients.fold<double>(0, (sum, c) => sum + c.balance);
     }
     // LOGS TEMPORALES PARA DEPURACIÓN
     debugPrint(

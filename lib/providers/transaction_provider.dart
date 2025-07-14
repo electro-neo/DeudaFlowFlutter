@@ -6,6 +6,7 @@ import 'package:hive/hive.dart';
 import '../models/transaction.dart';
 import '../models/transaction_hive.dart';
 import '../models/client_hive.dart';
+import '../models/client.dart';
 import '../services/supabase_service.dart';
 
 class TransactionProvider extends ChangeNotifier {
@@ -260,6 +261,53 @@ class TransactionProvider extends ChangeNotifier {
     if (client.balance != newBalance) {
       client.balance = newBalance;
       await client.save();
+      // --- Sincroniza el balance actualizado con Supabase ---
+      try {
+        final clientModel = Client(
+          id: client.id,
+          name: client.name,
+          email: client.email,
+          phone: client.phone,
+          balance: client.balance,
+          localId: client.localId,
+        );
+        final userId = _lastKnownUserId ?? '';
+        if (userId.isNotEmpty) {
+          // Actualiza el cliente en Supabase directamente, sin depender de contexto UI
+          await SupabaseService().updateClient(clientModel);
+        }
+      } catch (e, stack) {
+        debugPrint(
+          '[recalculateClientBalance][ERROR] No se pudo actualizar el balance en Supabase: $e',
+        );
+        debugPrint('[recalculateClientBalance][STACK] $stack');
+      }
+      // Refresca la lista de clientes desde Hive y notifica listeners para actualizar UI inmediatamente
+      try {
+        final clientBox = Hive.isBoxOpen('clients')
+            ? Hive.box<ClientHive>('clients')
+            : await Hive.openBox<ClientHive>('clients');
+        // Reconstruye la lista de clientes (imitando _refreshClientsFromHive)
+        final clients = clientBox.values
+            .where((c) => c.pendingDelete != true)
+            .map(
+              (c) => Client(
+                id: c.id,
+                name: c.name,
+                email: c.email,
+                phone: c.phone,
+                balance: c.balance,
+              ),
+            )
+            .toList();
+        // Si tienes acceso a un ClientProvider global, podrías actualizarlo aquí.
+        // Pero como estamos en TransactionProvider, solo notificamos listeners locales.
+        // Si la UI depende de ambos providers, ambos deben notificar.
+        // Alternativamente, podrías usar algún mecanismo de eventos/global state.
+      } catch (e) {
+        debugPrint('[recalculateClientBalance][UI-REFRESH][ERROR] $e');
+      }
+      notifyListeners();
     }
   }
 
@@ -275,7 +323,7 @@ class TransactionProvider extends ChangeNotifier {
     _lastKnownUserId = userId;
 
     // --- GENERAR localId CONSISTENTE (2 letras mayúsculas + timestamp) ---
-    String _randomLetters(int n) {
+    String randomLetters(int n) {
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
       final rand = DateTime.now().microsecondsSinceEpoch;
       return List.generate(
@@ -285,7 +333,7 @@ class TransactionProvider extends ChangeNotifier {
     }
 
     final localId =
-        _randomLetters(2) + DateTime.now().millisecondsSinceEpoch.toString();
+        randomLetters(2) + DateTime.now().millisecondsSinceEpoch.toString();
     final txWithLocalId = tx.localId != null && tx.localId!.isNotEmpty
         ? tx
         : tx.copyWith(id: localId, localId: localId);

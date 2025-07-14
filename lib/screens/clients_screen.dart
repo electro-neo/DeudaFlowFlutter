@@ -55,6 +55,10 @@ class _ClientsScreenState extends State<ClientsScreen>
         listen: false,
       );
       await txProvider.addTransaction(tx, widget.userId, client.id);
+      // Sincroniza en segundo plano tras agregar movimiento para refrescar statscards
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) _syncAll();
+      });
       if (!mounted) return;
       Navigator.of(context).pop();
     }
@@ -265,6 +269,10 @@ class _ClientsScreenState extends State<ClientsScreen>
                   synced: false, // Siempre pendiente por sincronizar
                 );
                 await txProvider.addTransaction(tx, widget.userId, realId);
+                // Sincroniza en segundo plano tras agregar movimiento de saldo inicial
+                Future.delayed(const Duration(seconds: 2), () {
+                  if (mounted) _syncAll();
+                });
                 await txProvider.loadTransactions(widget.userId);
                 await provider.loadClients(widget.userId);
                 // Si estamos online, sincroniza la transacción de saldo inicial inmediatamente

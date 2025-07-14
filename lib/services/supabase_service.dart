@@ -118,7 +118,7 @@ class SupabaseService {
       'created_at': now,
       'local_id': tx.id, // id local generado en Hive
     }, onConflict: 'local_id').select();
-    if (response is List && response.isEmpty) {
+    if (response.isEmpty) {
       debugPrint(
         '[SUPABASE][ERROR] No se pudo insertar/upsert la transacción (respuesta vacía): $response',
       );

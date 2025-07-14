@@ -305,7 +305,7 @@ class ClientProvider extends ChangeNotifier {
   Future<String> addClient(Client client, String userId) async {
     // Siempre crea el cliente en Hive como pendiente de sincronizar (offline-first)
     final box = Hive.box<ClientHive>('clients');
-    String _randomLetters(int n) {
+    String randomLetters(int n) {
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
       final rand = DateTime.now().microsecondsSinceEpoch;
       return List.generate(
@@ -315,7 +315,7 @@ class ClientProvider extends ChangeNotifier {
     }
 
     final localId =
-        _randomLetters(2) + DateTime.now().millisecondsSinceEpoch.toString();
+        randomLetters(2) + DateTime.now().millisecondsSinceEpoch.toString();
     final clientHive = ClientHive(
       id: client.id,
       name: client.name,
@@ -327,7 +327,6 @@ class ClientProvider extends ChangeNotifier {
       localId: client.localId ?? localId,
     );
     box.put(client.id, clientHive);
-    // await loadClients(userId); // No es necesario recargar todo, solo refrescar
     await _refreshClientsFromHive();
 
     // Si estamos online, sincroniza inmediatamente
@@ -360,6 +359,8 @@ class ClientProvider extends ChangeNotifier {
           await tx.save();
         }
       }
+      // Refrescar clientes desde Hive y notificar listeners para asegurar actualización inmediata de la UI
+      await _refreshClientsFromHive();
     }
     return finalId;
   }
@@ -377,12 +378,13 @@ class ClientProvider extends ChangeNotifier {
         ..synced = false;
       await c.save();
     }
-    // await loadClients(userId);
     await _refreshClientsFromHive();
 
     // Si estamos online, sincroniza inmediatamente
     if (await _isOnline()) {
       await syncPendingClients(userId);
+      // Refrescar clientes desde Hive y notificar listeners para asegurar actualización inmediata de la UI
+      await _refreshClientsFromHive();
     }
   }
 

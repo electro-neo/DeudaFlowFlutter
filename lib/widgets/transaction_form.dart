@@ -81,7 +81,7 @@ class _TransactionFormState extends State<TransactionForm> {
     }
     try {
       final now = DateTime.now();
-      String _randomLetters(int n) {
+      String randomLetters(int n) {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
         final rand = DateTime.now().microsecondsSinceEpoch;
         return List.generate(
@@ -91,7 +91,7 @@ class _TransactionFormState extends State<TransactionForm> {
       }
 
       final localId =
-          _randomLetters(2) + DateTime.now().millisecondsSinceEpoch.toString();
+          randomLetters(2) + DateTime.now().millisecondsSinceEpoch.toString();
       if (widget.onSave != null) {
         widget.onSave!(
           Transaction(

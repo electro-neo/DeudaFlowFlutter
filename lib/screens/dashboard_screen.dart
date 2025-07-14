@@ -345,7 +345,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         vertical: 24,
                         horizontal: 16,
                       ),
-                      child: DashboardStats(),
+                      child: Consumer<ClientProvider>(
+                        builder: (context, clientProvider, _) =>
+                            DashboardStats(),
+                      ),
                     ),
                     // Movimientos recientes estilo Monekin
                     Padding(

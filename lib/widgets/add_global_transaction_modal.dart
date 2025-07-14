@@ -93,7 +93,7 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
     }
     try {
       final now = DateTime.now();
-      String _randomLetters(int n) {
+      String randomLetters(int n) {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
         final rand = DateTime.now().microsecondsSinceEpoch;
         return List.generate(
@@ -103,7 +103,7 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
       }
 
       final localId =
-          _randomLetters(2) + DateTime.now().millisecondsSinceEpoch.toString();
+          randomLetters(2) + DateTime.now().millisecondsSinceEpoch.toString();
       final transaction = Transaction(
         id: localId, // id local único
         clientId: _selectedClient!.id,
@@ -125,6 +125,8 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
         widget.userId,
         _selectedClient!.id,
       );
+      // Refresca la lista de clientes y notifica a la UI para actualizar el statscard inmediatamente
+      await Provider.of<ClientProvider>(context, listen: false).loadClients(widget.userId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Transacción guardada correctamente')),

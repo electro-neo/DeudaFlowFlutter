@@ -214,6 +214,12 @@ class _ClientsScreenState extends State<ClientsScreen>
     do {
       await provider.loadClients(widget.userId);
       final box = Hive.box<ClientHive>('clients');
+      // LOG: Mostrar balances reales de todos los clientes tras recarga
+      for (final c in box.values) {
+        debugPrint(
+          '[DEBUG][SYNC] Cliente: id=${c.id}, name=${c.name}, balance=${c.balance}, pendingDelete=${c.pendingDelete}',
+        );
+      }
       hayPendientes = box.values.any((c) => c.pendingDelete == true);
       if (hayPendientes) {
         await Future.delayed(const Duration(milliseconds: 500));

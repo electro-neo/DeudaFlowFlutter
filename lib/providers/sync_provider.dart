@@ -8,27 +8,34 @@ import 'package:provider/provider.dart';
 import 'client_provider.dart';
 import 'transaction_provider.dart';
 
+import '../models/client_hive.dart';
+import '../models/transaction_hive.dart';
+
 enum SyncStatus { idle, waiting, syncing, success, error }
 
 class SyncProvider extends ChangeNotifier {
   /// Devuelve el total de sincronizaciones pendientes (clientes y transacciones: altas, ediciones, eliminaciones)
   Future<int> getTotalPendings() async {
     final clientBox = Hive.isBoxOpen('clients')
-        ? Hive.box('clients')
-        : await Hive.openBox('clients');
+        ? Hive.box<ClientHive>('clients')
+        : await Hive.openBox<ClientHive>('clients');
     final txBox = Hive.isBoxOpen('transactions')
-        ? Hive.box('transactions')
-        : await Hive.openBox('transactions');
+        ? Hive.box<TransactionHive>('transactions')
+        : await Hive.openBox<TransactionHive>('transactions');
     // Clientes: nuevos o editados offline
     final pendingClients = clientBox.values
         .where(
-          (c) => (!c.synced && !c.pendingDelete) || c.pendingDelete == true,
+          (c) =>
+              ((c.synced == false && c.pendingDelete != true) ||
+              c.pendingDelete == true),
         )
         .length;
     // Transacciones: nuevas, editadas o eliminadas offline
     final pendingTxs = txBox.values
         .where(
-          (t) => (!t.synced && !t.pendingDelete) || t.pendingDelete == true,
+          (t) =>
+              ((t.synced == false && t.pendingDelete != true) ||
+              t.pendingDelete == true),
         )
         .length;
     return pendingClients + pendingTxs;
@@ -129,7 +136,7 @@ class SyncProvider extends ChangeNotifier {
           do {
             if (context is Element && !context.mounted) return;
             await clientProvider.loadClients(userId);
-            final box = await Hive.openBox('clients');
+            final box = await Hive.openBox<ClientHive>('clients');
             hayPendientes = box.values.any((c) => c.pendingDelete == true);
             if (hayPendientes) {
               debugPrint(

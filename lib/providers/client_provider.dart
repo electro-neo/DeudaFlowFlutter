@@ -196,6 +196,12 @@ class ClientProvider extends ChangeNotifier {
           ),
         )
         .toList();
+    // LOG: Mostrar balances reales de todos los clientes tras recarga en el provider
+    for (final c in box.values) {
+      debugPrint(
+        '[DEBUG][PROVIDER][REFRESH] Cliente: id=${c.id}, name=${c.name}, balance=${c.balance}, pendingDelete=${c.pendingDelete}',
+      );
+    }
     notifyListeners();
     debugPrint(
       '[PROVIDER][REFRESH] La lista de clientes se ha actualizado desde Hive.',

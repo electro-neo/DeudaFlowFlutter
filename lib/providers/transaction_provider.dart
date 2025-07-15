@@ -316,7 +316,16 @@ class TransactionProvider extends ChangeNotifier {
     if (client.balance != newBalance) {
       client.balance = newBalance;
       await client.save();
-      // --- Sincroniza el balance actualizado con Supabase ---
+      debugPrint(
+        '[recalculateClientBalance][LOCAL] Balance actualizado en Hive para cliente ${client.id}: $newBalance',
+      );
+      // Refresca la UI y notifica listeners SIEMPRE, aunque falle Supabase
+      try {
+        notifyListeners();
+      } catch (e) {
+        debugPrint('[recalculateClientBalance][UI-REFRESH][ERROR] $e');
+      }
+      // Sincroniza con Supabase SOLO si hay userId, pero no bloquea el flujo local
       try {
         final clientModel = Client(
           id: client.id,
@@ -328,24 +337,8 @@ class TransactionProvider extends ChangeNotifier {
         );
         final userId = _lastKnownUserId ?? '';
         if (userId.isNotEmpty) {
-          // Actualiza el cliente en Supabase directamente, sin depender de contexto UI
           await SupabaseService().updateClient(clientModel);
-          // Opción simple: fuerza recarga de clientes en ClientProvider para refrescar la UI
-          try {
-            // Busca el provider global y recarga clientes
-            // (esto solo funciona si el provider está en el árbol de widgets)
-            // ignore: use_build_context_synchronously
-            final context = navigatorKey.currentContext;
-            if (context != null) {
-              final clientProvider = Provider.of<ClientProvider>(
-                context,
-                listen: false,
-              );
-              await clientProvider.loadClients(userId);
-            }
-          } catch (e) {
-            debugPrint('[recalculateClientBalance][REFRESH][ERROR] $e');
-          }
+          // Opción: puedes refrescar el provider global si lo deseas, pero no es obligatorio
         }
       } catch (e, stack) {
         debugPrint(
@@ -353,32 +346,6 @@ class TransactionProvider extends ChangeNotifier {
         );
         debugPrint('[recalculateClientBalance][STACK] $stack');
       }
-      // Refresca la lista de clientes desde Hive y notifica listeners para actualizar UI inmediatamente
-      try {
-        final clientBox = Hive.isBoxOpen('clients')
-            ? Hive.box<ClientHive>('clients')
-            : await Hive.openBox<ClientHive>('clients');
-        // Reconstruye la lista de clientes (imitando _refreshClientsFromHive)
-        final clients = clientBox.values
-            .where((c) => c.pendingDelete != true)
-            .map(
-              (c) => Client(
-                id: c.id,
-                name: c.name,
-                email: c.email,
-                phone: c.phone,
-                balance: c.balance,
-              ),
-            )
-            .toList();
-        // Si tienes acceso a un ClientProvider global, podrías actualizarlo aquí.
-        // Pero como estamos en TransactionProvider, solo notificamos listeners locales.
-        // Si la UI depende de ambos providers, ambos deben notificar.
-        // Alternativamente, podrías usar algún mecanismo de eventos/global state.
-      } catch (e) {
-        debugPrint('[recalculateClientBalance][UI-REFRESH][ERROR] $e');
-      }
-      notifyListeners();
     }
   }
 
@@ -517,16 +484,19 @@ class TransactionProvider extends ChangeNotifier {
         t.synced = false;
         await t.save();
       }
-      await recalculateClientBalance(clientId);
-      await loadTransactions(userId);
     } else {
       // Solo marca como pendiente de eliminar
       t.pendingDelete = true;
       t.synced = false;
       await t.save();
-      await recalculateClientBalance(clientId);
-      await loadTransactions(userId);
     }
+
+    // Actualiza la lista en memoria (sin recargar todo Hive)
+    _transactions.removeWhere((tx) => tx.id == transactionId);
+
+    // Recalcula y guarda el balance, notifica a la UI inmediatamente
+    await recalculateClientBalance(clientId);
+    notifyListeners();
   }
 
   /// Sincroniza los cambios locales pendientes cuando hay internet

@@ -103,6 +103,7 @@ class _RealConnectivityBannerState extends State<_RealConnectivityBanner> {
           debugPrint(
             '[SYNC-BANNER][CLIENT] id=${c.id} name=${c.name} synced=${c.synced} pendingDelete=${c.pendingDelete}',
           );
+          await Future.delayed(const Duration(milliseconds: 5000));
         }
         debugPrint(
           '[SYNC-BANNER][DEBUG] Pendientes transacciones: ${pendingTxs.length}',
@@ -111,6 +112,7 @@ class _RealConnectivityBannerState extends State<_RealConnectivityBanner> {
           debugPrint(
             '[SYNC-BANNER][TX] id=${t.id} clientId=${t.clientId} synced=${t.synced} pendingDelete=${t.pendingDelete}',
           );
+          await Future.delayed(const Duration(milliseconds: 5000));
         }
         if (mounted) {
           setState(() {

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
+import 'package:hive/hive.dart';
 import '../providers/sync_provider.dart';
+import '../models/client_hive.dart';
+import '../models/transaction_hive.dart';
 
 class SyncBanner extends StatelessWidget {
   const SyncBanner({super.key});
@@ -60,6 +63,55 @@ class _RealConnectivityBannerState extends State<_RealConnectivityBanner> {
       _bannerBlinking = true;
       Future.microtask(() async {
         final pendings = await widget.sync.getTotalPendings();
+        // DEBUG: Mostrar detalles de pendientes
+        Box<ClientHive> clientBox;
+        try {
+          clientBox = Hive.box<ClientHive>('clients');
+        } catch (e) {
+          if (Hive.isBoxOpen('clients')) {
+            await Hive.box('clients').close();
+          }
+          clientBox = await Hive.openBox<ClientHive>('clients');
+        }
+        Box<TransactionHive> txBox;
+        try {
+          txBox = Hive.box<TransactionHive>('transactions');
+        } catch (e) {
+          if (Hive.isBoxOpen('transactions')) {
+            await Hive.box('transactions').close();
+          }
+          txBox = await Hive.openBox<TransactionHive>('transactions');
+        }
+        final pendingClients = clientBox.values.where((c) {
+          final isLocalId = c.id.length != 36;
+          return (isLocalId || c.synced == false || c.pendingDelete == true);
+        }).toList();
+        final pendingTxs = txBox.values.where((t) {
+          final isClientUuid = t.clientId.length == 36;
+          // Solo cuenta como pendiente si:
+          // - No está sincronizada, no está pendiente de eliminar y tiene clientId UUID
+          // - O está pendiente de eliminar
+          return (t.synced == false &&
+                  t.pendingDelete != true &&
+                  isClientUuid) ||
+              t.pendingDelete == true;
+        }).toList();
+        debugPrint(
+          '[SYNC-BANNER][DEBUG] Pendientes clientes: ${pendingClients.length}',
+        );
+        for (final c in pendingClients) {
+          debugPrint(
+            '[SYNC-BANNER][CLIENT] id=${c.id} name=${c.name} synced=${c.synced} pendingDelete=${c.pendingDelete}',
+          );
+        }
+        debugPrint(
+          '[SYNC-BANNER][DEBUG] Pendientes transacciones: ${pendingTxs.length}',
+        );
+        for (final t in pendingTxs) {
+          debugPrint(
+            '[SYNC-BANNER][TX] id=${t.id} clientId=${t.clientId} synced=${t.synced} pendingDelete=${t.pendingDelete}',
+          );
+        }
         if (mounted) {
           setState(() {
             if (pendings > 0) {
@@ -87,6 +139,54 @@ class _RealConnectivityBannerState extends State<_RealConnectivityBanner> {
           _bannerIcon = const Icon(Icons.sync, color: Colors.white, size: 18);
           Future.microtask(() async {
             final pendings = await widget.sync.getTotalPendings();
+            // DEBUG: Mostrar detalles de pendientes
+            Box<ClientHive> clientBox;
+            try {
+              clientBox = Hive.box<ClientHive>('clients');
+            } catch (e) {
+              if (Hive.isBoxOpen('clients')) {
+                await Hive.box('clients').close();
+              }
+              clientBox = await Hive.openBox<ClientHive>('clients');
+            }
+            Box<TransactionHive> txBox;
+            try {
+              txBox = Hive.box<TransactionHive>('transactions');
+            } catch (e) {
+              if (Hive.isBoxOpen('transactions')) {
+                await Hive.box('transactions').close();
+              }
+              txBox = await Hive.openBox<TransactionHive>('transactions');
+            }
+            final pendingClients = clientBox.values.where((c) {
+              final isLocalId = c.id.length != 36;
+              return (isLocalId ||
+                  c.synced == false ||
+                  c.pendingDelete == true);
+            }).toList();
+            final pendingTxs = txBox.values.where((t) {
+              final isClientUuid = t.clientId.length == 36;
+              return (t.synced == false &&
+                      t.pendingDelete != true &&
+                      isClientUuid) ||
+                  t.pendingDelete == true;
+            }).toList();
+            debugPrint(
+              '[SYNC-BANNER][DEBUG] Pendientes clientes: ${pendingClients.length}',
+            );
+            for (final c in pendingClients) {
+              debugPrint(
+                '[SYNC-BANNER][CLIENT] id=${c.id} name=${c.name} synced=${c.synced} pendingDelete=${c.pendingDelete}',
+              );
+            }
+            debugPrint(
+              '[SYNC-BANNER][DEBUG] Pendientes transacciones: ${pendingTxs.length}',
+            );
+            for (final t in pendingTxs) {
+              debugPrint(
+                '[SYNC-BANNER][TX] id=${t.id} clientId=${t.clientId} synced=${t.synced} pendingDelete=${t.pendingDelete}',
+              );
+            }
             if (mounted) {
               setState(() {
                 _bannerText = pendings > 0

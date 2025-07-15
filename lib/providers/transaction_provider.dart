@@ -9,9 +9,7 @@ import '../models/transaction_hive.dart';
 import '../models/client_hive.dart';
 import '../models/client.dart';
 import '../services/supabase_service.dart';
-import 'package:provider/provider.dart';
 import 'client_provider.dart';
-import '../main.dart' show navigatorKey;
 
 class TransactionProvider extends ChangeNotifier {
   /// Elimina una transacción de la lista en memoria y notifica listeners (solo UI, no Hive)

@@ -22,22 +22,21 @@ class SyncProvider extends ChangeNotifier {
     final txBox = Hive.isBoxOpen('transactions')
         ? Hive.box<TransactionHive>('transactions')
         : await Hive.openBox<TransactionHive>('transactions');
-    // Clientes: nuevos o editados offline
-    final pendingClients = clientBox.values
-        .where(
-          (c) =>
-              ((c.synced == false && c.pendingDelete != true) ||
-              c.pendingDelete == true),
-        )
-        .length;
-    // Transacciones: nuevas, editadas o eliminadas offline
-    final pendingTxs = txBox.values
-        .where(
-          (t) =>
-              ((t.synced == false && t.pendingDelete != true) ||
-              t.pendingDelete == true),
-        )
-        .length;
+
+    // Solo cuenta como pendiente si:
+    // - Cliente: no está sincronizado Y no existe en Supabase (id no UUID)
+    // - Cliente: está pendiente de eliminar
+    final pendingClients = clientBox.values.where((c) {
+      final isLocalId = c.id.length != 36;
+      return (isLocalId || c.synced == false || c.pendingDelete == true);
+    }).length;
+
+    // Transacciones: solo si no están sincronizadas y su clientId es UUID válido
+    final pendingTxs = txBox.values.where((t) {
+      final isClientUuid = t.clientId.length == 36;
+      return (t.synced == false && isClientUuid) || t.pendingDelete == true;
+    }).length;
+
     return pendingClients + pendingTxs;
   }
 

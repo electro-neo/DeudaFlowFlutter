@@ -505,6 +505,17 @@ class TransactionProvider extends ChangeNotifier {
     final box = Hive.isBoxOpen('transactions')
         ? Hive.box<TransactionHive>('transactions')
         : await Hive.openBox<TransactionHive>('transactions');
+
+    // Refuerzo: sincronizar clientes primero para garantizar que todos tengan UUID
+    try {
+      final clientProvider = ClientProvider();
+      await clientProvider.syncPendingClients(userId);
+    } catch (e) {
+      debugPrint(
+        '[SYNC][WARN] No se pudo sincronizar clientes antes de transacciones: $e',
+      );
+    }
+
     // Primero elimina en Supabase las transacciones pendientes de eliminar
     final toDelete = box.values.where((t) => t.pendingDelete == true).toList();
     for (final t in toDelete) {
@@ -527,6 +538,13 @@ class TransactionProvider extends ChangeNotifier {
         .where((t) => !t.synced && t.pendingDelete != true)
         .toList();
     for (final t in pending) {
+      // Validar que el clientId sea un UUID válido (36 caracteres)
+      if (t.clientId.length != 36) {
+        debugPrint(
+          '[SYNC][SKIP] Transacción ${t.id} NO se sube porque clientId no es UUID válido: ${t.clientId}',
+        );
+        continue;
+      }
       // Busca si ya existe en remoto por local_id
       final idx = remoteTxs.indexWhere(
         (r) => r.localId != null && r.localId == t.id,

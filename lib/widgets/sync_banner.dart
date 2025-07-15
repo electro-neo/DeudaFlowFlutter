@@ -46,71 +46,81 @@ class _RealConnectivityBannerState extends State<_RealConnectivityBanner> {
     }
   }
 
+  String _bannerText = '';
+  Widget? _bannerIcon;
+  Widget? _bannerAction;
+  Color _bannerLedColor = Colors.green;
+  bool _bannerBlinking = false;
+
   @override
   Widget build(BuildContext context) {
     // Mostrar siempre el banner, tanto offline como online
-    Color ledColor;
-    bool blinking = false;
-    String text = '';
-    Widget? action;
-    Widget? icon;
-    // Parpadeo para todos los estados, pero con diferente color
     if (_isReallyOnline == false) {
-      ledColor = Colors.red;
-      blinking = true;
-      icon = null;
+      _bannerLedColor = Colors.red;
+      _bannerBlinking = true;
       Future.microtask(() async {
         final pendings = await widget.sync.getTotalPendings();
         if (mounted) {
           setState(() {
             if (pendings > 0) {
-              icon = const Icon(Icons.sync, color: Colors.white, size: 18);
-              text =
+              _bannerIcon = const Icon(
+                Icons.sync,
+                color: Colors.white,
+                size: 18,
+              );
+              _bannerText =
                   '${pendings.toString().padLeft(2, '0')} sincronizaciones pendientes';
             } else {
-              icon = null;
-              text = 'Offline: Trabajando con datos locales';
+              _bannerIcon = null;
+              _bannerText = 'Offline: Trabajando con datos locales';
             }
+            _bannerAction = null;
           });
         }
       });
-      text = 'Offline: Trabajando con datos locales';
     } else {
       switch (widget.sync.status) {
         case SyncStatus.waiting:
         case SyncStatus.syncing:
-          ledColor = Colors.amber;
-          blinking = true;
-          icon = const Icon(Icons.sync, color: Colors.white, size: 18);
+          _bannerLedColor = Colors.amber;
+          _bannerBlinking = true;
+          _bannerIcon = const Icon(Icons.sync, color: Colors.white, size: 18);
           Future.microtask(() async {
             final pendings = await widget.sync.getTotalPendings();
             if (mounted) {
               setState(() {
-                text = pendings > 0
+                _bannerText = pendings > 0
                     ? '${pendings.toString().padLeft(2, '0')} sincronizaciones pendientes'
                     : (widget.sync.status == SyncStatus.syncing
                           ? 'Proceso de sincronización ${widget.sync.progress}%'
                           : 'Conexión restablecida. Sincronizando datos pendientes…');
+                _bannerAction = null;
               });
             }
           });
-          text = widget.sync.status == SyncStatus.syncing
+          _bannerText = widget.sync.status == SyncStatus.syncing
               ? 'Proceso de sincronización ${widget.sync.progress}%'
               : 'Conexión restablecida. Sincronizando datos pendientes…';
+          _bannerAction = null;
           break;
         case SyncStatus.success:
         case SyncStatus.idle:
-          ledColor = Colors.green;
-          blinking = true;
-          icon =null;
-          text = 'Sincronizado';
+          _bannerLedColor = Colors.green;
+          _bannerBlinking = true;
+          _bannerIcon = null;
+          _bannerText = 'Sincronizado';
+          _bannerAction = null;
           break;
         case SyncStatus.error:
-          ledColor = Colors.red;
-          blinking = true;
-          icon = const Icon(Icons.sync_problem, color: Colors.white, size: 18);
-          text = 'Error de sincronización';
-          action = TextButton(
+          _bannerLedColor = Colors.red;
+          _bannerBlinking = true;
+          _bannerIcon = const Icon(
+            Icons.sync_problem,
+            color: Colors.white,
+            size: 18,
+          );
+          _bannerText = 'Error de sincronización';
+          _bannerAction = TextButton(
             onPressed: () {
               widget.sync.retrySync(context);
             },
@@ -120,21 +130,15 @@ class _RealConnectivityBannerState extends State<_RealConnectivityBanner> {
             ),
           );
           break;
-        default:
-          ledColor = Colors.green;
-          blinking = true;
-          icon = const Icon(Icons.check_circle, color: Colors.white, size: 18);
-          text = 'Sincronizado';
       }
     }
     return _BannerWidget(
-      text: text,
-      ledColor: ledColor,
-      blinking: blinking,
-      action: action,
-      icon: icon,
+      text: _bannerText,
+      ledColor: _bannerLedColor,
+      blinking: _bannerBlinking,
+      action: _bannerAction,
+      icon: _bannerIcon,
     );
-    // Eliminar línea sobrante
   }
 }
 

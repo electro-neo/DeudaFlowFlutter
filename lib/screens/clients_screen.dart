@@ -182,10 +182,30 @@ class _ClientsScreenState extends State<ClientsScreen>
 
   Future<void> _syncAll() async {
     if (_isSyncing) return;
+    // Verifica conexión a internet antes de sincronizar
+    final txProvider = Provider.of<TransactionProvider>(context, listen: false);
+    final provider = Provider.of<ClientProvider>(context, listen: false);
+    bool isOnline = true;
+    try {
+      isOnline = await txProvider.isOnline();
+    } catch (_) {
+      isOnline = false;
+    }
+    if (!isOnline) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No se puede sincronizar en este momento. Verifica tu conexión a internet.',
+            ),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
     setState(() => _isSyncing = true);
     _syncController.repeat();
-    final provider = Provider.of<ClientProvider>(context, listen: false);
-    final txProvider = Provider.of<TransactionProvider>(context, listen: false);
     await provider.syncPendingClients(widget.userId);
     await txProvider.syncPendingTransactions(widget.userId);
     // Esperar a que no haya clientes pendientes de eliminar antes de recargar la lista
@@ -472,34 +492,49 @@ class _ClientsScreenState extends State<ClientsScreen>
                                         child: const Icon(Icons.receipt_long),
                                       ),
                                       const SizedBox(width: 12),
-                                      FloatingActionButton(
-                                        heroTag: 'syncClientes',
-                                        mini: true,
-                                        backgroundColor: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                        foregroundColor: Colors.white,
-                                        elevation: 2,
-                                        onPressed: _isSyncing ? null : _syncAll,
-                                        tooltip:
-                                            'Forzar sincronización de clientes y transacciones',
-                                        child: AnimatedBuilder(
-                                          animation: _syncController,
-                                          builder: (context, child) {
-                                            return Transform.rotate(
-                                              angle: _isSyncing
-                                                  ? -_syncController.value *
-                                                        6.28319
-                                                  : 0, // 2*pi (sentido inverso)
-                                              child: Icon(
-                                                Icons.sync,
-                                                color: _isSyncing
-                                                    ? Colors.green
-                                                    : Colors.white,
-                                              ),
-                                            );
-                                          },
-                                        ),
+                                      FutureBuilder<bool>(
+                                        future:
+                                            Provider.of<TransactionProvider>(
+                                              context,
+                                              listen: false,
+                                            ).isOnline(),
+                                        builder: (context, snapshot) {
+                                          final online = snapshot.data ?? true;
+                                          return FloatingActionButton(
+                                            heroTag: 'syncClientes',
+                                            mini: true,
+                                            backgroundColor: Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                            foregroundColor: Colors.white,
+                                            elevation: 2,
+                                            onPressed: (_isSyncing || !online)
+                                                ? null
+                                                : _syncAll,
+                                            tooltip: online
+                                                ? 'Forzar sincronización de clientes y transacciones'
+                                                : 'No hay conexión a internet',
+                                            child: AnimatedBuilder(
+                                              animation: _syncController,
+                                              builder: (context, child) {
+                                                return Transform.rotate(
+                                                  angle: _isSyncing
+                                                      ? -_syncController.value *
+                                                            6.28319
+                                                      : 0, // 2*pi (sentido inverso)
+                                                  child: Icon(
+                                                    Icons.sync,
+                                                    color: _isSyncing
+                                                        ? Colors.green
+                                                        : (!online
+                                                              ? Colors.grey
+                                                              : Colors.white),
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          );
+                                        },
                                       ),
                                       const SizedBox(width: 12),
                                       FloatingActionButton(

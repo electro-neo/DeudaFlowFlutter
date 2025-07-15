@@ -27,7 +27,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   String? _selectedType; // 'debt', 'payment', o null
   String _searchQuery = '';
   bool _loading = true;
-  bool _appliedInitialType = false;
+  // Elimina el flag para que el filtro de tipo siempre se aplique desde el provider
 
   @override
   void dispose() {
@@ -123,11 +123,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final clients = clientProvider.clients;
     var transactions = txProvider.transactions;
 
-    if (!_appliedInitialType && filterProvider.type != null) {
-      _appliedInitialType = true;
+    // Siempre sincroniza el filtro de tipo con el provider si viene de fuera
+    if (filterProvider.type != null) {
       _selectedType = filterProvider.type;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        filterProvider.clear();
+        filterProvider.setType(null); // Limpia solo el tipo, no el clientId
         if (!mounted) return;
         setState(() {});
       });

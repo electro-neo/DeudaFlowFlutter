@@ -61,9 +61,31 @@ class _RealConnectivityBannerState extends State<_RealConnectivityBanner> {
     if (_isReallyOnline == false) {
       _bannerLedColor = Colors.red;
       _bannerBlinking = true;
+      // 1. Actualización instantánea de la UI (sin delays)
       Future.microtask(() async {
         final pendings = await widget.sync.getTotalPendings();
-        // DEBUG: Mostrar detalles de pendientes
+        if (mounted) {
+          setState(() {
+            if (pendings > 0) {
+              _bannerIcon = const Icon(
+                Icons.sync,
+                color: Colors.white,
+                size: 18,
+              );
+              _bannerText =
+                  '${pendings.toString().padLeft(2, '0')} sincronizaciones pendientes';
+            } else {
+              _bannerIcon = null;
+              _bannerText = 'Offline: Trabajando con datos locales';
+            }
+            _bannerAction = null;
+          });
+        }
+      });
+      // 2. Debug lento SOLO para consola (no afecta UI)
+      Future.microtask(() async {
+        // Delay inicial para que incluso los mensajes de cantidad 0 sean lentos
+        await Future.delayed(const Duration(seconds: 10));
         Box<ClientHive> clientBox;
         try {
           clientBox = Hive.box<ClientHive>('clients');
@@ -99,37 +121,22 @@ class _RealConnectivityBannerState extends State<_RealConnectivityBanner> {
         debugPrint(
           '[SYNC-BANNER][DEBUG] Pendientes clientes: ${pendingClients.length}',
         );
+        await Future.delayed(const Duration(seconds: 10));
         for (final c in pendingClients) {
           debugPrint(
             '[SYNC-BANNER][CLIENT] id=${c.id} name=${c.name} synced=${c.synced} pendingDelete=${c.pendingDelete}',
           );
-          await Future.delayed(const Duration(milliseconds: 5000));
+          await Future.delayed(const Duration(seconds: 10));
         }
         debugPrint(
           '[SYNC-BANNER][DEBUG] Pendientes transacciones: ${pendingTxs.length}',
         );
+        await Future.delayed(const Duration(seconds: 10));
         for (final t in pendingTxs) {
           debugPrint(
             '[SYNC-BANNER][TX] id=${t.id} clientId=${t.clientId} synced=${t.synced} pendingDelete=${t.pendingDelete}',
           );
-          await Future.delayed(const Duration(milliseconds: 5000));
-        }
-        if (mounted) {
-          setState(() {
-            if (pendings > 0) {
-              _bannerIcon = const Icon(
-                Icons.sync,
-                color: Colors.white,
-                size: 18,
-              );
-              _bannerText =
-                  '${pendings.toString().padLeft(2, '0')} sincronizaciones pendientes';
-            } else {
-              _bannerIcon = null;
-              _bannerText = 'Offline: Trabajando con datos locales';
-            }
-            _bannerAction = null;
-          });
+          await Future.delayed(const Duration(seconds: 10));
         }
       });
     } else {
@@ -139,9 +146,22 @@ class _RealConnectivityBannerState extends State<_RealConnectivityBanner> {
           _bannerLedColor = Colors.amber;
           _bannerBlinking = true;
           _bannerIcon = const Icon(Icons.sync, color: Colors.white, size: 18);
+          // 1. Actualización instantánea de la UI (sin delays)
           Future.microtask(() async {
             final pendings = await widget.sync.getTotalPendings();
-            // DEBUG: Mostrar detalles de pendientes
+            if (mounted) {
+              setState(() {
+                _bannerText = pendings > 0
+                    ? '${pendings.toString().padLeft(2, '0')} sincronizaciones pendientes'
+                    : (widget.sync.status == SyncStatus.syncing
+                          ? 'Proceso de sincronización ${widget.sync.progress}%'
+                          : 'Conexión restablecida. Sincronizando datos pendientes…');
+                _bannerAction = null;
+              });
+            }
+          });
+          // 2. Debug lento SOLO para consola (no afecta UI)
+          Future.microtask(() async {
             Box<ClientHive> clientBox;
             try {
               clientBox = Hive.box<ClientHive>('clients');
@@ -174,36 +194,24 @@ class _RealConnectivityBannerState extends State<_RealConnectivityBanner> {
                   t.pendingDelete == true;
             }).toList();
             debugPrint(
-              '[SYNC-BANNER][DEBUG] Pendientes clientes: ${pendingClients.length}',
+              '[SYNC-BANNER][DEBUG] Pendientes clientes: \u001b[33m${pendingClients.length}\u001b[0m',
             );
+            await Future.delayed(const Duration(seconds: 10));
             for (final c in pendingClients) {
               debugPrint(
                 '[SYNC-BANNER][CLIENT] id=${c.id} name=${c.name} synced=${c.synced} pendingDelete=${c.pendingDelete}',
               );
-              await Future.delayed(
-                const Duration(milliseconds: 15000),
-              ); // Más lento
+              await Future.delayed(const Duration(seconds: 10));
             }
             debugPrint(
-              '[SYNC-BANNER][DEBUG] Pendientes transacciones: ${pendingTxs.length}',
+              '[SYNC-BANNER][DEBUG] Pendientes transacciones: \u001b[36m${pendingTxs.length}\u001b[0m',
             );
+            await Future.delayed(const Duration(seconds: 10));
             for (final t in pendingTxs) {
               debugPrint(
                 '[SYNC-BANNER][TX] id=${t.id} clientId=${t.clientId} synced=${t.synced} pendingDelete=${t.pendingDelete}',
               );
-              await Future.delayed(
-                const Duration(milliseconds: 15000),
-              ); // Más lento
-            }
-            if (mounted) {
-              setState(() {
-                _bannerText = pendings > 0
-                    ? '${pendings.toString().padLeft(2, '0')} sincronizaciones pendientes'
-                    : (widget.sync.status == SyncStatus.syncing
-                          ? 'Proceso de sincronización ${widget.sync.progress}%'
-                          : 'Conexión restablecida. Sincronizando datos pendientes…');
-                _bannerAction = null;
-              });
+              await Future.delayed(const Duration(seconds: 10));
             }
           });
           _bannerText = widget.sync.status == SyncStatus.syncing

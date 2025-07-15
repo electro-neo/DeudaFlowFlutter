@@ -88,10 +88,13 @@ class _TransactionFormState extends State<TransactionForm> {
           (i) => chars[(rand >> (i * 5)) % chars.length],
         ).join();
       }
+
       final localId =
           randomLetters(2) + DateTime.now().millisecondsSinceEpoch.toString();
       if (widget.onSave != null) {
-        await Future.delayed(const Duration(milliseconds: 350)); // Simula espera de guardado
+        await Future.delayed(
+          const Duration(milliseconds: 350),
+        ); // Simula espera de guardado
         widget.onSave!(
           Transaction(
             id: localId, // id local único

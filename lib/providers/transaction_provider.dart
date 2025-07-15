@@ -3,13 +3,68 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:async';
 import 'dart:io';
 import 'package:hive/hive.dart';
+
 import '../models/transaction.dart';
 import '../models/transaction_hive.dart';
 import '../models/client_hive.dart';
 import '../models/client.dart';
 import '../services/supabase_service.dart';
+import 'package:provider/provider.dart';
+import 'client_provider.dart';
+import '../main.dart' show navigatorKey;
 
 class TransactionProvider extends ChangeNotifier {
+  /// Elimina una transacción de la lista en memoria y notifica listeners (solo UI, no Hive)
+  void removeTransactionLocally(String transactionId) {
+    _transactions.removeWhere((t) => t.id == transactionId);
+    notifyListeners();
+  }
+
+  /// Marca una transacción como pendiente de eliminar en Hive y sincroniza con el backend cuando sea posible
+  Future<void> markTransactionForDeletionAndSync(
+    String transactionId,
+    String userId,
+  ) async {
+    final box = Hive.isBoxOpen('transactions')
+        ? Hive.box<TransactionHive>('transactions')
+        : await Hive.openBox<TransactionHive>('transactions');
+    final t = box.get(transactionId);
+    if (t != null) {
+      t.pendingDelete = true;
+      t.synced = false;
+      await t.save();
+      // Elimina de la lista en memoria para que desaparezca de la UI
+      _transactions.removeWhere((tx) => tx.id == transactionId);
+      notifyListeners();
+      // Intenta sincronizar con el backend si hay conexión
+      if (await isOnline()) {
+        try {
+          await _service.deleteTransaction(transactionId);
+          await box.delete(transactionId);
+        } catch (_) {
+          // Si falla, queda como pendienteDelete
+        }
+      }
+      // Recalcula balances y recarga lista
+      await recalculateClientBalance(t.clientId);
+      await loadTransactions(userId);
+    }
+  }
+
+  /// Marca una transacción como pendiente de eliminar y actualiza la lista principal
+  Future<void> markPendingDelete(String transactionId) async {
+    final box = Hive.isBoxOpen('transactions')
+        ? Hive.box<TransactionHive>('transactions')
+        : await Hive.openBox<TransactionHive>('transactions');
+    final t = box.get(transactionId);
+    if (t != null) {
+      t.pendingDelete = true;
+      t.synced = false;
+      await t.save();
+      notifyListeners();
+    }
+  }
+
   /// Permite recalcular balances de todos los clientes desde cualquier parte del código (ej: tras sync)
   static Future<void> recalculateAllClientsBalancesStatic() async {
     final clientBox = Hive.isBoxOpen('clients')
@@ -275,6 +330,22 @@ class TransactionProvider extends ChangeNotifier {
         if (userId.isNotEmpty) {
           // Actualiza el cliente en Supabase directamente, sin depender de contexto UI
           await SupabaseService().updateClient(clientModel);
+          // Opción simple: fuerza recarga de clientes en ClientProvider para refrescar la UI
+          try {
+            // Busca el provider global y recarga clientes
+            // (esto solo funciona si el provider está en el árbol de widgets)
+            // ignore: use_build_context_synchronously
+            final context = navigatorKey.currentContext;
+            if (context != null) {
+              final clientProvider = Provider.of<ClientProvider>(
+                context,
+                listen: false,
+              );
+              await clientProvider.loadClients(userId);
+            }
+          } catch (e) {
+            debugPrint('[recalculateClientBalance][REFRESH][ERROR] $e');
+          }
         }
       } catch (e, stack) {
         debugPrint(

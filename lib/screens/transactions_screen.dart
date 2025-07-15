@@ -121,7 +121,16 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     }
 
     final clients = clientProvider.clients;
-    var transactions = txProvider.transactions;
+    // Filtra transacciones para no mostrar las marcadas como pendingDelete
+    var transactions = txProvider.transactions
+        .where((t) => t.pendingDelete != true)
+        .toList();
+
+    // Validar que el cliente seleccionado exista en la lista
+    final clientIds = clients.map((c) => c.id).toList();
+    if (_selectedClientId != null && !clientIds.contains(_selectedClientId)) {
+      _selectedClientId = null;
+    }
 
     // Siempre sincroniza el filtro de tipo con el provider si viene de fuera
     if (filterProvider.type != null) {
@@ -618,6 +627,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     (c) => c.id == t.clientId,
                     orElse: () => Client(id: '', name: '', balance: 0),
                   );
+
+                  // ...existing code...
+
+                  // Si NO está pendiente, usa Dismissible normal
                   return Dismissible(
                     key: ValueKey(t.id),
                     direction: DismissDirection.endToStart,
@@ -625,7 +638,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       alignment: Alignment.centerRight,
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.12 * 255),
+                        color: Colors.red.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: const Icon(
@@ -635,7 +648,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       ),
                     ),
                     confirmDismiss: (direction) async {
-                      // Confirmación opcional, puedes quitar si no quieres preguntar
                       return await showDialog<bool>(
                             context: context,
                             builder: (context) => AlertDialog(
@@ -660,48 +672,52 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           false;
                     },
                     onDismissed: (direction) async {
-                      // Obtiene el provider de transacciones sin escuchar cambios
                       final txProvider = Provider.of<TransactionProvider>(
-                        context, // contexto de Flutter
-                        listen: false, // no reconstruir al cambiar
+                        context,
+                        listen: false,
                       );
+                      final transactionIdToDelete = t.id;
+                      final transactionDescription = t.description;
+
+                      txProvider.removeTransactionLocally(
+                        transactionIdToDelete,
+                      );
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Transacción "$transactionDescription" eliminada. Pendiente de sincronizar.',
+                          ),
+                          backgroundColor: Colors.orange,
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+
                       try {
-                        // Elimina la transacción usando el provider
-                        await txProvider.deleteTransaction(t.id, widget.userId);
-                        // Si el widget sigue montado, actualiza el estado para refrescar la lista
-                        if (mounted) setState(() {});
-                        // Si el widget sigue montado, muestra un SnackBar de éxito
-                        if (mounted) {
-                          final snackBar = SnackBar(
-                            content: const Text(
-                              'Transacción eliminada correctamente', // Mensaje de éxito
-                            ),
-                            backgroundColor:
-                                Colors.green, // Color de fondo verde
-                            duration: const Duration(
-                              milliseconds: 1200,
-                            ), // Duración corta
-                          );
-                          ScaffoldMessenger.of(
-                            context,
-                          ).showSnackBar(snackBar); // Muestra el SnackBar
-                        }
-                        // No cerrar la pantalla, solo actualizar la lista
-                      } catch (e) {
-                        // Si ocurre un error y el widget sigue montado, muestra un SnackBar de error
+                        await txProvider.markTransactionForDeletionAndSync(
+                          transactionIdToDelete,
+                          widget.userId,
+                        );
+                        debugPrint(
+                          'Transacción marcada para eliminar y sincronizar: $transactionIdToDelete',
+                        );
+                      } catch (e, stack) {
+                        debugPrint(
+                          'Error al marcar/sincronizar eliminación: $transactionIdToDelete -> ${e.toString()}',
+                        );
+                        debugPrint('Stacktrace: \n$stack');
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                'Error al eliminar: ���[${e.toString()}', // Mensaje de error
+                                'Error al sincronizar eliminación: [${e.toString()}]',
                               ),
-                              backgroundColor: Colors.red, // Fondo rojo
+                              backgroundColor: Colors.red,
                             ),
                           );
                         }
                       }
                     },
-                    // Contenedor visual de la tarjeta de transacción
                     child: Container(
                       decoration: BoxDecoration(
                         color: Colors.white, // Fondo blanco

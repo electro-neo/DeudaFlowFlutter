@@ -24,6 +24,8 @@ import 'providers/tab_provider.dart';
 import 'providers/theme_provider.dart';
 import 'widgets/budgeto_theme.dart';
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 // ...eliminada duplicidad de _initializeApp...
 Future<void> _initializeApp() async {
   try {
@@ -90,6 +92,8 @@ class MyApp extends StatelessWidget {
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) => MaterialApp(
+          navigatorKey:
+              navigatorKey, // <--- Asegura que el navigatorKey se use aquí
           title: 'Deuda Flow Control',
           theme: BudgetoTheme.light,
           darkTheme: BudgetoTheme.dark,

@@ -11,6 +11,29 @@ import 'transaction_provider.dart';
 enum SyncStatus { idle, waiting, syncing, success, error }
 
 class SyncProvider extends ChangeNotifier {
+  /// Devuelve el total de sincronizaciones pendientes (clientes y transacciones: altas, ediciones, eliminaciones)
+  Future<int> getTotalPendings() async {
+    final clientBox = Hive.isBoxOpen('clients')
+        ? Hive.box('clients')
+        : await Hive.openBox('clients');
+    final txBox = Hive.isBoxOpen('transactions')
+        ? Hive.box('transactions')
+        : await Hive.openBox('transactions');
+    // Clientes: nuevos o editados offline
+    final pendingClients = clientBox.values
+        .where(
+          (c) => (!c.synced && !c.pendingDelete) || c.pendingDelete == true,
+        )
+        .length;
+    // Transacciones: nuevas, editadas o eliminadas offline
+    final pendingTxs = txBox.values
+        .where(
+          (t) => (!t.synced && !t.pendingDelete) || t.pendingDelete == true,
+        )
+        .length;
+    return pendingClients + pendingTxs;
+  }
+
   /// Refuerza el estado inicial de conexión al crear el provider
   Future<void> initializeConnectionStatus() async {
     final result = await Connectivity().checkConnectivity();

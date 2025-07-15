@@ -53,31 +53,62 @@ class _RealConnectivityBannerState extends State<_RealConnectivityBanner> {
     bool blinking = false;
     String text = '';
     Widget? action;
+    Widget? icon;
     // Parpadeo para todos los estados, pero con diferente color
     if (_isReallyOnline == false) {
       ledColor = Colors.red;
       blinking = true;
+      icon = null;
+      Future.microtask(() async {
+        final pendings = await widget.sync.getTotalPendings();
+        if (mounted) {
+          setState(() {
+            if (pendings > 0) {
+              icon = const Icon(Icons.sync, color: Colors.white, size: 18);
+              text =
+                  '${pendings.toString().padLeft(2, '0')} sincronizaciones pendientes';
+            } else {
+              icon = null;
+              text = 'Offline: Trabajando con datos locales';
+            }
+          });
+        }
+      });
       text = 'Offline: Trabajando con datos locales';
     } else {
       switch (widget.sync.status) {
         case SyncStatus.waiting:
-          ledColor = Colors.amber;
-          blinking = true;
-          text = 'Conexión restablecida. Sincronizando datos pendientes…';
-          break;
         case SyncStatus.syncing:
           ledColor = Colors.amber;
           blinking = true;
-          text = 'Proceso de sincronización ${widget.sync.progress}%';
+          icon = const Icon(Icons.sync, color: Colors.white, size: 18);
+          Future.microtask(() async {
+            final pendings = await widget.sync.getTotalPendings();
+            if (mounted) {
+              setState(() {
+                text = pendings > 0
+                    ? '${pendings.toString().padLeft(2, '0')} sincronizaciones pendientes'
+                    : (widget.sync.status == SyncStatus.syncing
+                          ? 'Proceso de sincronización ${widget.sync.progress}%'
+                          : 'Conexión restablecida. Sincronizando datos pendientes…');
+              });
+            }
+          });
+          text = widget.sync.status == SyncStatus.syncing
+              ? 'Proceso de sincronización ${widget.sync.progress}%'
+              : 'Conexión restablecida. Sincronizando datos pendientes…';
           break;
         case SyncStatus.success:
+        case SyncStatus.idle:
           ledColor = Colors.green;
           blinking = true;
+          icon =null;
           text = 'Sincronizado';
           break;
         case SyncStatus.error:
           ledColor = Colors.red;
           blinking = true;
+          icon = const Icon(Icons.sync_problem, color: Colors.white, size: 18);
           text = 'Error de sincronización';
           action = TextButton(
             onPressed: () {
@@ -92,6 +123,7 @@ class _RealConnectivityBannerState extends State<_RealConnectivityBanner> {
         default:
           ledColor = Colors.green;
           blinking = true;
+          icon = const Icon(Icons.check_circle, color: Colors.white, size: 18);
           text = 'Sincronizado';
       }
     }
@@ -100,6 +132,7 @@ class _RealConnectivityBannerState extends State<_RealConnectivityBanner> {
       ledColor: ledColor,
       blinking: blinking,
       action: action,
+      icon: icon,
     );
     // Eliminar línea sobrante
   }
@@ -110,11 +143,13 @@ class _BannerWidget extends StatefulWidget {
   final Color ledColor;
   final bool blinking;
   final Widget? action;
+  final Widget? icon;
   const _BannerWidget({
     required this.text,
     required this.ledColor,
     required this.blinking,
     this.action,
+    this.icon,
   });
 
   @override
@@ -187,6 +222,10 @@ class _BannerWidgetState extends State<_BannerWidget>
                   ),
                 ),
               ),
+              if (widget.icon != null) ...[
+                const SizedBox(width: 6),
+                widget.icon!,
+              ],
               const SizedBox(width: 8),
               Flexible(
                 child: Text(

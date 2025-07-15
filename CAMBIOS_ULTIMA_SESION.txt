@@ -83,3 +83,17 @@ Actualización 14/07/2025:
 Commit sugerido:
 
 "UI/UX: Refactor y mejoras visuales en modales y formularios\n- Orden lógico de campos\n- Dropdowns compactos\n- FAB oculta con teclado\n- Banner de sincronización dinámico\n- Tarjetas de estadísticas ajustables\n- Filtrado y mensajes claros en modal de recibo general\n- Soporte completo para conversión de moneda en PDF y modal\n- Limpieza de código y mejoras menores."
+
+---
+Actualización 15/07/2025:
+
+- Se corrigió el error de Flutter "A dismissed Dismissible widget is still part of the tree" en la pantalla de transacciones:
+  - Ahora, al eliminar una transacción (swipe), se elimina inmediatamente de la lista visible en la UI usando setState, cumpliendo el patrón recomendado por Flutter.
+  - El estado "pendiente por eliminar" se muestra mediante un banner/snackbar, no en la lista principal.
+  - La sincronización y eliminación real en Supabase/Hive sigue ocurriendo en segundo plano con delay, pero la UI ya no mantiene el Dismissible en el árbol.
+- Se refactorizó el handler de onDismissed en TransactionsScreen para cumplir con el flujo correcto y evitar el error visual.
+- Se mantiene el feedback visual inmediato tras eliminar, y la sincronización en background sigue funcionando.
+
+Commit sugerido:
+
+"Fix: Elimina transacción de la lista visible tras swipe para evitar error Dismissible. Feedback visual y sync en background."

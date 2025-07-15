@@ -274,3 +274,13 @@ Actualización 14/07/2025:
 - El símbolo "$" se muestra correctamente en el PDF y en el modal solo cuando la moneda es USD.
 - Limpieza de variables no usadas y warnings menores.
 - Mejoras menores de UI y feedback visual en listados y modales.
+
+---
+Actualización 15/07/2025:
+
+- TransactionsScreen: El handler de swipe (onDismissed) ahora elimina la transacción de la lista visible inmediatamente usando setState, cumpliendo el patrón recomendado por Flutter para Dismissible.
+- El estado "pendiente por eliminar" se muestra como feedback visual (snackbar/banner), no en la lista principal.
+- La sincronización y eliminación real en Hive/Supabase sigue ocurriendo en segundo plano con delay.
+- Se evita el error "A dismissed Dismissible widget is still part of the tree" y la experiencia de usuario es más fluida.
+
+---

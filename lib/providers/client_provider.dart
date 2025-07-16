@@ -456,4 +456,10 @@ class ClientProvider extends ChangeNotifier {
     await _refreshClientsFromHive();
     notifyListeners();
   }
+
+  /// Permite refrescar clientes desde Hive desde otros providers o pantallas
+  Future<void> refreshClientsFromHive() async {
+    await _refreshClientsFromHive();
+    notifyListeners(); // Refuerzo extra para asegurar reactividad
+  }
 }

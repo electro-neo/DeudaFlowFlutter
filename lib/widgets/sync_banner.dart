@@ -86,51 +86,9 @@ class _RealConnectivityBannerState extends State<_RealConnectivityBanner> {
       Future.microtask(() async {
         // Delay inicial para que incluso los mensajes de cantidad 0 sean lentos
         await Future.delayed(const Duration(seconds: 10));
-        Box<ClientHive> clientBox;
-        try {
-          clientBox = Hive.box<ClientHive>('clients');
-        } catch (e) {
-          if (Hive.isBoxOpen('clients')) {
-            await Hive.box('clients').close();
-          }
-          clientBox = await Hive.openBox<ClientHive>('clients');
-        }
-        Box<TransactionHive> txBox;
-        try {
-          txBox = Hive.box<TransactionHive>('transactions');
-        } catch (e) {
-          if (Hive.isBoxOpen('transactions')) {
-            await Hive.box('transactions').close();
-          }
-          txBox = await Hive.openBox<TransactionHive>('transactions');
-        }
-        final pendingClients = clientBox.values.where((c) {
-          final isLocalId = c.id.length != 36;
-          return (isLocalId || c.synced == false || c.pendingDelete == true);
-        }).toList();
-        final pendingTxsList = txBox.values.where((t) {
-          return t.synced == false || t.pendingDelete == true;
-        }).toList();
-        debugPrint(
-          '[SYNC-BANNER][DEBUG] Pendientes clientes: ${pendingClients.length}',
-        );
-        await Future.delayed(const Duration(seconds: 10));
-        for (final c in pendingClients) {
-          debugPrint(
-            '[SYNC-BANNER][CLIENT] id=${c.id} name=${c.name} synced=${c.synced} pendingDelete=${c.pendingDelete}',
-          );
-          await Future.delayed(const Duration(seconds: 10));
-        }
-        debugPrint(
-          '[SYNC-BANNER][DEBUG] Pendientes transacciones: ${pendingTxsList.length}',
-        );
-        await Future.delayed(const Duration(seconds: 10));
-        for (final t in pendingTxsList) {
-          debugPrint(
-            '[SYNC-BANNER][TX] id=${t.id} clientId=${t.clientId} synced=${t.synced} pendingDelete=${t.pendingDelete}',
-          );
-          await Future.delayed(const Duration(seconds: 10));
-        }
+        // Se removieron los prints y las variables de Hive no usadas
+        // Se removieron los prints y las variables de pendientes clientes y transacciones
+        // Se removieron los prints de debug de pendientes clientes y transacciones
       });
     } else {
       switch (widget.sync.status) {

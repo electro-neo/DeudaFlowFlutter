@@ -23,30 +23,68 @@ class TransactionProvider extends ChangeNotifier {
     String transactionId,
     String userId,
   ) async {
+    debugPrint(
+      '>>> [markTransactionForDeletionAndSync] INICIO para transactionId=$transactionId, userId=$userId',
+    );
     final box = Hive.isBoxOpen('transactions')
         ? Hive.box<TransactionHive>('transactions')
         : await Hive.openBox<TransactionHive>('transactions');
     final t = box.get(transactionId);
+    debugPrint(
+      '>>> [markTransactionForDeletionAndSync] Obtenida transacción: ${t != null ? t.toString() : 'null'}',
+    );
     if (t != null) {
       t.pendingDelete = true;
       t.synced = false;
       await t.save();
+      debugPrint(
+        '>>> [markTransactionForDeletionAndSync] Marcada como pendiente de eliminar y no sincronizada',
+      );
       // Elimina de la lista en memoria para que desaparezca de la UI
       _transactions.removeWhere((tx) => tx.id == transactionId);
+      debugPrint(
+        '>>> [markTransactionForDeletionAndSync] Eliminada de la lista en memoria',
+      );
       notifyListeners();
+      debugPrint(
+        '>>> [markTransactionForDeletionAndSync] notifyListeners ejecutado',
+      );
       // Intenta sincronizar con el backend si hay conexión
       if (await isOnline()) {
+        debugPrint(
+          '>>> [markTransactionForDeletionAndSync] Hay conexión, intentando eliminar en Supabase',
+        );
         try {
           await _service.deleteTransaction(transactionId);
           await box.delete(transactionId);
-        } catch (_) {
+          debugPrint(
+            '>>> [markTransactionForDeletionAndSync] Eliminada en Supabase y en Hive',
+          );
+        } catch (e) {
+          debugPrint(
+            '>>> [markTransactionForDeletionAndSync] Error al eliminar en Supabase: $e',
+          );
           // Si falla, queda como pendienteDelete
         }
+      } else {
+        debugPrint(
+          '>>> [markTransactionForDeletionAndSync] Sin conexión, solo marcada como pendienteDelete',
+        );
       }
       // Recalcula balances y recarga lista
+      debugPrint(
+        '>>> [markTransactionForDeletionAndSync] Recalculando balance de cliente ${t.clientId}',
+      );
       await recalculateClientBalance(t.clientId);
+      debugPrint('>>> [markTransactionForDeletionAndSync] Balance recalculado');
       await loadTransactions(userId);
+      debugPrint(
+        '>>> [markTransactionForDeletionAndSync] Transacciones recargadas',
+      );
     }
+    debugPrint(
+      '>>> [markTransactionForDeletionAndSync] FIN para transactionId=$transactionId',
+    );
   }
 
   /// Marca una transacción como pendiente de eliminar y actualiza la lista principal
@@ -294,6 +332,7 @@ class TransactionProvider extends ChangeNotifier {
 
   // Recalcula y guarda el balance de un cliente tras cambios en sus transacciones
   Future<void> recalculateClientBalance(String clientId) async {
+    debugPrint('>>> [recalculateClientBalance] INICIO para clientId=$clientId');
     final clientBox = Hive.isBoxOpen('clients')
         ? Hive.box<ClientHive>('clients')
         : await Hive.openBox<ClientHive>('clients');
@@ -301,7 +340,15 @@ class TransactionProvider extends ChangeNotifier {
         ? Hive.box<TransactionHive>('transactions')
         : await Hive.openBox<TransactionHive>('transactions');
     final client = clientBox.get(clientId);
-    if (client == null) return;
+    debugPrint(
+      '>>> [recalculateClientBalance] Cliente obtenido: ${client != null ? client.toString() : 'null'}',
+    );
+    if (client == null) {
+      debugPrint(
+        '>>> [recalculateClientBalance] Cliente no encontrado, saliendo',
+      );
+      return;
+    }
     final txs = txBox.values.where(
       (t) => t.clientId == clientId && t.pendingDelete != true,
     );
@@ -313,6 +360,9 @@ class TransactionProvider extends ChangeNotifier {
         newBalance += t.amount;
       }
     }
+    debugPrint(
+      '>>> [recalculateClientBalance] Balance anterior: ${client.balance}, nuevo: $newBalance',
+    );
     if (client.balance != newBalance) {
       client.balance = newBalance;
       await client.save();
@@ -322,6 +372,7 @@ class TransactionProvider extends ChangeNotifier {
       // Refresca la UI y notifica listeners SIEMPRE, aunque falle Supabase
       try {
         notifyListeners();
+        debugPrint('>>> [recalculateClientBalance] notifyListeners ejecutado');
       } catch (e) {
         debugPrint('[recalculateClientBalance][UI-REFRESH][ERROR] $e');
       }
@@ -338,7 +389,9 @@ class TransactionProvider extends ChangeNotifier {
         final userId = _lastKnownUserId ?? '';
         if (userId.isNotEmpty) {
           await SupabaseService().updateClient(clientModel);
-          // Opción: puedes refrescar el provider global si lo deseas, pero no es obligatorio
+          debugPrint(
+            '>>> [recalculateClientBalance] Balance actualizado en Supabase',
+          );
         }
       } catch (e, stack) {
         debugPrint(
@@ -346,7 +399,12 @@ class TransactionProvider extends ChangeNotifier {
         );
         debugPrint('[recalculateClientBalance][STACK] $stack');
       }
+    } else {
+      debugPrint(
+        '>>> [recalculateClientBalance] Balance sin cambios, no se actualiza',
+      );
     }
+    debugPrint('>>> [recalculateClientBalance] FIN para clientId=$clientId');
   }
 
   Future<void> addTransaction(
@@ -496,6 +554,15 @@ class TransactionProvider extends ChangeNotifier {
 
     // Recalcula y guarda el balance, notifica a la UI inmediatamente
     await recalculateClientBalance(clientId);
+    // Refresca los clientes desde Hive para asegurar reactividad global
+    try {
+      final clientProvider = ClientProvider();
+      await clientProvider.refreshClientsFromHive();
+    } catch (e) {
+      debugPrint(
+        '[TransactionProvider] No se pudo refrescar ClientProvider tras eliminar transacción: $e',
+      );
+    }
     notifyListeners();
   }
 

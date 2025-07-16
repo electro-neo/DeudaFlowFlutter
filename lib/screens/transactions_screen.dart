@@ -692,20 +692,46 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       );
 
                       try {
+                        debugPrint(
+                          '--- INICIO FLUJO ELIMINACIÓN TRANSACCIÓN ---',
+                        );
+                        debugPrint(
+                          '1. Llamando a markTransactionForDeletionAndSync para $transactionIdToDelete',
+                        );
                         await txProvider.markTransactionForDeletionAndSync(
                           transactionIdToDelete,
                           widget.userId,
                         );
-                        // Limpieza local de transacciones nunca sincronizadas marcadas para eliminar
+                        debugPrint(
+                          '2. Llamando a cleanLocalPendingDeletedTransactions',
+                        );
                         await txProvider.cleanLocalPendingDeletedTransactions();
                         debugPrint(
-                          'Transacción marcada para eliminar y sincronizar: $transactionIdToDelete',
+                          '3. Obteniendo ClientProvider y refrescando clientes',
                         );
+                        final cp = Provider.of<ClientProvider>(
+                          context,
+                          listen: false,
+                        );
+                        debugPrint('4. Llamando a loadClients');
+                        await cp.loadClients(widget.userId);
+                        debugPrint('5. Llamando a refreshClientsFromHive');
+                        await cp.refreshClientsFromHive();
+                        debugPrint(
+                          '6. Transacción marcada para eliminar y sincronizar: $transactionIdToDelete',
+                        );
+                        debugPrint('--- FIN FLUJO ELIMINACIÓN TRANSACCIÓN ---');
                       } catch (e, stack) {
+                        debugPrint(
+                          '--- ERROR EN FLUJO ELIMINACIÓN TRANSACCIÓN ---',
+                        );
                         debugPrint(
                           'Error al marcar/sincronizar eliminación: $transactionIdToDelete -> ${e.toString()}',
                         );
                         debugPrint('Stacktrace: \n$stack');
+                        debugPrint(
+                          '--- FIN ERROR FLUJO ELIMINACIÓN TRANSACCIÓN ---',
+                        );
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(

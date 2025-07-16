@@ -184,7 +184,7 @@ class ClientProvider extends ChangeNotifier {
 
   Future<void> _refreshClientsFromHive() async {
     final box = Hive.box<ClientHive>('clients');
-    _clients = box.values
+    final newClients = box.values
         .where((c) => c.pendingDelete != true)
         .map(
           (c) => Client(
@@ -196,13 +196,19 @@ class ClientProvider extends ChangeNotifier {
           ),
         )
         .toList();
-    // LOG: Mostrar balances reales de todos los clientes tras recarga en el provider
+    debugPrint('[PROVIDER][REFRESH] Recargando clientes desde Hive...');
     for (final c in box.values) {
       debugPrint(
         '[DEBUG][PROVIDER][REFRESH] Cliente: id=${c.id}, name=${c.name}, balance=${c.balance}, pendingDelete=${c.pendingDelete}',
       );
     }
-    notifyListeners();
+    debugPrint(
+      '[PROVIDER][REFRESH] Lista de clientes previa: ${_clients.map((c) => '${c.id}:${c.balance}').join(', ')}',
+    );
+    debugPrint(
+      '[PROVIDER][REFRESH] Lista de clientes nueva: ${newClients.map((c) => '${c.id}:${c.balance}').join(', ')}',
+    );
+    _clients = newClients;
     debugPrint(
       '[PROVIDER][REFRESH] La lista de clientes se ha actualizado desde Hive.',
     );
@@ -460,6 +466,6 @@ class ClientProvider extends ChangeNotifier {
   /// Permite refrescar clientes desde Hive desde otros providers o pantallas
   Future<void> refreshClientsFromHive() async {
     await _refreshClientsFromHive();
-    notifyListeners(); // Refuerzo extra para asegurar reactividad
+    notifyListeners(); // Refuerzo extra para asegurar reactividad (solo una vez)
   }
 }

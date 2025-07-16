@@ -9,7 +9,7 @@ bool _hiveInitialized = false;
 /// Inicializa Hive y abre las cajas necesarias (solo una vez)
 Future<void> initOfflineStorage() async {
   if (_hiveInitialized) return;
-  await HiveFlutter.init();
+  await Hive.initFlutter(); // Inicializa Hive correctamente en Flutter
   if (!Hive.isBoxOpen('clients')) {
     await Hive.openBox<ClientHive>('clients');
   }

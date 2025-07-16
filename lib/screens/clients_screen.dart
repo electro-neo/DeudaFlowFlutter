@@ -207,7 +207,11 @@ class _ClientsScreenState extends State<ClientsScreen>
     setState(() => _isSyncing = true);
     _syncController.repeat();
     await provider.syncPendingClients(widget.userId);
+    await provider
+        .cleanLocalPendingDeletedClients(); // Refuerzo: limpieza tras sync
     await txProvider.syncPendingTransactions(widget.userId);
+    await txProvider
+        .cleanLocalOrphanTransactions(); // Refuerzo: limpieza tras sync
     // Esperar a que no haya clientes pendientes de eliminar antes de recargar la lista
     int intentos = 0;
     bool hayPendientes;
@@ -638,6 +642,9 @@ class _ClientsScreenState extends State<ClientsScreen>
                                                 widget.userId,
                                               );
                                             }
+                                            // Limpieza local de clientes nunca sincronizados marcados para eliminar
+                                            await provider
+                                                .cleanLocalPendingDeletedClients();
                                             debugPrint(
                                               '[ELIMINAR_TODOS] Sincronizando eliminaciones...',
                                             );
@@ -883,6 +890,9 @@ class _ClientsScreenState extends State<ClientsScreen>
                                                 client.id,
                                                 widget.userId,
                                               );
+                                              // Limpieza local de clientes nunca sincronizados marcados para eliminar
+                                              await provider
+                                                  .cleanLocalPendingDeletedClients();
                                               await provider.syncPendingClients(
                                                 widget.userId,
                                               );

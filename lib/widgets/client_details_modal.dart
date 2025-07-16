@@ -112,8 +112,14 @@ class ClientDetailsModal extends StatelessWidget {
                 IconButton(
                   icon: const Icon(Icons.delete),
                   tooltip: 'Eliminar',
-                  onPressed: () {
+                  onPressed: () async {
                     Navigator.of(context, rootNavigator: true).pop();
+                    // Limpieza local de clientes nunca sincronizados marcados para eliminar
+                    final provider = Provider.of<ClientProvider>(
+                      context,
+                      listen: false,
+                    );
+                    await provider.cleanLocalPendingDeletedClients();
                     if (onDelete != null) {
                       Future.delayed(Duration.zero, onDelete!);
                     }

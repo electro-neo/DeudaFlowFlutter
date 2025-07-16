@@ -429,4 +429,31 @@ class ClientProvider extends ChangeNotifier {
       return true; // Seguir intentando
     });
   }
+
+  /// Limpia localmente todos los clientes nunca sincronizados (id local) marcados para eliminar
+  Future<void> cleanLocalPendingDeletedClients() async {
+    final clientBox = Hive.box<ClientHive>('clients');
+    final txBox = Hive.box<TransactionHive>('transactions');
+    final toDelete = clientBox.values
+        .where((c) => c.pendingDelete == true && c.id.length != 36)
+        .toList();
+    for (final c in toDelete) {
+      // Elimina todas las transacciones asociadas a este cliente (id local)
+      final orphanTxs = txBox.values
+          .where((t) => t.clientId == c.id && t.id.length != 36)
+          .toList();
+      for (final t in orphanTxs) {
+        await t.delete();
+        debugPrint(
+          '[CLEAN-LOCAL] Transacción huérfana eliminada: id=${t.id}, clientId=${t.clientId}, desc=${t.description}',
+        );
+      }
+      await c.delete();
+      debugPrint(
+        '[CLEAN-LOCAL] Cliente eliminado localmente: id=${c.id}, name=${c.name}',
+      );
+    }
+    await _refreshClientsFromHive();
+    notifyListeners();
+  }
 }

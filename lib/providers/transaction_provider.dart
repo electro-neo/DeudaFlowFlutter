@@ -277,6 +277,8 @@ class TransactionProvider extends ChangeNotifier {
       _transactions = box.values.map((t) => Transaction.fromHive(t)).toList();
       await _recalculateAllClientsBalances();
     }
+    // Limpieza automática de transacciones huérfanas (siempre, online y offline)
+    await cleanLocalOrphanTransactions();
     notifyListeners();
   }
 
@@ -598,5 +600,39 @@ class TransactionProvider extends ChangeNotifier {
     }
 
     await loadTransactions(userId);
+  }
+
+  /// Limpia localmente todas las transacciones nunca sincronizadas (id local) marcadas para eliminar
+  Future<void> cleanLocalPendingDeletedTransactions() async {
+    final box = Hive.box<TransactionHive>('transactions');
+    final toDelete = box.values
+        .where((t) => t.pendingDelete == true && t.id.length != 36)
+        .toList();
+    for (final t in toDelete) {
+      await t.delete();
+      debugPrint(
+        '[CLEAN-LOCAL] Transacción eliminada localmente: id=${t.id}, desc=${t.description}',
+      );
+    }
+    notifyListeners();
+  }
+
+  /// Elimina transacciones nunca sincronizadas (id local) cuyo clientId ya no existe en Hive (huérfanas)
+  Future<void> cleanLocalOrphanTransactions() async {
+    final txBox = Hive.box<TransactionHive>('transactions');
+    final clientBox = Hive.box<ClientHive>('clients');
+    final existingClientIds = clientBox.values.map((c) => c.id).toSet();
+    final orphanTxs = txBox.values
+        .where(
+          (t) => !existingClientIds.contains(t.clientId) && t.id.length != 36,
+        )
+        .toList();
+    for (final t in orphanTxs) {
+      await t.delete();
+      debugPrint(
+        '[CLEAN-ORPHAN] Transacción huérfana eliminada: id=${t.id}, clientId=${t.clientId}, desc=${t.description}',
+      );
+    }
+    if (orphanTxs.isNotEmpty) notifyListeners();
   }
 }

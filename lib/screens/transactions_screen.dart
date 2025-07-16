@@ -628,8 +628,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     orElse: () => Client(id: '', name: '', balance: 0),
                   );
 
-                  // ...existing code...
-
                   // Si NO está pendiente, usa Dismissible normal
                   return Dismissible(
                     key: ValueKey(t.id),
@@ -698,6 +696,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           transactionIdToDelete,
                           widget.userId,
                         );
+                        // Limpieza local de transacciones nunca sincronizadas marcadas para eliminar
+                        await txProvider.cleanLocalPendingDeletedTransactions();
                         debugPrint(
                           'Transacción marcada para eliminar y sincronizar: $transactionIdToDelete',
                         );

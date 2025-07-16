@@ -108,15 +108,8 @@ class _RealConnectivityBannerState extends State<_RealConnectivityBanner> {
           final isLocalId = c.id.length != 36;
           return (isLocalId || c.synced == false || c.pendingDelete == true);
         }).toList();
-        final pendingTxs = txBox.values.where((t) {
-          final isClientUuid = t.clientId.length == 36;
-          // Solo cuenta como pendiente si:
-          // - No está sincronizada, no está pendiente de eliminar y tiene clientId UUID
-          // - O está pendiente de eliminar
-          return (t.synced == false &&
-                  t.pendingDelete != true &&
-                  isClientUuid) ||
-              t.pendingDelete == true;
+        final pendingTxsList = txBox.values.where((t) {
+          return t.synced == false || t.pendingDelete == true;
         }).toList();
         debugPrint(
           '[SYNC-BANNER][DEBUG] Pendientes clientes: ${pendingClients.length}',
@@ -129,10 +122,10 @@ class _RealConnectivityBannerState extends State<_RealConnectivityBanner> {
           await Future.delayed(const Duration(seconds: 10));
         }
         debugPrint(
-          '[SYNC-BANNER][DEBUG] Pendientes transacciones: ${pendingTxs.length}',
+          '[SYNC-BANNER][DEBUG] Pendientes transacciones: ${pendingTxsList.length}',
         );
         await Future.delayed(const Duration(seconds: 10));
-        for (final t in pendingTxs) {
+        for (final t in pendingTxsList) {
           debugPrint(
             '[SYNC-BANNER][TX] id=${t.id} clientId=${t.clientId} synced=${t.synced} pendingDelete=${t.pendingDelete}',
           );
@@ -186,12 +179,8 @@ class _RealConnectivityBannerState extends State<_RealConnectivityBanner> {
                   c.synced == false ||
                   c.pendingDelete == true);
             }).toList();
-            final pendingTxs = txBox.values.where((t) {
-              final isClientUuid = t.clientId.length == 36;
-              return (t.synced == false &&
-                      t.pendingDelete != true &&
-                      isClientUuid) ||
-                  t.pendingDelete == true;
+            final pendingTxsList = txBox.values.where((t) {
+              return t.synced == false || t.pendingDelete == true;
             }).toList();
             debugPrint(
               '[SYNC-BANNER][DEBUG] Pendientes clientes: \u001b[33m${pendingClients.length}\u001b[0m',
@@ -204,10 +193,10 @@ class _RealConnectivityBannerState extends State<_RealConnectivityBanner> {
               await Future.delayed(const Duration(seconds: 10));
             }
             debugPrint(
-              '[SYNC-BANNER][DEBUG] Pendientes transacciones: \u001b[36m${pendingTxs.length}\u001b[0m',
+              '[SYNC-BANNER][DEBUG] Pendientes transacciones: \u001b[36m${pendingTxsList.length}\u001b[0m',
             );
             await Future.delayed(const Duration(seconds: 10));
-            for (final t in pendingTxs) {
+            for (final t in pendingTxsList) {
               debugPrint(
                 '[SYNC-BANNER][TX] id=${t.id} clientId=${t.clientId} synced=${t.synced} pendingDelete=${t.pendingDelete}',
               );

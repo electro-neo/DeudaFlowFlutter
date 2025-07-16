@@ -31,10 +31,9 @@ class SyncProvider extends ChangeNotifier {
       return (isLocalId || c.synced == false || c.pendingDelete == true);
     }).length;
 
-    // Transacciones: solo si no están sincronizadas y su clientId es UUID válido
+    // Transacciones: cuenta TODAS las que no están sincronizadas o están pendingDelete
     final pendingTxs = txBox.values.where((t) {
-      final isClientUuid = t.clientId.length == 36;
-      return (t.synced == false && isClientUuid) || t.pendingDelete == true;
+      return t.synced == false || t.pendingDelete == true;
     }).length;
 
     return pendingClients + pendingTxs;

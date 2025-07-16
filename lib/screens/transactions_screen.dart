@@ -399,60 +399,66 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               ),
             ),
             const SizedBox(width: 6),
-            SizedBox(
-              width: 48,
-              height: 52,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.date_range, color: Colors.black87),
-                  onPressed: () async {
-                    if (!mounted) return;
-                    final picked = await showDialog<DateTimeRange>(
-                      context: context,
-                      builder: (context) {
-                        DateTimeRange tempRange =
-                            _selectedRange ??
-                            DateTimeRange(
-                              start: DateTime.now().subtract(
-                                const Duration(days: 7),
+            Expanded(
+              flex: 1,
+              child: SizedBox(
+                height: 52,
+                child: Center(
+                  // Puedes ajustar el padding aquí para subir o bajar el icono
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      bottom: 12,
+                    ), // <-- Ajusta este valor (ej. 2, 4, 6)
+                    child: IconButton(
+                      icon: const Icon(Icons.date_range, color: Colors.black87),
+                      padding: EdgeInsets.zero,
+                      alignment: Alignment.center,
+                      onPressed: () async {
+                        if (!mounted) return;
+                        final picked = await showDialog<DateTimeRange>(
+                          context: context,
+                          builder: (context) {
+                            DateTimeRange tempRange =
+                                _selectedRange ??
+                                DateTimeRange(
+                                  start: DateTime.now().subtract(
+                                    const Duration(days: 7),
+                                  ),
+                                  end: DateTime.now(),
+                                );
+                            return AlertDialog(
+                              title: const Text('Selecciona un rango'),
+                              content: SizedBox(
+                                width: 320,
+                                height: 260, // Más bajo
+                                child: CalendarDateRangePicker(
+                                  initialRange: tempRange,
+                                  onChanged: (range) {
+                                    tempRange = range;
+                                  },
+                                ),
                               ),
-                              end: DateTime.now(),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  child: const Text('Cancelar'),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () =>
+                                      Navigator.of(context).pop(tempRange),
+                                  child: const Text('Aceptar'),
+                                ),
+                              ],
                             );
-                        return AlertDialog(
-                          title: const Text('Selecciona un rango'),
-                          content: SizedBox(
-                            width: 320,
-                            height: 260, // Más bajo
-                            child: CalendarDateRangePicker(
-                              initialRange: tempRange,
-                              onChanged: (range) {
-                                tempRange = range;
-                              },
-                            ),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(),
-                              child: const Text('Cancelar'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () =>
-                                  Navigator.of(context).pop(tempRange),
-                              child: const Text('Aceptar'),
-                            ),
-                          ],
+                          },
                         );
+                        if (!mounted) return;
+                        if (picked != null) {
+                          setState(() => _selectedRange = picked);
+                        }
                       },
-                    );
-                    if (!mounted) return;
-                    if (picked != null) {
-                      setState(() => _selectedRange = picked);
-                    }
-                  },
+                    ),
+                  ),
                 ),
               ),
             ),

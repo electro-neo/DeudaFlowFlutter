@@ -97,3 +97,17 @@ Actualización 15/07/2025:
 Commit sugerido:
 
 "Fix: Elimina transacción de la lista visible tras swipe para evitar error Dismissible. Feedback visual y sync en background."
+
+---
+Actualización 16/07/2025:
+
+- Se documentó y reforzó la alineación de los filtros de cliente, tipo y el icono de calendario en la pantalla de transacciones:
+  - Los tres elementos están en una sola fila (`Row`), cada uno en un `Expanded` (flex 4, 3 y 1).
+  - El icono de calendario puede alinearse visualmente ajustando el padding inferior (`EdgeInsets.only(bottom: X)`) para subirlo, o el padding superior para bajarlo.
+  - Se recomienda ajustar también el `iconSize` si se requiere una alineación aún más precisa.
+- Se garantiza que los nombres largos en el filtro de clientes se truncan correctamente y no hay errores de overflow.
+- El layout es robusto y responsivo, sin restricciones de ancho fijas, y todos los elementos mantienen la alineación en móvil y escritorio.
+
+Commit sugerido:
+
+"UI/UX: Refuerzo de alineación y robustez visual en fila de filtros de transacciones (cliente, tipo, calendario). Padding y truncado mejorados."

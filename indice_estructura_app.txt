@@ -65,6 +65,10 @@ flutter install
   - Cierre automático y feedback visual al eliminar transacción.
   - Filtros visuales y calendario pequeño para rango de fechas.
   - Refactor local del formateo de montos para independencia visual.
+  - **Fila de filtros:** Los filtros de cliente, tipo y el icono de calendario están alineados horizontalmente en una sola fila (`Row`), cada uno dentro de un `Expanded` con flex 4, 3 y 1 respectivamente, separados por `SizedBox(width: 6)`. El icono de calendario puede requerir ajuste de padding superior o inferior para alineación visual perfecta.
+  - **Alineación de icono de calendario:** El icono de calendario está dentro de un `SizedBox(height: 52)`, envuelto en un `Padding` (ajustable en top o bottom) y un `Center`. Para alinearlo visualmente con los dropdowns, se recomienda ajustar el padding inferior (`EdgeInsets.only(bottom: X)`) para subir el icono, o el padding superior para bajarlo, y/o modificar el `iconSize` si es necesario.
+  - **Robustez visual:** Se garantiza que los nombres largos en el filtro de clientes se truncan con puntos suspensivos (`TextOverflow.ellipsis`) y no hay errores de overflow ni desalineación.
+  - **Notas de implementación:** El layout es responsivo, sin restricciones de ancho fijas, y todos los elementos de la fila de filtros mantienen la alineación y proporción en móvil y escritorio.
 - **Botones/Controles:**
   - Botón para agregar transacción (abre TransactionForm)
   - Botón para eliminar transacción
@@ -284,3 +288,15 @@ Actualización 15/07/2025:
 - Se evita el error "A dismissed Dismissible widget is still part of the tree" y la experiencia de usuario es más fluida.
 
 ---
+Actualización 16/07/2025:
+
+- Se documentó y reforzó la alineación de los filtros de cliente, tipo y el icono de calendario en la pantalla de transacciones:
+  - Los tres elementos están en una sola fila (`Row`), cada uno en un `Expanded` (flex 4, 3 y 1).
+  - El icono de calendario puede alinearse visualmente ajustando el padding inferior (`EdgeInsets.only(bottom: X)`) para subirlo, o el padding superior para bajarlo.
+  - Se recomienda ajustar también el `iconSize` si se requiere una alineación aún más precisa.
+- Se garantiza que los nombres largos en el filtro de clientes se truncan correctamente y no hay errores de overflow.
+- El layout es robusto y responsivo, sin restricciones de ancho fijas, y todos los elementos mantienen la alineación en móvil y escritorio.
+
+Commit sugerido:
+
+"UI/UX: Refuerzo de alineación y robustez visual en fila de filtros de transacciones (cliente, tipo, calendario). Padding y truncado mejorados."

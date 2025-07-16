@@ -344,11 +344,28 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       (c) => DropdownMenuItem(value: c.id, child: Text(c.name)),
                     ),
                   ],
+                  selectedItemBuilder: (context) {
+                    return [
+                      const Text(
+                        'Todos',
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                      ...clients.map(
+                        (c) => Text(
+                          c.name,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                    ];
+                  },
                   onChanged: (value) {
                     setState(() {
                       _selectedClientId = value;
                     });
                   },
+                  isExpanded: true,
                 ),
               ),
             ),

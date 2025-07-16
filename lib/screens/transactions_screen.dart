@@ -674,6 +674,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         context,
                         listen: false,
                       );
+                      final cp = Provider.of<ClientProvider>(
+                        context,
+                        listen: false,
+                      );
                       final transactionIdToDelete = t.id;
                       final transactionDescription = t.description;
 
@@ -681,6 +685,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         transactionIdToDelete,
                       );
 
+                      if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
@@ -702,23 +707,22 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           transactionIdToDelete,
                           widget.userId,
                         );
+                        if (!mounted) return;
                         debugPrint(
                           '2. Llamando a cleanLocalPendingDeletedTransactions',
                         );
                         await txProvider.cleanLocalPendingDeletedTransactions();
+                        if (!mounted) return;
                         debugPrint(
-                          '3. Obteniendo ClientProvider y refrescando clientes',
+                          '3. Refrescando clientes (loadClients y refreshClientsFromHive)',
                         );
-                        final cp = Provider.of<ClientProvider>(
-                          context,
-                          listen: false,
-                        );
-                        debugPrint('4. Llamando a loadClients');
                         await cp.loadClients(widget.userId);
-                        debugPrint('5. Llamando a refreshClientsFromHive');
+                        if (!mounted) return;
+                        debugPrint('4. Llamando a refreshClientsFromHive');
                         await cp.refreshClientsFromHive();
+                        if (!mounted) return;
                         debugPrint(
-                          '6. Transacción marcada para eliminar y sincronizar: $transactionIdToDelete',
+                          '5. Transacción marcada para eliminar y sincronizar: $transactionIdToDelete',
                         );
                         debugPrint('--- FIN FLUJO ELIMINACIÓN TRANSACCIÓN ---');
                       } catch (e, stack) {
@@ -726,7 +730,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           '--- ERROR EN FLUJO ELIMINACIÓN TRANSACCIÓN ---',
                         );
                         debugPrint(
-                          'Error al marcar/sincronizar eliminación: $transactionIdToDelete -> ${e.toString()}',
+                          'Error al marcar/sincronizar eliminación: $transactionIdToDelete -> \\${e.toString()}',
                         );
                         debugPrint('Stacktrace: \n$stack');
                         debugPrint(
@@ -736,7 +740,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                'Error al sincronizar eliminación: [${e.toString()}]',
+                                'Error al sincronizar eliminación: [\\${e.toString()}]',
                               ),
                               backgroundColor: Colors.red,
                             ),

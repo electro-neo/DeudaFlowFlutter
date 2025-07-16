@@ -141,7 +141,7 @@ class ClientDetailsModal extends StatelessWidget {
                             rootNavigator: true,
                           ).pop(),
                           onSave: (tx) async {
-                            // Guarda la transacción y refresca clientes para actualizar el balance
+                            // Obtén todas las referencias ANTES de cualquier await
                             final txProvider = Provider.of<TransactionProvider>(
                               dialogContext,
                               listen: false,
@@ -150,6 +150,17 @@ class ClientDetailsModal extends StatelessWidget {
                               dialogContext,
                               listen: false,
                             );
+                            final navigator = Navigator.of(
+                              dialogContext,
+                              rootNavigator: true,
+                            );
+                            final scaffoldMessenger = ScaffoldMessenger.of(
+                              dialogContext,
+                            );
+                            print(
+                              '[DEBUG] onSave: referencias obtenidas, iniciando guardado de transacción',
+                            );
+
                             await txProvider.addTransaction(
                               tx,
                               userId,
@@ -157,23 +168,35 @@ class ClientDetailsModal extends StatelessWidget {
                             );
                             await txProvider.loadTransactions(userId);
                             await clientProvider.loadClients(userId);
-                            if (Navigator.of(
-                              dialogContext,
-                              rootNavigator: true,
-                            ).canPop()) {
-                              Navigator.of(
-                                dialogContext,
-                                rootNavigator: true,
-                              ).pop();
-                            }
-                            // Opcional: mostrar un snackbar de éxito
-                            ScaffoldMessenger.of(dialogContext).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Transacción guardada correctamente',
-                                ),
-                              ),
+                            print(
+                              '[DEBUG] onSave: transacción y clientes recargados',
                             );
+                            // Usa las referencias guardadas, no el context
+                            if (navigator.mounted && navigator.canPop()) {
+                              print(
+                                '[DEBUG] onSave: navigator montado, haciendo pop',
+                              );
+                              navigator.pop();
+                            } else {
+                              print(
+                                '[DEBUG] onSave: navigator desmontado, no se puede hacer pop',
+                              );
+                            }
+                            // Verifica que el ScaffoldMessenger siga montado
+                            try {
+                              scaffoldMessenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Transacción guardada correctamente',
+                                  ),
+                                ),
+                              );
+                            } catch (e) {
+                              print(
+                                '[DEBUG] onSave: error mostrando SnackBar: '
+                                '[31m$e[0m',
+                              );
+                            }
                           },
                         ),
                       );

@@ -36,6 +36,15 @@ class DashboardStats extends StatelessWidget {
       if (c.balance < 0) totalDeuda += -c.balance;
     }
     debugPrint('[DashboardStats][DEBUG] Deuda total calculada: $totalDeuda');
+    debugPrint('[DashboardStats][DEBUG][TRANS] Transacciones actuales:');
+    for (final t in transactions) {
+      debugPrint(
+        '[DashboardStats][DEBUG][TRANS] id: ${t.id}, desc: ${t.description}, amount: ${t.amount}, type: ${t.type}, clientId: ${t.clientId}, pendingDelete: ${t.pendingDelete}',
+      );
+    }
+    debugPrint(
+      '[DashboardStats][DEBUG][EVENT] --- FIN DEUDA TOTAL, tras posible eliminación de transacción ---',
+    );
     // Total abonado y saldo neto siguen calculados desde transacciones
     double totalAbonado = 0;
     double totalSaldo = 0;

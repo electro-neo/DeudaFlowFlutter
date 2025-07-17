@@ -696,7 +696,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 shrinkWrap: true,
                 physics: NeverScrollableScrollPhysics(),
                 itemCount: transactions.length,
-                separatorBuilder: (_, __) => SizedBox(height: 6), // Espacio entre transacciones
+                separatorBuilder: (_, __) =>
+                    SizedBox(height: 6), // Espacio entre transacciones
                 itemBuilder: (context, i) {
                   final t = transactions[i];
                   final client = clients.firstWhere(
@@ -826,13 +827,23 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     },
                     child: Container(
                       decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 255, 255, 255), // Fondo blanco
+                        color: const Color.fromARGB(
+                          255,
+                          255,
+                          255,
+                          255,
+                        ), // Fondo blanco
                         borderRadius: BorderRadius.circular(
                           16,
                         ), // Bordes redondeados
                         boxShadow: [
                           BoxShadow(
-                            color: const Color.fromARGB(255, 11, 11, 11).withOpacity(0.25), // Sombra muy suave
+                            color: const Color.fromARGB(
+                              255,
+                              11,
+                              11,
+                              11,
+                            ).withOpacity(0.25), // Sombra muy suave
                             blurRadius: 4, // Difuminado de la sombra
                             offset: Offset(0, 2), // Desplazamiento de la sombra
                           ),
@@ -841,7 +852,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       child: Padding(
                         padding: EdgeInsets.symmetric(
                           horizontal: 10, // Espaciado horizontal interno
-                          vertical: 1, // Espaciado vertical interno
+                          vertical: 3, // Espaciado vertical interno
                         ),
                         // Fila principal con los datos de la transacción
                         child: Row(

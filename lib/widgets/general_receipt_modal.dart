@@ -111,7 +111,8 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
         !kIsWeb &&
         (platform == TargetPlatform.android || platform == TargetPlatform.iOS);
 
-    return AlertDialog(
+return AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24), // Puedes reducir horizontal para permitir más ancho
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -171,7 +172,7 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
         ],
       ),
       content: SizedBox(
-        width: 350,
+        width: 350, // <-- Ajusta aquí el ancho del modal
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -195,12 +196,33 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Nombre: ${client.name}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    RichText(
+                      text: TextSpan(
+                        style: DefaultTextStyle.of(context).style,
+                        children: [
+                          const TextSpan(text: 'Nombre: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                          TextSpan(text: client.name ?? ''),
+                        ],
+                      ),
                     ),
-                    Text('Teléfono: $phone'),
-                    Text('ID: ${client.id}'),
+                    RichText(
+                      text: TextSpan(
+                        style: DefaultTextStyle.of(context).style,
+                        children: [
+                          const TextSpan(text: 'Teléfono: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                          TextSpan(text: phone),
+                        ],
+                      ),
+                    ),
+                    RichText(
+                      text: TextSpan(
+                        style: DefaultTextStyle.of(context).style,
+                        children: [
+                          const TextSpan(text: 'ID: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                          TextSpan(text: client.id != null ? client.id.toString() : ''),
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     if (filteredTxs.isEmpty)
                       const Text(
@@ -324,7 +346,7 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   SizedBox(
-                    width: 140,
+                    width: 180, // <-- Ajusta aquí el ancho del botón Cerrar
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.close),
                       style: OutlinedButton.styleFrom(

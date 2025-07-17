@@ -43,7 +43,20 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _loginAsGuest() async {
     _emailController.text = _guestEmail;
     _passwordController.text = _guestPassword;
-    await _login();
+    // Verifica si ya hay sesión guardada para invitado
+    final sessionBox = await Hive.openBox('session');
+    final savedEmail = sessionBox.get('email');
+    if (savedEmail == _guestEmail) {
+      await _login();
+    } else {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debes estar conectado a internet para usar el modo invitado por primera vez.'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   final _emailController = TextEditingController();

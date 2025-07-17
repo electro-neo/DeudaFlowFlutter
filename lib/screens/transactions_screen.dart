@@ -314,6 +314,18 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             clientPendingDelete = true;
           }
         } catch (_) {}
+      } else {
+        // Lógica adicional: si el cliente tiene UUID y está marcado para eliminar offline
+        try {
+          final box = Hive.box('clients');
+          final hiveClient = box.get(selectedClientId);
+          if (hiveClient != null &&
+              hiveClient.pendingDelete == true &&
+              hiveClient.id is String &&
+              hiveClient.id.length == 36) {
+            clientPendingDelete = true;
+          }
+        } catch (_) {}
       }
     }
     // Detectar offline

@@ -161,28 +161,8 @@ class ClientDetailsModal extends StatelessWidget {
                   child: IconButton(
                     icon: const Icon(Icons.delete, size: 26),
                     color: Colors.red,
-                    onPressed: () async {
+                    onPressed: () {
                       Navigator.of(context, rootNavigator: true).pop();
-                      final provider = Provider.of<ClientProvider>(
-                        context,
-                        listen: false,
-                      );
-                      await provider.cleanLocalPendingDeletedClients();
-                      // Mostrar mensaje según conexión
-                      final txProvider = Provider.of<TransactionProvider>(
-                        context,
-                        listen: false,
-                      );
-                      final isOnline = await txProvider.isOnline();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            isOnline
-                                ? 'Cliente eliminado correctamente.'
-                                : 'Cliente pendiente por eliminar',
-                          ),
-                        ),
-                      );
                       if (onDelete != null) {
                         Future.delayed(Duration.zero, onDelete!);
                       }

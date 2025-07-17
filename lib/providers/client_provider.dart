@@ -127,29 +127,6 @@ class ClientProvider extends ChangeNotifier {
           await _service.updateClient(client);
           c.synced = true;
           await c.save();
-          // Refuerzo: tras sincronizar, asegurar que TODAS las transacciones de este cliente tengan el id correcto
-          if (c.id.length == 36) {
-            Box<TransactionHive> txBox;
-            if (Hive.isBoxOpen('transactions')) {
-              txBox = Hive.box<TransactionHive>('transactions');
-            } else {
-              txBox = await Hive.openBox<TransactionHive>('transactions');
-            }
-            final clientBox = Hive.box<ClientHive>('clients');
-            final txsToUpdate = txBox.values.where((tx) {
-              final relatedClient = clientBox.get(tx.clientId);
-              return tx.clientId != c.id && relatedClient?.name == c.name;
-            }).toList();
-            for (final tx in txsToUpdate) {
-              tx.clientId = c.id;
-              await tx.save();
-            }
-            if (txsToUpdate.isNotEmpty) {
-              debugPrint(
-                '[SYNC][INFO] Transacciones antiguas actualizadas al id correcto de cliente: ${c.id} (${txsToUpdate.length} transacciones)',
-              );
-            }
-          }
         }
       } catch (e) {
         debugPrint('[SYNC][ERROR] Error al sincronizar cliente: $e');
@@ -408,7 +385,28 @@ class ClientProvider extends ChangeNotifier {
     // 1. Marcar como pendiente de eliminar en Hive
     c.pendingDelete = true;
     await c.save();
-    // await loadClients(userId);
+
+    // 1.1. Si está offline, también marca todas las transacciones asociadas como pendingDelete=true
+    if (!await _isOnline()) {
+      try {
+        final txBox = Hive.isBoxOpen('transactions')
+            ? Hive.box<TransactionHive>('transactions')
+            : await Hive.openBox<TransactionHive>('transactions');
+        final txs = txBox.values
+            .where((t) => t.clientId == clientId && t.pendingDelete != true)
+            .toList();
+        for (final t in txs) {
+          t.pendingDelete = true;
+          t.synced = false;
+          await t.save();
+        }
+      } catch (e) {
+        debugPrint(
+          '[deleteClient][OFFLINE] Error marcando transacciones como pendingDelete: $e',
+        );
+      }
+    }
+
     await _refreshClientsFromHive();
 
     // 2. Verificar si estamos online

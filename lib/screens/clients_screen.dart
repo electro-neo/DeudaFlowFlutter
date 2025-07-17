@@ -932,14 +932,18 @@ class _ClientsScreenState extends State<ClientsScreen>
                                               // ignore: use_build_context_synchronously
                                               // NOTA: Este warning aparece porque el linter de Flutter no siempre detecta correctamente el patrón de chequeo de 'mounted'.
                                               // El uso de context aquí es seguro porque se verifica 'mounted' justo antes. Puedes ignorar este warning: no afecta la ejecución ni la seguridad del código.
+                                              // Verifica si está online antes de mostrar el mensaje
+                                              final isOnline = await txProvider.isOnline();
                                               ScaffoldMessenger.of(
                                                 context,
                                               ).showSnackBar(
-                                                const SnackBar(
+                                                SnackBar(
                                                   content: Text(
-                                                    'Cliente eliminado correctamente.',
+                                                    isOnline
+                                                        ? 'Cliente eliminado correctamente.'
+                                                        : 'Cliente pendiente por eliminar',
                                                   ),
-                                                  duration: Duration(
+                                                  duration: const Duration(
                                                     seconds: 2,
                                                   ),
                                                 ),

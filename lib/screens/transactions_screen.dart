@@ -830,7 +830,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                               212,
                               212,
                               212,
-                            ).withValues(alpha: 0.07 * 255), // Sombra muy suave
+                            ).withOpacity(0.07), // Sombra muy suave
                             blurRadius: 4, // Difuminado de la sombra
                             offset: Offset(0, 2), // Desplazamiento de la sombra
                           ),
@@ -1002,7 +1002,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                                   width: 2,
                                                 ), // Menor separación
                                                 Text(
-                                                  'Pendiente', // Mensaje más corto
+                                                  'Pendiente por sincronizar', // Mensaje más corto
                                                   style: TextStyle(
                                                     fontSize:
                                                         9, // Texto más pequeño
@@ -1068,7 +1068,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                             ),
                           ],
                         ),
-                      );
+                      ),
+                    ), // Cierre del Container principal // cierre del itemBuilder
+                  ); // cierre de Dismissible
                 },
               ),
       ],

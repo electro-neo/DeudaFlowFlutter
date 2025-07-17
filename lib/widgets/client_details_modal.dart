@@ -45,7 +45,7 @@ class ClientDetailsModal extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    '${client.name.isNotEmpty ? client.name : 'Sin información'}',
+                    client.name.isNotEmpty ? client.name : 'Sin información',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,

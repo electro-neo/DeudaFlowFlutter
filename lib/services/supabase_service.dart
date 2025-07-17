@@ -25,18 +25,23 @@ class SupabaseService {
 
   Future<String?> addClient(Client client, String userId) async {
     final now = DateTime.now().toIso8601String();
+    // Solo incluir 'id' si es un UUID válido (36 caracteres)
+    final Map<String, dynamic> data = {
+      'name': client.name,
+      'email': client.email,
+      'phone': client.phone,
+      'balance': client.balance,
+      'user_id': userId,
+      'created_at': now,
+      'updated_at': now,
+      'local_id': client.localId ?? client.id,
+    };
+    if (client.id.isNotEmpty && client.id.length == 36) {
+      data['id'] = client.id;
+    }
     final response = await _client
         .from('clients')
-        .upsert({
-          'name': client.name,
-          'email': client.email,
-          'phone': client.phone,
-          'balance': client.balance,
-          'user_id': userId,
-          'created_at': now,
-          'updated_at': now,
-          'local_id': client.localId ?? client.id,
-        }, onConflict: 'local_id')
+        .upsert(data, onConflict: 'local_id')
         .select('id')
         .single();
     // Devuelve el id generado por Supabase si existe

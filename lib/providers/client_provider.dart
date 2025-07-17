@@ -40,7 +40,24 @@ class ClientProvider extends ChangeNotifier {
             debugPrint(
               '[SYNC][SUCCESS] Cliente ${c.id} confirmado como eliminado en Supabase. Eliminando de Hive...',
             );
+            // Elimina el cliente de Hive
             await c.delete();
+            // Elimina todas las transacciones asociadas marcadas como pendingDelete
+            try {
+              final txBox = Hive.isBoxOpen('transactions')
+                  ? Hive.box<TransactionHive>('transactions')
+                  : await Hive.openBox<TransactionHive>('transactions');
+              final orphanTxs = txBox.values
+                  .where((t) => t.clientId == c.id && t.pendingDelete == true)
+                  .toList();
+              for (final t in orphanTxs) {
+                await t.delete();
+                debugPrint('[SYNC][CLEAN] Transacción huérfana eliminada tras sync: id=${t.id}, clientId=${t.clientId}, desc=${t.description}');
+              }
+            } catch (e) {
+              debugPrint('[SYNC][CLEAN][ERROR] Error eliminando transacciones huérfanas tras sync: $e');
+            }
+            notifyListeners();
           } else {
             debugPrint(
               '[SYNC][WARN] Falló la eliminación del cliente ${c.id} en Supabase. Se reintentará en la próxima sincronización.',

@@ -98,15 +98,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    context.watch<CurrencyProvider>();
     final clients = context.watch<ClientProvider>().clients;
     final transactions = context.watch<TransactionProvider>().transactions;
-    String format(num value, String type) {
-      final symbol = CurrencyUtils.symbol(context);
-      final formatted = CurrencyUtils.format(context, value);
-      return type == 'debt' ? '-$symbol$formatted' : '+$symbol$formatted';
-    }
-
+    // ...existing code...
     final recentTransactions = List.of(transactions)
       ..sort((a, b) => b.date.compareTo(a.date));
     final recent = recentTransactions.take(10).toList();
@@ -370,87 +364,105 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               child: Text('No hay movimientos registrados aún'),
                             )
                           else
-                            CyclicAnimatedFadeList(
-                              interval: const Duration(milliseconds: 2000),
-                              animationDuration: const Duration(
-                                milliseconds: 8000,
-                              ),
-                              minOpacity: 0.25,
-                              itemSpacing: 10.0,
-                              children: recent.map((tx) {
-                                final client = clients.firstWhere(
-                                  (c) => c.id == tx.clientId,
-                                  orElse: () =>
-                                      Client(id: '', name: '', balance: 0),
-                                );
-                                final clientName = client.name.isNotEmpty
-                                    ? client.name
-                                    : 'Desconocido';
-                                return Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(
-                                          alpha: 0.03,
-                                        ),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
+                            Consumer<CurrencyProvider>(
+                              builder: (context, currencyProvider, _) {
+                                return CyclicAnimatedFadeList(
+                                  interval: const Duration(milliseconds: 2000),
+                                  animationDuration: const Duration(
+                                    milliseconds: 8000,
                                   ),
-                                  child: ListTile(
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 8,
-                                    ),
-                                    leading: Container(
-                                      width: 44,
-                                      height: 44,
+                                  minOpacity: 0.25,
+                                  itemSpacing: 10.0,
+                                  children: recent.map((tx) {
+                                    final client = clients.firstWhere(
+                                      (c) => c.id == tx.clientId,
+                                      orElse: () =>
+                                          Client(id: '', name: '', balance: 0),
+                                    );
+                                    final clientName = client.name.isNotEmpty
+                                        ? client.name
+                                        : 'Desconocido';
+                                    // Usar el currencyProvider para forzar rebuild inmediato
+                                    final symbol = CurrencyUtils.symbol(
+                                      context,
+                                    );
+                                    final formatted = CurrencyUtils.format(
+                                      context,
+                                      tx.amount,
+                                    );
+                                    final amountText = tx.type == 'debt'
+                                        ? '-$symbol$formatted'
+                                        : '+$symbol$formatted';
+                                    return Container(
                                       decoration: BoxDecoration(
-                                        color: tx.type == 'debt'
-                                            ? const Color(0xFFFFE5E5)
-                                            : const Color(0xFFE5FFE8),
-                                        borderRadius: BorderRadius.circular(12),
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(16),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(
+                                              alpha: 0.03,
+                                            ),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
                                       ),
-                                      child: Icon(
-                                        tx.type == 'debt'
-                                            ? Icons.arrow_downward_rounded
-                                            : Icons.arrow_upward_rounded,
-                                        color: tx.type == 'debt'
-                                            ? const Color(0xFFD32F2F)
-                                            : const Color(0xFF388E3C),
-                                        size: 28,
+                                      child: ListTile(
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 8,
+                                            ),
+                                        leading: Container(
+                                          width: 44,
+                                          height: 44,
+                                          decoration: BoxDecoration(
+                                            color: tx.type == 'debt'
+                                                ? const Color(0xFFFFE5E5)
+                                                : const Color(0xFFE5FFE8),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            tx.type == 'debt'
+                                                ? Icons.arrow_downward_rounded
+                                                : Icons.arrow_upward_rounded,
+                                            color: tx.type == 'debt'
+                                                ? const Color(0xFFD32F2F)
+                                                : const Color(0xFF388E3C),
+                                            size: 28,
+                                          ),
+                                        ),
+                                        title: Text(
+                                          tx.description,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        subtitle: Text(
+                                          'Cliente: $clientName',
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            color: Color(0xFF7B7B7B),
+                                          ),
+                                        ),
+                                        trailing: Text(
+                                          amountText,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                            color: tx.type == 'debt'
+                                                ? const Color(0xFFD32F2F)
+                                                : const Color(0xFF388E3C),
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                    title: Text(
-                                      tx.description,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    subtitle: Text(
-                                      'Cliente: $clientName',
-                                      style: const TextStyle(
-                                        fontSize: 13,
-                                        color: Color(0xFF7B7B7B),
-                                      ),
-                                    ),
-                                    trailing: Text(
-                                      format(tx.amount, tx.type),
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                        color: tx.type == 'debt'
-                                            ? const Color(0xFFD32F2F)
-                                            : const Color(0xFF388E3C),
-                                      ),
-                                    ),
-                                  ),
+                                    );
+                                  }).toList(),
                                 );
-                              }).toList(),
+                              },
                             ),
                         ],
                       ),

@@ -125,9 +125,21 @@ class _CyclicAnimatedFadeListState extends State<CyclicAnimatedFadeList>
   @override
   void didUpdateWidget(covariant CyclicAnimatedFadeList oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Update items if children changed
-    if (widget.children.length != _items.length) {
-      _items = List<Widget>.from(widget.children);
+    // Actualiza los items si los hijos cambiaron (no solo la longitud)
+    final newChildren = widget.children;
+    bool needsUpdate = false;
+    if (newChildren.length != _items.length) {
+      needsUpdate = true;
+    } else {
+      for (int i = 0; i < newChildren.length; i++) {
+        if (newChildren[i].key != _items[i].key || newChildren[i] != _items[i]) {
+          needsUpdate = true;
+          break;
+        }
+      }
+    }
+    if (needsUpdate) {
+      _items = List<Widget>.from(newChildren);
     }
     // Restart timer if interval changed
     if (widget.interval != oldWidget.interval) {

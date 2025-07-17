@@ -87,10 +87,11 @@ class ClientCard extends StatelessWidget {
           );
         },
         child: Card(
+          color: const Color.fromARGB(255, 255, 255, 255), // Cambia aquí el color de fondo del cuadro
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
+          margin: const EdgeInsets.symmetric(vertical: 0, horizontal: 0), //aqui se fusiona container y card
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(

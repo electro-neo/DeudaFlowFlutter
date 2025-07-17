@@ -789,11 +789,11 @@ class _ClientsScreenState extends State<ClientsScreen>
                         padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.80),
+                            color: const Color.fromARGB(0, 0, 0, 0).withValues(alpha: 0.00),
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.04),
+                                color: const Color.fromARGB(0, 0, 0, 0).withValues(alpha: 0.00),
                                 blurRadius: 10,
                                 offset: const Offset(0, 2),
                               ),
@@ -814,13 +814,18 @@ class _ClientsScreenState extends State<ClientsScreen>
                                       final client = clientsWithBalance[index];
                                       return Container(
                                         decoration: BoxDecoration(
-                                          color: Colors.white,
+                                          color: const Color.fromARGB(
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                          ),
                                           borderRadius: BorderRadius.circular(
                                             16,
                                           ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Colors.black.withValues(
+                                              color: const Color.fromARGB(0, 0, 0, 0).withValues(
                                                 alpha: 0.03,
                                               ),
                                               blurRadius: 8,

@@ -203,16 +203,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               child: Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.92 * 255),
+                  color: const Color.fromARGB(255, 255, 255, 255).withValues(alpha: 1 * 255),
                   borderRadius: BorderRadius.circular(18),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color.fromARGB(
-                        255,
-                        255,
-                        255,
-                        255,
-                      ).withValues(alpha: 0.08 * 255),
+                      color: const Color.fromARGB(255, 255, 255, 255).withValues(alpha: 0.08 * 255),
                       blurRadius: 14,
                       offset: const Offset(0, 3),
                     ),

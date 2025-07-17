@@ -168,6 +168,21 @@ class ClientDetailsModal extends StatelessWidget {
                         listen: false,
                       );
                       await provider.cleanLocalPendingDeletedClients();
+                      // Mostrar mensaje según conexión
+                      final txProvider = Provider.of<TransactionProvider>(
+                        context,
+                        listen: false,
+                      );
+                      final isOnline = await txProvider.isOnline();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            isOnline
+                                ? 'Cliente eliminado correctamente.'
+                                : 'Cliente pendiente por eliminar',
+                          ),
+                        ),
+                      );
                       if (onDelete != null) {
                         Future.delayed(Duration.zero, onDelete!);
                       }

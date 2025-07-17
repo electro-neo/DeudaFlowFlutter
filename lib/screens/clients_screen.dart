@@ -643,7 +643,6 @@ class _ClientsScreenState extends State<ClientsScreen>
                                                 widget.userId,
                                               );
                                             }
-                                            // Limpieza local de clientes nunca sincronizados marcados para eliminar
                                             await provider
                                                 .cleanLocalPendingDeletedClients();
                                             debugPrint(
@@ -656,7 +655,6 @@ class _ClientsScreenState extends State<ClientsScreen>
                                                 .syncPendingTransactions(
                                                   widget.userId,
                                                 );
-                                            // Refuerzo: Esperar a que no haya clientes pendientes de eliminar antes de recargar la lista
                                             int intentos = 0;
                                             bool hayPendientes;
                                             do {
@@ -692,12 +690,17 @@ class _ClientsScreenState extends State<ClientsScreen>
                                               debugPrint(
                                                 '[ELIMINAR_TODOS] Proceso completado.',
                                               );
+                                              // Verifica si está offline
+                                              final isOnline = await txProvider
+                                                  .isOnline();
                                               ScaffoldMessenger.of(
                                                 context,
                                               ).showSnackBar(
-                                                const SnackBar(
+                                                SnackBar(
                                                   content: Text(
-                                                    'Todos los clientes eliminados.',
+                                                    isOnline
+                                                        ? 'Todos los clientes eliminados.'
+                                                        : 'Clientes pendientes por eliminar',
                                                   ),
                                                 ),
                                               );

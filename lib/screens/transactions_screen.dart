@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:hive/hive.dart';
+
 import '../providers/currency_provider.dart';
 import '../providers/transaction_filter_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../models/client.dart';
 import '../providers/client_provider.dart';
+import '../providers/sync_provider.dart';
 import '../utils/no_scrollbar_behavior.dart';
 
 class TransactionsScreen extends StatefulWidget {
@@ -203,11 +206,21 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               child: Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: const Color.fromARGB(255, 255, 255, 255).withValues(alpha: 1 * 255),
+                  color: const Color.fromARGB(
+                    255,
+                    255,
+                    255,
+                    255,
+                  ).withValues(alpha: 1 * 255),
                   borderRadius: BorderRadius.circular(18),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color.fromARGB(255, 255, 255, 255).withValues(alpha: 0.08 * 255),
+                      color: const Color.fromARGB(
+                        255,
+                        255,
+                        255,
+                        255,
+                      ).withValues(alpha: 0.08 * 255),
                       blurRadius: 14,
                       offset: const Offset(0, 3),
                     ),
@@ -280,6 +293,39 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     List<Client> clients,
     List transactions,
   ) {
+    // --- NUEVO: Detectar si el cliente está pendiente por eliminar y si estamos offline ---
+    final clientProvider = Provider.of<ClientProvider>(context, listen: false);
+    final syncProvider = Provider.of<SyncProvider?>(context, listen: false);
+    bool isOffline = false;
+    bool clientPendingDelete = false;
+    String? selectedClientId = _selectedClientId;
+    if (selectedClientId != null && selectedClientId.isNotEmpty) {
+      // Buscar el cliente en Hive si no está en la lista visible
+      final client = clientProvider.clients.firstWhere(
+        (c) => c.id == selectedClientId,
+        orElse: () => Client(id: '', name: '', balance: 0),
+      );
+      if (client.id.isEmpty) {
+        // Buscar en Hive directamente
+        try {
+          final box = Hive.box('clients');
+          final hiveClient = box.get(selectedClientId);
+          if (hiveClient != null && hiveClient.pendingDelete == true) {
+            clientPendingDelete = true;
+          }
+        } catch (_) {}
+      }
+    }
+    // Detectar offline
+    // Si hay SyncProvider, úsalo; si no, fallback a TransactionProvider
+    if (syncProvider != null) {
+      isOffline = !syncProvider.isOnline;
+    } else {
+      // Fallback: usar TransactionProvider
+      // (esto es asíncrono, así que solo para fallback visual, no bloqueante)
+      // isOffline = !(await txProvider.isOnline()); // No se puede usar await aquí
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -878,7 +924,52 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                       ),
                                     ],
                                   ),
-                                  if (t.synced == false)
+                                  // --- NUEVO: Estado especial para transacciones de cliente pendiente por eliminar en offline ---
+                                  if (clientPendingDelete && isOffline)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                        top: 2,
+                                        bottom: 1,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Spacer(),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 7,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.red.withOpacity(
+                                                0.09,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.delete_forever,
+                                                  size: 12,
+                                                  color: Colors.red,
+                                                ),
+                                                SizedBox(width: 2),
+                                                Text(
+                                                  'Pendiente por eliminar',
+                                                  style: TextStyle(
+                                                    fontSize: 9,
+                                                    color: Colors.red[800],
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  else if (t.synced == false)
                                     Padding(
                                       padding: const EdgeInsets.only(
                                         top: 2,
@@ -924,8 +1015,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                           ),
                                         ],
                                       ),
-                                    ),
-                                  if (t.synced == true)
+                                    )
+                                  else if (t.synced == true)
                                     Padding(
                                       padding: const EdgeInsets.only(
                                         top: 2,
@@ -977,9 +1068,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                             ),
                           ],
                         ),
-                      ),
-                    ),
-                  );
+                      );
                 },
               ),
       ],
@@ -1045,5 +1134,3 @@ class _CalendarDateRangePickerState extends State<CalendarDateRangePicker> {
     );
   }
 }
-
-// (Lógica de calendario únicamente, sin métodos de transacciones)

@@ -510,6 +510,10 @@ class _ClientsScreenState extends State<ClientsScreen>
                                             ).isOnline(),
                                         builder: (context, snapshot) {
                                           final online = snapshot.data ?? true;
+                                          if (!online) {
+                                            // Si está offline, no muestra el botón de sincronizar
+                                            return const SizedBox.shrink();
+                                          }
                                           return FloatingActionButton(
                                             heroTag: 'syncClientes',
                                             mini: true,
@@ -518,12 +522,11 @@ class _ClientsScreenState extends State<ClientsScreen>
                                             ).colorScheme.primary,
                                             foregroundColor: Colors.white,
                                             elevation: 2,
-                                            onPressed: (_isSyncing || !online)
+                                            onPressed: _isSyncing
                                                 ? null
                                                 : _syncAll,
-                                            tooltip: online
-                                                ? 'Forzar sincronización de clientes y transacciones'
-                                                : 'No hay conexión a internet',
+                                            tooltip:
+                                                'Forzar sincronización de clientes y transacciones',
                                             child: AnimatedBuilder(
                                               animation: _syncController,
                                               builder: (context, child) {
@@ -536,9 +539,7 @@ class _ClientsScreenState extends State<ClientsScreen>
                                                     Icons.sync,
                                                     color: _isSyncing
                                                         ? Colors.green
-                                                        : (!online
-                                                              ? Colors.grey
-                                                              : Colors.white),
+                                                        : Colors.white,
                                                   ),
                                                 );
                                               },
@@ -789,11 +790,21 @@ class _ClientsScreenState extends State<ClientsScreen>
                         padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                         child: Container(
                           decoration: BoxDecoration(
-                            color: const Color.fromARGB(0, 0, 0, 0).withValues(alpha: 0.00),
+                            color: const Color.fromARGB(
+                              0,
+                              0,
+                              0,
+                              0,
+                            ).withValues(alpha: 0.00),
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color.fromARGB(0, 0, 0, 0).withValues(alpha: 0.00),
+                                color: const Color.fromARGB(
+                                  0,
+                                  0,
+                                  0,
+                                  0,
+                                ).withValues(alpha: 0.00),
                                 blurRadius: 10,
                                 offset: const Offset(0, 2),
                               ),
@@ -825,9 +836,12 @@ class _ClientsScreenState extends State<ClientsScreen>
                                           ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: const Color.fromARGB(0, 0, 0, 0).withValues(
-                                                alpha: 0.03,
-                                              ),
+                                              color: const Color.fromARGB(
+                                                0,
+                                                0,
+                                                0,
+                                                0,
+                                              ).withValues(alpha: 0.03),
                                               blurRadius: 8,
                                               offset: const Offset(0, 2),
                                             ),

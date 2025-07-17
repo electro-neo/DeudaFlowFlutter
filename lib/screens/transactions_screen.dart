@@ -485,7 +485,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               padding: const EdgeInsets.symmetric(
                 vertical: 12.0,
                 horizontal: 2.0,
-              ),
+              ), //color de los statscard abono/deuda
               child: Container(
                 decoration: BoxDecoration(
                   color: const Color.fromARGB(255, 255, 255, 255),
@@ -494,9 +494,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     BoxShadow(
                       color: const Color.fromARGB(
                         255,
-                        164,
-                        164,
-                        164,
+                        227,
+                        227,
+                        227,
                       ).withValues(alpha: 0.06 * 255),
                       blurRadius: 10,
                       offset: const Offset(0, 2),
@@ -504,12 +504,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   ],
                   border: Border.all(
                     color: const Color.fromARGB(255, 255, 255, 255),
-                    width: 1.2,
+                    width: 1.0,
                   ),
                 ),
                 padding: const EdgeInsets.symmetric(
                   vertical: 10,
-                  horizontal: 24,
+                  horizontal: 20,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -773,7 +773,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     },
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.white, // Fondo blanco
+                        color: const Color.fromARGB(
+                          255,
+                          255,
+                          255,
+                          255,
+                        ), // Fondo blanco
                         borderRadius: BorderRadius.circular(
                           16,
                         ), // Bordes redondeados
@@ -781,11 +786,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           BoxShadow(
                             color: const Color.fromARGB(
                               255,
-                              177,
-                              177,
-                              177,
+                              212,
+                              212,
+                              212,
                             ).withValues(alpha: 0.07 * 255), // Sombra muy suave
-                            blurRadius: 8, // Difuminado de la sombra
+                            blurRadius: 4, // Difuminado de la sombra
                             offset: Offset(0, 2), // Desplazamiento de la sombra
                           ),
                         ],
@@ -904,14 +909,17 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                               children: [
                                                 Icon(
                                                   Icons.sync,
-                                                  size: 12,
+                                                  size: 10, // Icono más pequeño
                                                   color: Colors.orange,
                                                 ),
-                                                SizedBox(width: 4),
+                                                SizedBox(
+                                                  width: 2,
+                                                ), // Menor separación
                                                 Text(
-                                                  'Pendiente',
+                                                  'Pendiente', // Mensaje más corto
                                                   style: TextStyle(
-                                                    fontSize: 11,
+                                                    fontSize:
+                                                        9, // Texto más pequeño
                                                     color: Colors.orange[800],
                                                     fontWeight: FontWeight.w600,
                                                   ),
@@ -948,14 +956,17 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                               children: [
                                                 Icon(
                                                   Icons.cloud_done,
-                                                  size: 12,
+                                                  size: 10, // Icono más pequeño
                                                   color: Colors.green,
                                                 ),
-                                                SizedBox(width: 4),
+                                                SizedBox(
+                                                  width: 2,
+                                                ), // Menor separación
                                                 Text(
-                                                  'Sincronizado',
+                                                  'Sincronizado', // Mensaje más corto
                                                   style: TextStyle(
-                                                    fontSize: 11,
+                                                    fontSize:
+                                                        9, // Texto más pequeño
                                                     color: Colors.green[800],
                                                     fontWeight: FontWeight.w600,
                                                   ),

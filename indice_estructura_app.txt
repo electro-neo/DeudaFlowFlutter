@@ -256,47 +256,13 @@ Estos permisos están declarados en `android/app/src/main/AndroidManifest.xml` y
 - **Visualización:** El estado de sincronización se muestra en las tarjetas (ClientCard y, si aplica, TransactionCard).
 
 ---
----
-## Lógica y sincronización offline/online (Actualización 12/07/2025)
-
-- TransactionProvider y ClientProvider ahora almacenan y utilizan el userId más reciente para garantizar la sincronización automática y manual de transacciones y clientes, incluso tras reinstalación o limpieza de datos.
-- Al recuperar conexión, las transacciones pendientes se sincronizan automáticamente y se recarga el listado desde Supabase, actualizando el estado local y eliminando el estado "pendiente por sincronizar" si ya existen en el backend.
-- El balance de los clientes se recalcula automáticamente tras cualquier cambio en transacciones.
-- Se reforzó la migración automática de campos en Hive y la robustez ante datos corruptos.
-- El polling y la lógica de feedback visual en la UI se mejoraron para todos los flujos offline/online.
-
----
-Actualización 14/07/2025:
-
-- Se refactorizó y mejoró la experiencia visual de los modales de transacción, listas, dropdowns y mensajes de sincronización.
-- El FAB ahora se oculta automáticamente al abrir el teclado en formularios.
-- El banner de sincronización tiene ancho dinámico y LED parpadeante para todos los estados.
-- Las tarjetas de estadísticas del dashboard pueden ajustarse individualmente en tamaño y posición, con comentarios en el código para facilitar cambios futuros.
-- El modal de recibo general filtra correctamente por fecha y muestra mensajes claros si no hay movimientos en el rango.
-- El PDF de recibo general muestra totales por cliente y globales, y soporta conversión de moneda (USD/VES) según el toggle y la tasa.
-- La lógica de conversión de moneda está integrada en el modal y el PDF, usando CurrencyProvider y CurrencyUtils.
-- El símbolo "$" se muestra correctamente en el PDF y en el modal solo cuando la moneda es USD.
-- Limpieza de variables no usadas y warnings menores.
-- Mejoras menores de UI y feedback visual en listados y modales.
-
----
-Actualización 15/07/2025:
-
-- TransactionsScreen: El handler de swipe (onDismissed) ahora elimina la transacción de la lista visible inmediatamente usando setState, cumpliendo el patrón recomendado por Flutter para Dismissible.
-- El estado "pendiente por eliminar" se muestra como feedback visual (snackbar/banner), no en la lista principal.
-- La sincronización y eliminación real en Hive/Supabase sigue ocurriendo en segundo plano con delay.
-- Se evita el error "A dismissed Dismissible widget is still part of the tree" y la experiencia de usuario es más fluida.
-
----
-Actualización 16/07/2025:
-
-- Se documentó y reforzó la alineación de los filtros de cliente, tipo y el icono de calendario en la pantalla de transacciones:
-  - Los tres elementos están en una sola fila (`Row`), cada uno en un `Expanded` (flex 4, 3 y 1).
-  - El icono de calendario puede alinearse visualmente ajustando el padding inferior (`EdgeInsets.only(bottom: X)`) para subirlo, o el padding superior para bajarlo.
-  - Se recomienda ajustar también el `iconSize` si se requiere una alineación aún más precisa.
-- Se garantiza que los nombres largos en el filtro de clientes se truncan correctamente y no hay errores de overflow.
-- El layout es robusto y responsivo, sin restricciones de ancho fijas, y todos los elementos mantienen la alineación en móvil y escritorio.
-
+--
 Commit sugerido:
 
 "UI/UX: Refuerzo de alineación y robustez visual en fila de filtros de transacciones (cliente, tipo, calendario). Padding y truncado mejorados."
+
+---
+Actualización 17/07/2025:
+
+- El PDF de recibo general ahora muestra la tabla de movimientos con las columnas en el siguiente orden: Fecha, Descripción, Tipo, Monto.
+- Este cambio mejora la legibilidad y coherencia con la visualización en pantalla.

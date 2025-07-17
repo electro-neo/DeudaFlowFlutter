@@ -111,3 +111,14 @@ Actualización 16/07/2025:
 Commit sugerido:
 
 "UI/UX: Refuerzo de alineación y robustez visual en fila de filtros de transacciones (cliente, tipo, calendario). Padding y truncado mejorados."
+
+---
+Actualización 17/07/2025:
+
+- El orden de las columnas en la tabla del PDF de recibo general fue modificado para mayor claridad:
+  - Ahora el orden es: Fecha, Descripción, Tipo, Monto.
+  - Esto aplica tanto para recibos individuales como generales exportados desde la app.
+
+Commit sugerido:
+
+"PDF: Reordenadas columnas de tabla en recibo general (Fecha, Descripción, Tipo, Monto) para mayor claridad visual."

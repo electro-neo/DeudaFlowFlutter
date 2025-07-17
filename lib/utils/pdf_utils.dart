@@ -166,16 +166,16 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
               if (txs.isEmpty) pw.Text('Sin movimientos en el rango.'),
               if (txs.isNotEmpty)
                 pw.TableHelper.fromTextArray(
-                  headers: ['Tipo', 'Descripción', 'Fecha', 'Monto'],
+                  headers: ['Fecha', 'Descripción', 'Tipo', 'Monto'],
                   headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                   data: txs
                       .map(
                         (tx) => [
+                          tx.date.toLocal().toString().split(' ')[0],
+                          tx.description,
                           tx.type == 'deuda' || tx.type == 'debt'
                               ? 'Deuda'
                               : 'Abono',
-                          tx.description,
-                          tx.date.toLocal().toString().split(' ')[0],
                           formatAmount(
                             tx.amount as num,
                             convertCurrency,

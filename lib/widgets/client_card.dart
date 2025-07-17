@@ -87,11 +87,19 @@ class ClientCard extends StatelessWidget {
           );
         },
         child: Card(
-          color: const Color.fromARGB(255, 255, 255, 255), // Cambia aquí el color de fondo del cuadro
+          color: const Color.fromARGB(
+            255,
+            255,
+            255,
+            255,
+          ), // Cambia aquí el color de fondo del cuadro
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          margin: const EdgeInsets.symmetric(vertical: 0, horizontal: 0), //aqui se fusiona container y card
+          margin: const EdgeInsets.symmetric(
+            vertical: 0,
+            horizontal: 0,
+          ), //aqui se fusiona container y card
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
@@ -99,92 +107,107 @@ class ClientCard extends StatelessWidget {
               children: [
                 const CircleAvatar(child: Icon(Icons.person)),
                 const SizedBox(width: 8),
-                // Nombre ocupa el espacio disponible
-                Expanded(
-                  child: Text(
-                    client.name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                Container(
+                  constraints: BoxConstraints(maxWidth: 100),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 0),
+                    child: Text(
+                      client.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 const SizedBox(width: 8),
-                // Todo el bloque de saldo y estados alineado a la derecha
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Monto alineado a la derecha
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Text(
-                        saldo,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: balanceColor,
-                        ),
-                        textAlign: TextAlign.right,
-                      ),
-                    ),
-                    // Estado alineado a la derecha
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Text(
-                        statusText,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: balanceColor,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        textAlign: TextAlign.right,
-                      ),
-                    ),
-                    // Mensaje de sincronización alineado a la derecha y visualmente destacado
-                    if (syncText != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: syncColor != null
-                                  ? Color.fromARGB(
-                                      (0.10 * 255).round(),
-                                      (syncColor.r * 255.0).round() & 0xff,
-                                      (syncColor.g * 255.0).round() & 0xff,
-                                      (syncColor.b * 255.0).round() & 0xff,
-                                    )
-                                  : null,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                Icon(syncIcon, size: 13, color: syncColor),
-                                SizedBox(width: 3),
-                                Text(
-                                  syncText,
-                                  style: TextStyle(
-                                    fontSize: 9.5,
-                                    color: syncColor,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  textAlign: TextAlign.right,
-                                ),
-                              ],
+                Expanded(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              saldo,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: balanceColor,
+                              ),
+                              textAlign: TextAlign.right,
                             ),
                           ),
-                        ),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              statusText,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: balanceColor,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              textAlign: TextAlign.right,
+                            ),
+                          ),
+                          if (syncText != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Align(
+                                alignment: Alignment.centerRight,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: syncColor != null
+                                        ? Color.fromARGB(
+                                            (0.10 * 255).round(),
+                                            (syncColor.r * 255.0).round() &
+                                                0xff,
+                                            (syncColor.g * 255.0).round() &
+                                                0xff,
+                                            (syncColor.b * 255.0).round() &
+                                                0xff,
+                                          )
+                                        : null,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      Icon(
+                                        syncIcon,
+                                        size: 13,
+                                        color: syncColor,
+                                      ),
+                                      SizedBox(width: 3),
+                                      Text(
+                                        syncText,
+                                        style: TextStyle(
+                                          fontSize: 9.5,
+                                          color: syncColor,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        textAlign: TextAlign.right,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),

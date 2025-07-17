@@ -38,13 +38,14 @@ class ClientDetailsModal extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Información del cliente con campos por defecto si están vacíos
             Row(
               children: [
                 const CircleAvatar(child: Icon(Icons.person)),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    client.name,
+                    '${client.name.isNotEmpty ? client.name : 'Sin información'}',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
@@ -54,188 +55,223 @@ class ClientDetailsModal extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            if (client.email != null && client.email!.isNotEmpty)
-              Row(
-                children: [
-                  const Icon(Icons.email, size: 16, color: Colors.black45),
-                  const SizedBox(width: 6),
-                  Expanded(child: Text(client.email!)),
-                ],
-              ),
-            if (client.phone != null && client.phone!.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Row(
-                  children: [
-                    const Icon(Icons.phone, size: 16, color: Colors.black45),
-                    const SizedBox(width: 6),
-                    Expanded(child: Text(client.phone!)),
-                  ],
+            Row(
+              children: [
+                const Icon(Icons.phone, size: 16, color: Colors.black45),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Teléfono: ',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Expanded(
+                        child: SelectableText(
+                          (client.phone != null && client.phone!.isNotEmpty)
+                              ? client.phone!
+                              : 'Sin información',
+                          style: const TextStyle(fontSize: 16),
+                          enableInteractiveSelection: true,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
+            ),
+            Row(
+              children: [
+                const Icon(Icons.email, size: 16, color: Colors.black45),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Email: ',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Expanded(
+                        child: SelectableText(
+                          (client.email != null && client.email!.isNotEmpty)
+                              ? client.email!
+                              : 'Sin información',
+                          style: const TextStyle(fontSize: 16),
+                          enableInteractiveSelection: true,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 18),
             // Botones de acción SIEMPRE visibles, sin hamburguesa, responsivos
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                IconButton(
-                  icon: const Icon(Icons.receipt_long),
-                  tooltip: 'Recibo',
-                  onPressed: () {
-                    Navigator.of(context, rootNavigator: true).pop();
-                    Future.delayed(Duration.zero, () {
-                      final txProvider = Provider.of<TransactionProvider>(
+                Tooltip(
+                  message: 'Recibo',
+                  child: IconButton(
+                    icon: const Icon(Icons.receipt_long, size: 26),
+                    color: Colors.deepPurple,
+                    onPressed: () {
+                      Navigator.of(context, rootNavigator: true).pop();
+                      Future.delayed(Duration.zero, () {
+                        final txProvider = Provider.of<TransactionProvider>(
+                          context,
+                          listen: false,
+                        );
+                        final clientData = [
+                          {
+                            'client': client,
+                            'transactions': txProvider.transactions
+                                .where((tx) => tx.clientId == client.id)
+                                .toList(),
+                          },
+                        ];
+                        showDialog(
+                          context: context,
+                          builder: (_) =>
+                              GeneralReceiptModal(clientData: clientData),
+                        );
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(width: 0),
+                Tooltip(
+                  message: 'Editar',
+                  child: IconButton(
+                    icon: const Icon(Icons.edit, size: 26),
+                    color: Colors.blue,
+                    onPressed: () {
+                      Navigator.of(context, rootNavigator: true).pop();
+                      if (onEdit != null) {
+                        Future.delayed(Duration.zero, onEdit!);
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 0),
+                Tooltip(
+                  message: 'Eliminar',
+                  child: IconButton(
+                    icon: const Icon(Icons.delete, size: 26),
+                    color: Colors.red,
+                    onPressed: () async {
+                      Navigator.of(context, rootNavigator: true).pop();
+                      final provider = Provider.of<ClientProvider>(
                         context,
                         listen: false,
                       );
-                      final clientData = [
-                        {
-                          'client': client,
-                          'transactions': txProvider.transactions
-                              .where((tx) => tx.clientId == client.id)
-                              .toList(),
-                        },
-                      ];
-                      showDialog(
-                        context: context,
-                        builder: (_) =>
-                            GeneralReceiptModal(clientData: clientData),
-                      );
-                    });
-                  },
+                      await provider.cleanLocalPendingDeletedClients();
+                      if (onDelete != null) {
+                        Future.delayed(Duration.zero, onDelete!);
+                      }
+                    },
+                  ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.edit),
-                  tooltip: 'Editar',
-                  onPressed: onEdit,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete),
-                  tooltip: 'Eliminar',
-                  onPressed: () async {
-                    Navigator.of(context, rootNavigator: true).pop();
-                    // Limpieza local de clientes nunca sincronizados marcados para eliminar
-                    final provider = Provider.of<ClientProvider>(
-                      context,
-                      listen: false,
-                    );
-                    await provider.cleanLocalPendingDeletedClients();
-                    if (onDelete != null) {
-                      Future.delayed(Duration.zero, onDelete!);
-                    }
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  tooltip: 'Agregar deuda/abono',
-                  onPressed: () {
-                    Navigator.of(context, rootNavigator: true).pop();
-                    Future.delayed(Duration.zero, () {
-                      showDialog(
-                        context: context,
-                        builder: (dialogContext) => TransactionForm(
-                          userId: userId,
-                          initialClient: client,
-                          onClose: () => Navigator.of(
-                            dialogContext,
-                            rootNavigator: true,
-                          ).pop(),
-                          onSave: (tx) async {
-                            // Obtén todas las referencias ANTES de cualquier await
-                            final txProvider = Provider.of<TransactionProvider>(
-                              dialogContext,
-                              listen: false,
-                            );
-                            final clientProvider = Provider.of<ClientProvider>(
-                              dialogContext,
-                              listen: false,
-                            );
-                            final navigator = Navigator.of(
+                const SizedBox(width: 0),
+                Tooltip(
+                  message: 'Agregar deuda/abono',
+                  child: IconButton(
+                    icon: const Icon(Icons.add, size: 26),
+                    color: Colors.green,
+                    onPressed: () {
+                      Navigator.of(context, rootNavigator: true).pop();
+                      Future.delayed(Duration.zero, () {
+                        showDialog(
+                          context: context,
+                          builder: (dialogContext) => TransactionForm(
+                            userId: userId,
+                            initialClient: client,
+                            onClose: () => Navigator.of(
                               dialogContext,
                               rootNavigator: true,
-                            );
-                            final scaffoldMessenger = ScaffoldMessenger.of(
-                              dialogContext,
-                            );
-                            print(
-                              '[DEBUG] onSave: referencias obtenidas, iniciando guardado de transacción',
-                            );
-
-                            await txProvider.addTransaction(
-                              tx,
-                              userId,
-                              client.id,
-                            );
-                            await txProvider.loadTransactions(userId);
-                            await clientProvider.loadClients(userId);
-                            print(
-                              '[DEBUG] onSave: transacción y clientes recargados',
-                            );
-                            // Usa las referencias guardadas, no el context
-                            if (navigator.mounted && navigator.canPop()) {
-                              print(
-                                '[DEBUG] onSave: navigator montado, haciendo pop',
+                            ).pop(),
+                            onSave: (tx) async {
+                              final txProvider =
+                                  Provider.of<TransactionProvider>(
+                                    dialogContext,
+                                    listen: false,
+                                  );
+                              final clientProvider =
+                                  Provider.of<ClientProvider>(
+                                    dialogContext,
+                                    listen: false,
+                                  );
+                              final navigator = Navigator.of(
+                                dialogContext,
+                                rootNavigator: true,
                               );
-                              navigator.pop();
-                            } else {
-                              print(
-                                '[DEBUG] onSave: navigator desmontado, no se puede hacer pop',
+                              final scaffoldMessenger = ScaffoldMessenger.of(
+                                dialogContext,
                               );
-                            }
-                            // Verifica que el ScaffoldMessenger siga montado
-                            try {
-                              scaffoldMessenger.showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Transacción guardada correctamente',
+                              await txProvider.addTransaction(
+                                tx,
+                                userId,
+                                client.id,
+                              );
+                              await txProvider.loadTransactions(userId);
+                              await clientProvider.loadClients(userId);
+                              if (navigator.mounted && navigator.canPop()) {
+                                navigator.pop();
+                              }
+                              try {
+                                scaffoldMessenger.showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Transacción guardada correctamente',
+                                    ),
                                   ),
-                                ),
-                              );
-                            } catch (e) {
-                              print(
-                                '[DEBUG] onSave: error mostrando SnackBar: '
-                                '[31m$e[0m',
-                              );
-                            }
-                          },
-                        ),
-                      );
-                    });
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.list),
-                  tooltip: 'Ver movimientos',
-                  onPressed: () {
-                    Navigator.of(context, rootNavigator: true).pop();
-                    if (onViewMovements != null) {
-                      Future.delayed(Duration.zero, onViewMovements!);
-                    } else {
-                      final navigator = Navigator.of(
-                        context,
-                        rootNavigator: true,
-                      );
-                      final filterProvider =
-                          Provider.of<TransactionFilterProvider>(
-                            context,
-                            listen: false,
-                          );
-                      filterProvider.setClientId(client.id);
-                      Future.delayed(Duration.zero, () {
-                        // Verifica si el contexto sigue montado antes de usarlo
-                        if (navigator.mounted) {
-                          navigator.push(
-                            MaterialPageRoute(
-                              builder: (_) => TransactionsScreen(
-                                userId: userId,
-                                initialClientId: client.id,
-                              ),
-                            ),
-                          );
-                        }
+                                );
+                              } catch (_) {}
+                            },
+                          ),
+                        );
                       });
-                    }
-                  },
+                    },
+                  ),
+                ),
+                const SizedBox(width: 0),
+                Tooltip(
+                  message: 'Ver movimientos',
+                  child: IconButton(
+                    icon: const Icon(Icons.list, size: 26),
+                    color: Colors.orange,
+                    onPressed: () {
+                      Navigator.of(context, rootNavigator: true).pop();
+                      if (onViewMovements != null) {
+                        Future.delayed(Duration.zero, onViewMovements!);
+                      } else {
+                        final navigator = Navigator.of(
+                          context,
+                          rootNavigator: true,
+                        );
+                        final filterProvider =
+                            Provider.of<TransactionFilterProvider>(
+                              context,
+                              listen: false,
+                            );
+                        filterProvider.setClientId(client.id);
+                        Future.delayed(Duration.zero, () {
+                          if (navigator.mounted) {
+                            navigator.push(
+                              MaterialPageRoute(
+                                builder: (_) => TransactionsScreen(
+                                  userId: userId,
+                                  initialClientId: client.id,
+                                ),
+                              ),
+                            );
+                          }
+                        });
+                      }
+                    },
+                  ),
                 ),
               ],
             ),

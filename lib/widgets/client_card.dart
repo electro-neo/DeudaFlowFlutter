@@ -103,7 +103,7 @@ class ClientCard extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const CircleAvatar(child: Icon(Icons.person)),
                 const SizedBox(width: 8),

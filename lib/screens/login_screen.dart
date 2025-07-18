@@ -313,6 +313,19 @@ class _LoginScreenState extends State<LoginScreen> {
                               style: const TextStyle(
                                 color: Colors.red,
                                 fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.white,
+                                    offset: Offset(0, 0),
+                                    blurRadius: 6,
+                                  ),
+                                  Shadow(
+                                    color: Colors.white,
+                                    offset: Offset(0, 0),
+                                    blurRadius: 12,
+                                  ),
+                                ],
                               ),
                               textAlign: TextAlign.center,
                             ),

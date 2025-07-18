@@ -50,10 +50,10 @@ class _ClientsScreenState extends State<ClientsScreen>
         context,
         listen: false,
       );
-      final clientProvider = Provider.of<ClientProvider>(
-        context,
-        listen: false,
-      );
+      //final clientProvider = Provider.of<ClientProvider>(
+        //context,
+       // listen: false,
+      //);
       await txProvider.addTransaction(tx, widget.userId, client.id);
       // Sincroniza en segundo plano tras agregar movimiento para refrescar statscards
       Future.delayed(const Duration(seconds: 2), () {

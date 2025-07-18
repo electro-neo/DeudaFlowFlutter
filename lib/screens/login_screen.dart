@@ -52,7 +52,9 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Debes estar conectado a internet para usar el modo invitado por primera vez.'),
+          content: Text(
+            'Debes estar conectado a internet para usar el modo invitado por primera vez.',
+          ),
           duration: Duration(seconds: 3),
         ),
       );
@@ -262,25 +264,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: _loading ? null : _loginOffline,
-                          icon: const Icon(Icons.wifi_off, size: 18),
-                          label: const Text(
-                            'Ingresar sin conexión',
-                            style: TextStyle(fontSize: 14),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(0, 36),
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -306,11 +289,32 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               child: const Text(
                                 '¿Olvidaste tu contraseña?',
+                                maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
                               ),
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 6),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: _loading ? null : _loginOffline,
+                          icon: const Icon(Icons.wifi_off, size: 18),
+                          label: const Text(
+                            'Ingresar sin conexión',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 36),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 6),
                       SizedBox(

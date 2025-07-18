@@ -118,8 +118,9 @@ class _MainScaffoldState extends State<MainScaffold> {
                     AddGlobalTransactionModal(userId: widget.userId),
               );
             },
-            backgroundColor: const Color.fromARGB(255, 123, 48, 242),
+            backgroundColor: const Color.fromARGB(255, 145, 88, 236),
             elevation: 6,
+            shape: const CircleBorder(),
             child: const Icon(Icons.add, size: 32, color: Colors.white),
           );
 

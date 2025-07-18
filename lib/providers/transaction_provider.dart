@@ -363,20 +363,30 @@ class TransactionProvider extends ChangeNotifier {
     debugPrint(
       '>>> [recalculateClientBalance] Balance anterior: ${client.balance}, nuevo: $newBalance',
     );
+    bool shouldUpdateRemote = false;
     if (client.balance != newBalance) {
       client.balance = newBalance;
       await client.save();
       debugPrint(
         '[recalculateClientBalance][LOCAL] Balance actualizado en Hive para cliente ${client.id}: $newBalance',
       );
-      // Refresca la UI y notifica listeners SIEMPRE, aunque falle Supabase
-      try {
-        notifyListeners();
-        debugPrint('>>> [recalculateClientBalance] notifyListeners ejecutado');
-      } catch (e) {
-        debugPrint('[recalculateClientBalance][UI-REFRESH][ERROR] $e');
-      }
-      // Sincroniza con Supabase SOLO si hay userId, pero no bloquea el flujo local
+      shouldUpdateRemote = true;
+    } else {
+      debugPrint(
+        '>>> [recalculateClientBalance] Balance sin cambios en Hive, pero se forzará actualización remota',
+      );
+      shouldUpdateRemote =
+          true; // Forzar actualización remota SIEMPRE tras sync
+    }
+    // Refresca la UI y notifica listeners SIEMPRE, aunque falle Supabase
+    try {
+      notifyListeners();
+      debugPrint('>>> [recalculateClientBalance] notifyListeners ejecutado');
+    } catch (e) {
+      debugPrint('[recalculateClientBalance][UI-REFRESH][ERROR] $e');
+    }
+    // Sincroniza con Supabase SOLO si hay userId, pero no bloquea el flujo local
+    if (shouldUpdateRemote) {
       try {
         final clientModel = Client(
           id: client.id,
@@ -399,10 +409,6 @@ class TransactionProvider extends ChangeNotifier {
         );
         debugPrint('[recalculateClientBalance][STACK] $stack');
       }
-    } else {
-      debugPrint(
-        '>>> [recalculateClientBalance] Balance sin cambios, no se actualiza',
-      );
     }
     debugPrint('>>> [recalculateClientBalance] FIN para clientId=$clientId');
   }
@@ -667,6 +673,20 @@ class TransactionProvider extends ChangeNotifier {
     }
 
     await loadTransactions(userId);
+
+    // --- NUEVO: Recalcular y sincronizar balances de todos los clientes en Supabase tras la sync ---
+    try {
+      final clientBox = Hive.isBoxOpen('clients')
+          ? Hive.box<ClientHive>('clients')
+          : await Hive.openBox<ClientHive>('clients');
+      for (final client in clientBox.values) {
+        await recalculateClientBalance(client.id);
+      }
+    } catch (e) {
+      debugPrint(
+        '[SYNC][ERROR] No se pudo recalcular/sincronizar balances tras sync: $e',
+      );
+    }
   }
 
   /// Limpia localmente todas las transacciones nunca sincronizadas (id local) marcadas para eliminar

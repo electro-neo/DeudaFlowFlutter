@@ -150,7 +150,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final clients = context.watch<ClientProvider>().clients;
     final transactions = context.watch<TransactionProvider>().transactions;
-    // ...existing code...
     final recentTransactions = List.of(transactions)
       ..sort((a, b) => b.date.compareTo(a.date));
     final recent = recentTransactions.take(10).toList();
@@ -158,7 +157,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // Obtener usuario actual de Supabase o modo offline
     final user = Supabase.instance.client.auth.currentUser;
     String userName = '';
-    // bool isOffline = false; // Eliminado: no se usa
     if (user != null) {
       final meta = user.userMetadata;
       if (meta != null &&
@@ -180,13 +178,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             : '';
       }
     } else {
-      // Modo offline: obtener nombre de Hive
-      // Aquí podrías obtener el nombre offline si tienes la lógica
-      userName =
-          'Invitado'; // Puedes cambiar esto por el nombre real si lo tienes
+      userName = 'Invitado';
     }
 
-    // Saludo dinámico en español
     String saludo() {
       final hour = DateTime.now().hour;
       if (hour >= 5 && hour < 12) return 'Buenos días';
@@ -194,12 +188,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return 'Buenas noches';
     }
 
-    // --- INICIO NUEVO ESTILO ---
     final isMobile =
         Theme.of(context).platform == TargetPlatform.android ||
         Theme.of(context).platform == TargetPlatform.iOS;
     return Scaffold(
-      backgroundColor: const Color(0xFFE6F0FF),
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
       drawer: isMobile
           ? Drawer(
               child: SafeArea(
@@ -207,13 +201,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     DrawerHeader(
-                      decoration: const BoxDecoration(color: Color(0xFF7C3AED)),
+                      decoration: const BoxDecoration(
+                        color: Color.fromARGB(221, 240, 25, 13),
+                      ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const Icon(
                             Icons.account_circle_rounded,
-                            color: Colors.white,
+                            color: Color.fromARGB(255, 233, 27, 27),
                             size: 64,
                           ),
                           const SizedBox(height: 12),
@@ -225,7 +221,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          // Eliminada la 'x' en modo offline
                         ],
                       ),
                     ),
@@ -260,267 +255,310 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ),
                     ),
-                    // Puedes agregar más opciones aquí si lo deseas
                   ],
                 ),
               ),
             )
           : null,
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : ScrollConfiguration(
-              behavior: const NoScrollbarBehavior(),
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    // Header morado translúcido con degradado y saludo
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Color(0xC07C3AED), // Morado translúcido
-                            Color(0xA07C3AED), // Más translúcido
-                            Color(0x807C3AED), // Aún más translúcido
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF7C3AED), // Morado principal (igual que login)
+              Color(0xFF4F46E5), // Azul/morado
+              Color(0xFF60A5FA), // Azul claro
+            ],
+          ),
+        ),
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : ScrollConfiguration(
+                behavior: const NoScrollbarBehavior(),
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      // Header translúcido con degradado y saludo
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(
+                            255,
+                            163,
+                            87,
+                            234,
+                          ).withOpacity(0.18),
+                          borderRadius: const BorderRadius.only(
+                            bottomLeft: Radius.circular(32),
+                            bottomRight: Radius.circular(32),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.04),
+                              blurRadius: 16,
+                              offset: const Offset(0, 8),
+                            ),
                           ],
                         ),
-                        borderRadius: BorderRadius.only(
-                          bottomLeft: Radius.circular(32),
-                          bottomRight: Radius.circular(32),
+                        child: Stack(
+                          children: [
+                            // Eliminado círculo decorativo superior derecho
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 24),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Transform.translate(
+                                      offset: const Offset(0, -8),
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: const Color.fromARGB(
+                                            255,
+                                            251,
+                                            250,
+                                            250,
+                                          ).withOpacity(0.25),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        padding: const EdgeInsets.all(12),
+                                        child: const Icon(
+                                          Icons.account_circle_rounded,
+                                          color: Color.fromARGB(255, 248, 246, 248),
+                                          size: 48,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            userName.isNotEmpty
+                                                ? '${saludo()}, $userName'
+                                                : saludo(),
+                                            style: const TextStyle(
+                                              color: Color.fromARGB(
+                                                255,
+                                                255,
+                                                255,
+                                                255,
+                                              ),
+                                              fontSize: 32,
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: 0.5,
+                                              shadows: [
+                                                Shadow(
+                                                  color: Color.fromARGB(0, 247, 246, 246),
+                                                  offset: Offset(0, 0),
+                                                  blurRadius: 8,
+                                                ),
+                                              ],
+                                            ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 12),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [SyncBanner()],
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
-                      child: Stack(
-                        children: [
-                          // Efecto decorativo: círculo difuminado
-                          Positioned(
-                            top: -60,
-                            right: -40,
-                            child: Container(
-                              width: 180,
-                              height: 180,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: RadialGradient(
-                                  colors: [
-                                    Color(0x40FFFFFF),
-                                    Color(0x00FFFFFF),
-                                  ],
-                                  radius: 0.8,
-                                ),
-                              ),
-                            ),
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 24),
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Transform.translate(
-                                    offset: const Offset(0, -8),
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.15,
-                                        ),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      padding: const EdgeInsets.all(12),
-                                      child: const Icon(
-                                        Icons.account_circle_rounded,
-                                        color: Colors.white,
-                                        size: 48,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          userName.isNotEmpty
-                                              ? '${saludo()}, $userName'
-                                              : saludo(),
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 32,
-                                            fontWeight: FontWeight.bold,
-                                            letterSpacing: 0.5,
-                                            shadows: [
-                                              Shadow(
-                                                color: Colors.black26,
-                                                offset: Offset(0, 2),
-                                                blurRadius: 8,
-                                              ),
-                                            ],
-                                          ),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 12),
-                                        // El toggle USD se movió al Drawer en móvil
-                                      ],
-                                    ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 24,
+                          horizontal: 16,
+                        ),
+                        child: Consumer<ClientProvider>(
+                          builder: (context, clientProvider, _) =>
+                              DashboardStats(),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Movimientos recientes',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                color: Colors.deepPurple,
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.white,
+                                    offset: Offset(0, 0),
+                                    blurRadius: 6,
                                   ),
                                 ],
                               ),
-                              // SyncBanner centrado debajo del saludo
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [SyncBanner()],
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    // ...cuadros de cuentas eliminados ("My account" y "Savings")...
-                    // Aquí puedes agregar DashboardStats o widgets propios
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 24,
-                        horizontal: 16,
-                      ),
-                      child: Consumer<ClientProvider>(
-                        builder: (context, clientProvider, _) =>
-                            DashboardStats(),
-                      ),
-                    ),
-                    // Movimientos recientes estilo Monekin
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Movimientos recientes',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          if (recent.isEmpty)
-                            const Padding(
-                              padding: EdgeInsets.all(16.0),
-                              child: Text('No hay movimientos registrados aún'),
-                            )
-                          else
-                            Consumer<CurrencyProvider>(
-                              builder: (context, currencyProvider, _) {
-                                return CyclicAnimatedFadeList(
-                                  interval: const Duration(milliseconds: 2000),
-                                  animationDuration: const Duration(
-                                    milliseconds: 8000,
-                                  ),
-                                  minOpacity: 0.25,
-                                  itemSpacing: 10.0,
-                                  children: recent.map((tx) {
-                                    final client = clients.firstWhere(
-                                      (c) => c.id == tx.clientId,
-                                      orElse: () =>
-                                          Client(id: '', name: '', balance: 0),
-                                    );
-                                    final clientName = client.name.isNotEmpty
-                                        ? client.name
-                                        : 'Desconocido';
-                                    // Usar el currencyProvider para forzar rebuild inmediato
-                                    final symbol = CurrencyUtils.symbol(
-                                      context,
-                                    );
-                                    final formatted = CurrencyUtils.format(
-                                      context,
-                                      tx.amount,
-                                    );
-                                    final amountText = tx.type == 'debt'
-                                        ? '-$symbol$formatted'
-                                        : '+$symbol$formatted';
-                                    return Container(
-                                      decoration: BoxDecoration(
+                            const SizedBox(height: 12),
+                            if (recent.isEmpty)
+                              const Padding(
+                                padding: EdgeInsets.all(16.0),
+                                child: Text(
+                                  'No hay movimientos registrados aún',
+                                  style: TextStyle(
+                                    color: Colors.deepPurple,
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 15,
+                                    shadows: [
+                                      Shadow(
                                         color: Colors.white,
-                                        borderRadius: BorderRadius.circular(16),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withValues(
-                                              alpha: 0.03,
-                                            ),
-                                            blurRadius: 8,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ],
+                                        offset: Offset(0, 0),
+                                        blurRadius: 6,
                                       ),
-                                      child: ListTile(
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                              horizontal: 16,
-                                              vertical: 8,
+                                    ],
+                                  ),
+                                ),
+                              )
+                            else
+                              Consumer<CurrencyProvider>(
+                                builder: (context, currencyProvider, _) {
+                                  return CyclicAnimatedFadeList(
+                                    interval: const Duration(
+                                      milliseconds: 2000,
+                                    ),
+                                    animationDuration: const Duration(
+                                      milliseconds: 8000,
+                                    ),
+                                    minOpacity: 0.25,
+                                    itemSpacing: 10.0,
+                                    children: recent.map((tx) {
+                                      final client = clients.firstWhere(
+                                        (c) => c.id == tx.clientId,
+                                        orElse: () => Client(
+                                          id: '',
+                                          name: '',
+                                          balance: 0,
+                                        ),
+                                      );
+                                      final clientName = client.name.isNotEmpty
+                                          ? client.name
+                                          : 'Desconocido';
+                                      final symbol = CurrencyUtils.symbol(
+                                        context,
+                                      );
+                                      final formatted = CurrencyUtils.format(
+                                        context,
+                                        tx.amount,
+                                      );
+                                      final amountText = tx.type == 'debt'
+                                          ? '-$symbol$formatted'
+                                          : '+$symbol$formatted';
+                                      return Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.85),
+                                          borderRadius: BorderRadius.circular(
+                                            16,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(
+                                                0.04,
+                                              ),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 2),
                                             ),
-                                        leading: Container(
-                                          width: 44,
-                                          height: 44,
-                                          decoration: BoxDecoration(
-                                            color: tx.type == 'debt'
-                                                ? const Color(0xFFFFE5E5)
-                                                : const Color(0xFFE5FFE8),
-                                            borderRadius: BorderRadius.circular(
-                                              12,
+                                          ],
+                                        ),
+                                        child: ListTile(
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                                horizontal: 16,
+                                                vertical: 8,
+                                              ),
+                                          leading: Container(
+                                            width: 44,
+                                            height: 44,
+                                            decoration: BoxDecoration(
+                                              color: tx.type == 'debt'
+                                                  ? const Color(0xFFFFE5E5)
+                                                  : const Color(0xFFE5FFE8),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            child: Icon(
+                                              tx.type == 'debt'
+                                                  ? Icons.arrow_downward_rounded
+                                                  : Icons.arrow_upward_rounded,
+                                              color: tx.type == 'debt'
+                                                  ? const Color(0xFFD32F2F)
+                                                  : const Color(0xFF388E3C),
+                                              size: 28,
                                             ),
                                           ),
-                                          child: Icon(
-                                            tx.type == 'debt'
-                                                ? Icons.arrow_downward_rounded
-                                                : Icons.arrow_upward_rounded,
-                                            color: tx.type == 'debt'
-                                                ? const Color(0xFFD32F2F)
-                                                : const Color(0xFF388E3C),
-                                            size: 28,
+                                          title: Text(
+                                            tx.description,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 16,
+                                              color: Colors.deepPurple,
+                                              shadows: [
+                                                Shadow(
+                                                  color: Colors.white,
+                                                  offset: Offset(0, 0),
+                                                  blurRadius: 6,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          subtitle: Text(
+                                            'Cliente: $clientName',
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              color: Color(0xFF7B7B7B),
+                                            ),
+                                          ),
+                                          trailing: Text(
+                                            amountText,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                              color: tx.type == 'debt'
+                                                  ? const Color(0xFFD32F2F)
+                                                  : const Color(0xFF388E3C),
+                                              shadows: const [
+                                                Shadow(
+                                                  color: Colors.white,
+                                                  offset: Offset(0, 0),
+                                                  blurRadius: 6,
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ),
-                                        title: Text(
-                                          tx.description,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                        subtitle: Text(
-                                          'Cliente: $clientName',
-                                          style: const TextStyle(
-                                            fontSize: 13,
-                                            color: Color(0xFF7B7B7B),
-                                          ),
-                                        ),
-                                        trailing: Text(
-                                          amountText,
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                            color: tx.type == 'debt'
-                                                ? const Color(0xFFD32F2F)
-                                                : const Color(0xFF388E3C),
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  }).toList(),
-                                );
-                              },
-                            ),
-                        ],
+                                      );
+                                    }).toList(),
+                                  );
+                                },
+                              ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
+      ),
     );
   }
 }

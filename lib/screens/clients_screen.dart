@@ -830,7 +830,15 @@ class _ClientsScreenState extends State<ClientsScreen>
                             ],
                           ),
                           child: clientsWithBalance.isEmpty
-                              ? const Center(child: Text('No hay clientes.'))
+                              ? const Center(
+                                  child: Text(
+                                    'No hay clientes.',
+                                    style: TextStyle(
+                                      color: Color.fromARGB(255, 255, 255, 255),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                )
                               : ScrollConfiguration(
                                   behavior: NoScrollbarBehavior(),
                                   child: ListView.separated(

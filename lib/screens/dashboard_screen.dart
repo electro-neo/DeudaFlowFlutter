@@ -284,17 +284,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
                         decoration: BoxDecoration(
-                          color: const Color.fromARGB(
-                            255,
-                            163,
-                            87,
-                            234,
-                          ).withOpacity(0.18),
+                          color: Colors.white.withOpacity(0.10),
                           borderRadius: const BorderRadius.only(
                             bottomLeft: Radius.circular(32),
                             bottomRight: Radius.circular(32),
                           ),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.07),
+                            width: 2.2,
+                          ),
                           boxShadow: [
+                            BoxShadow(
+                              color: Colors.white.withOpacity(0.12),
+                              blurRadius: 16,
+                              spreadRadius: 2,
+                              offset: const Offset(0, 2),
+                            ),
                             BoxShadow(
                               color: Colors.black.withOpacity(0.04),
                               blurRadius: 16,
@@ -327,7 +332,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         padding: const EdgeInsets.all(12),
                                         child: const Icon(
                                           Icons.account_circle_rounded,
-                                          color: Color.fromARGB(255, 248, 246, 248),
+                                          color: Color.fromARGB(
+                                            255,
+                                            248,
+                                            246,
+                                            248,
+                                          ),
                                           size: 48,
                                         ),
                                       ),
@@ -355,7 +365,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                               letterSpacing: 0.5,
                                               shadows: [
                                                 Shadow(
-                                                  color: Color.fromARGB(0, 247, 246, 246),
+                                                  color: Color.fromARGB(
+                                                    0,
+                                                    247,
+                                                    246,
+                                                    246,
+                                                  ),
                                                   offset: Offset(0, 0),
                                                   blurRadius: 8,
                                                 ),

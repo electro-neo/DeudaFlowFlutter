@@ -296,9 +296,10 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Fondo translúcido y borde blanco como el modal de login
+    // Fondo translúcido y borde blanco más notorio para resaltar sobre el fondo degradado
     final cardColor = Colors.white.withOpacity(0.10);
-    final borderColor = Colors.white.withOpacity(0.18);
+    final borderColor = Colors.white.withOpacity(0.65); // Más visible
+    final glowColor = Colors.white.withOpacity(0.18); // Efecto de brillo
     // Ajustes de layout para que el texto del label nunca se corte ni salte de línea innecesariamente:
     // - Se usa un layout flexible y padding reducido
     // - El label se ajusta a una sola línea si cabe, o máximo dos líneas sin cortar palabras
@@ -315,6 +316,14 @@ class _StatCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.25),
               shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: glowColor,
+                  blurRadius: 16,
+                  spreadRadius: 2,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             alignment: Alignment.center,
             child: Icon(
@@ -392,7 +401,7 @@ class _StatCard extends StatelessWidget {
     );
     final cardShape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(24),
-      side: BorderSide(color: borderColor, width: 1.2),
+      side: BorderSide(color: borderColor, width: 2.2), // Borde más grueso
     );
     if (isButton) {
       return InkWell(

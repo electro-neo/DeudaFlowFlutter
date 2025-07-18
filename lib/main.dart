@@ -98,36 +98,16 @@ class MyApp extends StatelessWidget {
           theme: BudgetoTheme.light,
           darkTheme: BudgetoTheme.dark,
           themeMode: themeProvider.themeMode,
-          home: const AuthGate(),
-          onGenerateRoute: (settings) {
-            switch (settings.name) {
-              case '/':
-                return MaterialPageRoute(builder: (_) => const WelcomeScreen());
-              case '/login':
-                return MaterialPageRoute(builder: (_) => const LoginScreen());
-              case '/register':
-                return MaterialPageRoute(
-                  builder: (_) => const RegisterScreen(),
-                );
-              case '/forgot-password':
-                return MaterialPageRoute(
-                  builder: (_) => const ForgotPasswordScreen(),
-                );
-              case '/reset-password':
-                return MaterialPageRoute(
-                  builder: (_) => const ResetPasswordScreen(),
-                );
-              case '/dashboard':
-                return MaterialPageRoute(builder: (_) => AuthGate());
-              case '/clients':
-                return MaterialPageRoute(builder: (_) => AuthGate());
-              case '/transactions':
-                return MaterialPageRoute(builder: (_) => AuthGate());
-              default:
-                return MaterialPageRoute(
-                  builder: (_) => const NotFoundScreen(),
-                );
-            }
+          initialRoute: '/',
+          routes: {
+            '/': (context) => const WelcomeScreen(),
+            '/login': (context) => const LoginScreen(),
+            '/register': (context) => const RegisterScreen(),
+            '/forgot-password': (context) => const ForgotPasswordScreen(),
+            '/reset-password': (context) => const ResetPasswordScreen(),
+            '/dashboard': (context) => const AuthGate(),
+            '/clients': (context) => const AuthGate(),
+            '/transactions': (context) => const AuthGate(),
           },
         ),
       ),

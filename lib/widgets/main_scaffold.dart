@@ -180,6 +180,8 @@ class _MainScaffoldState extends State<MainScaffold> {
                         icon: const Icon(Icons.menu),
                         tooltip: 'Menú',
                         onPressed: () {
+                          // Pasar el callback de logout directamente al modal
+                          final logout = _logout;
                           showModalBottomSheet(
                             context: context,
                             shape: const RoundedRectangleBorder(
@@ -365,11 +367,7 @@ class _MainScaffoldState extends State<MainScaffold> {
                                       ),
                                       onPressed: () {
                                         Navigator.of(ctx).pop();
-                                        final mainState = context
-                                            .findAncestorStateOfType<
-                                              _MainScaffoldState
-                                            >();
-                                        mainState?._logout();
+                                        logout();
                                       },
                                     ),
                                   ],

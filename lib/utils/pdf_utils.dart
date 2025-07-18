@@ -43,15 +43,44 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
   final pdf = pw.Document();
   double totalDeudaGeneral = 0;
   double totalAbonoGeneral = 0;
+  final now = DateTime.now();
+  final fechaRecibo =
+      'Fecha del recibo: '
+      '${now.day.toString().padLeft(2, '0')}/'
+      '${now.month.toString().padLeft(2, '0')}/'
+      '${now.year} '
+      '${now.hour.toString().padLeft(2, '0')}:'
+      '${now.minute.toString().padLeft(2, '0')}';
+  const appName = 'Deuda Flow';
+  const appVersion = '1.0.0'; // Cambia aquí si la versión cambia
+  // Puedes cambiar la ruta del ícono si tienes un asset local, aquí se usa emoji como ejemplo
+  const appIcon = ' '; // Emoji de teléfono, puedes cambiarlo por un asset si lo tienes
+  const playStoreIcon =
+      ''; // Emoji Play Store, puedes cambiarlo por un asset si lo tienes
   pdf.addPage(
     pw.MultiPage(
       build: (context) {
         List<pw.Widget> widgets = [
-          pw.Text(
-            filtered.length == 1
-                ? 'Recibo general de ${(filtered[0]['client'] as Client).name}'
-                : 'Recibo General de Clientes',
-            style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text(
+                filtered.length == 1
+                    ? 'Recibo general de ${(filtered[0]['client'] as Client).name}'
+                    : 'Recibo General de Clientes',
+                style: pw.TextStyle(
+                  fontSize: 20,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.Text(
+                fechaRecibo,
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontStyle: pw.FontStyle.italic,
+                ),
+              ),
+            ],
           ),
           if (convertCurrency && conversionRate != null && conversionRate > 0)
             pw.Text(
@@ -314,6 +343,34 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
         }
         return widgets;
       },
+      footer: (context) => pw.Container(
+        alignment: pw.Alignment.centerRight,
+        margin: const pw.EdgeInsets.only(top: 10),
+        child: pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.end,
+          crossAxisAlignment: pw.CrossAxisAlignment.center,
+          children: [
+            pw.Text(
+              'Comienza a gestionar tus deudas y clientes aquí con ',
+              style: pw.TextStyle(fontSize: 9),
+            ),
+            pw.Text(appIcon, style: pw.TextStyle(fontSize: 11)),
+            pw.SizedBox(width: 2),
+            pw.Text(
+              '$appName v$appVersion',
+              style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
+            ),
+            pw.SizedBox(width: 6),
+            pw.Text('puedes descargarla en ', style: pw.TextStyle(fontSize: 9)),
+            pw.Text(playStoreIcon, style: pw.TextStyle(fontSize: 11)),
+            pw.SizedBox(width: 2),
+            pw.Text(
+              'Play Store',
+              style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
     ),
   );
   return pdf;

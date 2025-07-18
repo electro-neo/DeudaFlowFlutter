@@ -47,15 +47,17 @@ class _LoginScreenState extends State<LoginScreen> {
     final sessionBox = await Hive.openBox('session');
     final savedEmail = sessionBox.get('email');
     if (savedEmail == _guestEmail) {
+      // Ya hay sesión guardada, permite acceso offline
       await _login();
     } else {
+      // No hay sesión guardada, requiere internet la primera vez
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Debes estar conectado a internet para usar el modo invitado por primera vez.',
+            'No es posible usar el modo invitado sin conexión la primera vez. Por favor, conéctate a internet e inicia sesión como invitado para habilitar el acceso offline.',
           ),
-          duration: Duration(seconds: 3),
+          duration: Duration(seconds: 4),
         ),
       );
     }
@@ -135,15 +137,31 @@ class _LoginScreenState extends State<LoginScreen> {
           // ignore: use_build_context_synchronously
           Navigator.of(context).pushReplacementNamed('/dashboard');
         } else {
-          setState(() {
-            _error = 'No hay sesión guardada para este usuario.';
-          });
+          // Si es invitado, mensaje especial
+          if (email == _guestEmail) {
+            setState(() {
+              _error =
+                  'No es posible usar el modo invitado sin conexión la primera vez. Conéctate a internet e inicia sesión como invitado para habilitar el acceso offline.';
+            });
+          } else {
+            setState(() {
+              _error = 'No hay sesión guardada para este usuario.';
+            });
+          }
         }
       } else {
         if (!mounted) return;
-        setState(() {
-          _error = e.message;
-        });
+        // Si es invitado, mensaje más amigable
+        if (email == _guestEmail) {
+          setState(() {
+            _error =
+                'No se pudo acceder como invitado. Verifica tu conexión o intenta más tarde.';
+          });
+        } else {
+          setState(() {
+            _error = e.message;
+          });
+        }
       }
     } catch (e) {
       // Si es error de red, permitir login offline si hay datos guardados
@@ -156,14 +174,30 @@ class _LoginScreenState extends State<LoginScreen> {
           // ignore: use_build_context_synchronously
           Navigator.of(context).pushReplacementNamed('/dashboard');
         } else {
-          setState(() {
-            _error = 'No hay sesión guardada para este usuario.';
-          });
+          // Si es invitado, mensaje especial
+          if (email == _guestEmail) {
+            setState(() {
+              _error =
+                  'No es posible usar el modo invitado sin conexión la primera vez. Conéctate a internet e inicia sesión como invitado para habilitar el acceso offline.';
+            });
+          } else {
+            setState(() {
+              _error = 'No hay sesión guardada para este usuario.';
+            });
+          }
         }
       } else {
-        setState(() {
-          _error = 'Error inesperado: [${e.toString()}';
-        });
+        // Si es invitado, mensaje más amigable
+        if (email == _guestEmail) {
+          setState(() {
+            _error =
+                'No se pudo acceder como invitado. Verifica tu conexión o intenta más tarde.';
+          });
+        } else {
+          setState(() {
+            _error = 'Error inesperado: ${e.toString()}';
+          });
+        }
       }
     } finally {
       setState(() {

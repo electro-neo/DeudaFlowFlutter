@@ -10,6 +10,22 @@ Guardar cambio a mi movil directamente
 flutter build apk --release
 flutter install
 
+¿Cómo se compone la versión?
+Se suele usar el formato SemVer (Versionado Semántico):
+mayor.menor.parche
+Ejemplo: 2.3.1
+
+mayor (1.x.x): Cambia cuando hay cambios grandes o incompatibles (rediseño, cambios de base de datos, etc).
+menor (x.1.x): Cambia cuando agregas funcionalidades nuevas pero compatibles (nuevas pantallas, opciones, etc).
+parche (x.x.1): Cambia cuando solo corriges errores o haces mejoras menores (bugs, detalles visuales, etc).
+
+¿Cuándo cambiar cada número?
+Cambia el parche si solo corriges errores o detalles pequeños.
+Cambia el menor si agregas nuevas funciones o mejoras importantes, pero sin romper lo anterior.
+Cambia el mayor si haces cambios que rompen compatibilidad o cambian mucho la app.
+¿Dónde se define la versión?
+En Flutter, la versión oficial de la app se define en el archivo pubspec.yaml con la línea: version: 1.0.0+1
+
 
 # Índice de Páginas, Widgets, Botones y Lógica de la App Deuda-Flow-Flutter
 

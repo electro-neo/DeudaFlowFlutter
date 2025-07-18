@@ -296,32 +296,57 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLight = Theme.of(context).brightness == Brightness.light;
-    final cardColor = isLight ? Colors.white : null;
+    // Fondo translúcido y borde blanco como el modal de login
+    final cardColor = Colors.white.withOpacity(0.10);
+    final borderColor = Colors.white.withOpacity(0.18);
     // Ajustes de layout para que el texto del label nunca se corte ni salte de línea innecesariamente:
     // - Se usa un layout flexible y padding reducido
     // - El label se ajusta a una sola línea si cabe, o máximo dos líneas sin cortar palabras
     // - El ancho máximo del label depende del ancho real del statcard
     final cardContent = Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: 18.0,
-        horizontal: 16.0,
-      ), // Padding horizontal reducido
+      padding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 16.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(icon, color: color ?? Colors.blue, size: 40),
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.25),
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              icon,
+              color: color ?? Colors.white,
+              size: 28,
+              shadows: const [
+                Shadow(
+                  color: Colors.black26,
+                  offset: Offset(0, 2),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 10),
-          // Valor principal (monto/cantidad) con tamaño de fuente más grande
           FittedBox(
             fit: BoxFit.scaleDown,
             child: Text(
               value,
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
-                fontSize: 28, // <-- Cambia aquí el tamaño del monto
+                fontSize: 28,
                 letterSpacing: 0.5,
+                color: Colors.white,
+                shadows: [
+                  Shadow(
+                    color: Colors.black26,
+                    offset: Offset(0, 2),
+                    blurRadius: 8,
+                  ),
+                ],
               ),
               softWrap: false,
               overflow: TextOverflow.ellipsis,
@@ -331,7 +356,6 @@ class _StatCard extends StatelessWidget {
           const SizedBox(height: 4),
           LayoutBuilder(
             builder: (context, constraints) {
-              // Calcula el ancho máximo disponible para el label
               final maxLabelWidth = constraints.maxWidth;
               return Container(
                 width: double.infinity,
@@ -339,17 +363,24 @@ class _StatCard extends StatelessWidget {
                 constraints: BoxConstraints(
                   minHeight: 36,
                   minWidth: 0,
-                  maxWidth: maxLabelWidth, // Usa todo el ancho disponible
+                  maxWidth: maxLabelWidth,
                 ),
                 child: Text(
                   label,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF7B7B7B),
+                    color: Color.fromARGB(255, 252, 252, 252),
+                    shadows: [
+                      Shadow(
+                        color: Color.fromARGB(0, 0, 0, 0),
+                        offset: Offset(0, 2),
+                        blurRadius: 8,
+                      ),
+                    ],
                   ),
-                  maxLines: 2, // Permite hasta dos líneas
-                  overflow: TextOverflow.ellipsis, // Si no cabe, muestra ...
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
                   softWrap: true,
                 ),
@@ -359,21 +390,30 @@ class _StatCard extends StatelessWidget {
         ],
       ),
     );
+    final cardShape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(24),
+      side: BorderSide(color: borderColor, width: 1.2),
+    );
     if (isButton) {
       return InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         onTap: onTap,
         child: Card(
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+          elevation: 8,
+          shape: cardShape,
           color: cardColor,
+          shadowColor: Colors.black.withOpacity(0.08),
           child: cardContent,
         ),
       );
     } else {
-      return Card(color: cardColor, child: cardContent);
+      return Card(
+        color: cardColor,
+        shape: cardShape,
+        elevation: 8,
+        shadowColor: Colors.black.withOpacity(0.08),
+        child: cardContent,
+      );
     }
   }
 }

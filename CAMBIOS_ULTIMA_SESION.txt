@@ -1,3 +1,16 @@
+---
+Actualización 18/07/2025:
+
+- El fondo degradado global y el notch transparente ahora se aplican correctamente en todas las pantallas principales (Dashboard, Clientes y Transacciones), eliminando superposiciones y glitches visuales.
+- Se eliminó el Scaffold interno en la pantalla de transacciones y se ajustó el layout para que el contenido aproveche toda el área, incluyendo la zona de la muesca/notch, manteniendo la coherencia visual con el MainScaffold.
+- El listado de transacciones ahora se muestra correctamente debajo del notch, sin SafeArea, y el fondo degradado es visible en toda la pantalla.
+- Se revisó y limpió la lógica de detección de estado offline y cliente pendiente de eliminar para mayor claridad y robustez.
+- Se garantizó que los filtros, stats y listados mantengan la alineación y el estilo visual en todos los dispositivos.
+- Se documentó el cambio y se recomienda revisar modales secundarios para mantener la coherencia visual si es necesario.
+
+Commit sugerido:
+
+"UI/UX: Fondo degradado y notch transparente global en todas las pantallas principales. Layout de transacciones sin SafeArea, sin glitches ni superposiciones. Limpieza de lógica offline y feedback visual robusto."
 Cambios realizados en la app Deuda Flow (última sesión):
 
 - El saldo inicial de un cliente ahora se registra como transacción y aparece en el listado de movimientos.

@@ -102,8 +102,8 @@ class _MainScaffoldState extends State<MainScaffold> {
       ClientsScreen(userId: widget.userId),
       TransactionsScreen(userId: widget.userId),
     ];
-    final width = MediaQuery.of(context).size.width;
-    final isWeb = identical(0, 0.0);
+    // final width = MediaQuery.of(context).size.width;
+    // final isWeb = identical(0, 0.0);
     // Detectar si el teclado está visible
     final viewInsets = MediaQuery.of(context).viewInsets;
     final isKeyboardVisible = viewInsets.bottom > 0.0;
@@ -145,6 +145,8 @@ class _MainScaffoldState extends State<MainScaffold> {
                 ),
               ),
               Scaffold(
+                extendBody:
+                    true, // <-- AÑADIDO PARA QUE EL FONDO SE VEA EN EL NOTCH
                 backgroundColor: Colors.transparent,
                 appBar: null,
                 body: IndexedStack(index: tabIndex, children: screens),
@@ -152,6 +154,8 @@ class _MainScaffoldState extends State<MainScaffold> {
                 floatingActionButtonLocation:
                     FloatingActionButtonLocation.centerDocked,
                 bottomNavigationBar: BottomAppBar(
+                  color: Colors.white,
+                  elevation: 0, // Es importante mantener la elevación en 0
                   shape: const CircularNotchedRectangle(),
                   notchMargin: 8.0,
                   child: Row(
@@ -198,7 +202,6 @@ class _MainScaffoldState extends State<MainScaffold> {
                             icon: const Icon(Icons.menu),
                             tooltip: 'Menú',
                             onPressed: () {
-                              // Pasar el callback de logout directamente al modal
                               final logout = _logout;
                               showModalBottomSheet(
                                 context: context,
@@ -219,7 +222,6 @@ class _MainScaffoldState extends State<MainScaffold> {
                                           CrossAxisAlignment.stretch,
                                       children: [
                                         const SizedBox(height: 16),
-                                        // Toggle USD/VES
                                         Consumer<CurrencyProvider>(
                                           builder:
                                               (context, currencyProvider, _) {

@@ -206,16 +206,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               child: Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: const Color.fromARGB(
-                    255,
-                    255,
-                    255,
-                    255,
-                  ).withValues(alpha: 1 * 255),
+                  color: Colors.white.withOpacity(
+                    0.92,
+                  ), // Fondo blanco translúcido igual que dashboard/clients
                   borderRadius: BorderRadius.circular(18),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color.fromARGB(0, 0, 0, 0).withValues(alpha: 0 * 255),
+                      color: Colors.black.withOpacity(0.08),
                       blurRadius: 14,
                       offset: const Offset(0, 3),
                     ),
@@ -256,6 +253,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       );
     }
 
+    // Para que el contenido se vea debajo del notch y el fondo degradado global, NO usar SafeArea aquí.
+    // El GestureDetector se mantiene para poder cerrar el teclado al tocar fuera.
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {
@@ -263,22 +262,18 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           _searchFocusNode.unfocus();
         }
       },
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: SafeArea(
-          child: _loading
-              ? const Center(child: CircularProgressIndicator())
-              : ScrollConfiguration(
-                  behavior: NoScrollbarBehavior(),
-                  child: SingleChildScrollView(
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(0, topPadding, 0, 24),
-                      child: content,
-                    ),
-                  ),
+      child: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : ScrollConfiguration(
+              behavior: const NoScrollbarBehavior(),
+              child: SingleChildScrollView(
+                child: Padding(
+                  // El padding superior sigue siendo importante para separar del header
+                  padding: EdgeInsets.fromLTRB(0, topPadding, 0, 24),
+                  child: content,
                 ),
-        ),
-      ),
+              ),
+            ),
     );
   }
 
@@ -324,13 +319,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       }
     }
     // Detectar offline
-    // Si hay SyncProvider, úsalo; si no, fallback a TransactionProvider
     if (syncProvider != null) {
       isOffline = !syncProvider.isOnline;
-    } else {
-      // Fallback: usar TransactionProvider
-      // (esto es asíncrono, así que solo para fallback visual, no bloqueante)
-      // isOffline = !(await txProvider.isOnline()); // No se puede usar await aquí
     }
 
     return Column(

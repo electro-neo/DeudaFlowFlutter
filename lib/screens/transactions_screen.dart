@@ -215,12 +215,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   borderRadius: BorderRadius.circular(18),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color.fromARGB(
-                        255,
-                        255,
-                        255,
-                        255,
-                      ).withValues(alpha: 0.08 * 255),
+                      color: const Color.fromARGB(0, 0, 0, 0).withValues(alpha: 0 * 255),
                       blurRadius: 14,
                       offset: const Offset(0, 3),
                     ),
@@ -269,7 +264,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFE6F0FF),
+        backgroundColor: Colors.transparent,
         body: SafeArea(
           child: _loading
               ? const Center(child: CircularProgressIndicator())

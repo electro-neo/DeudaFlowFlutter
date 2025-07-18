@@ -127,261 +127,205 @@ class _MainScaffoldState extends State<MainScaffold> {
       children: [
         const DebugBanner(),
         Expanded(
-          child: Scaffold(
-            appBar: null,
-            body: IndexedStack(index: tabIndex, children: screens),
-            floatingActionButton: fab,
-            floatingActionButtonLocation:
-                FloatingActionButtonLocation.centerDocked,
-            bottomNavigationBar: BottomAppBar(
-              shape: const CircularNotchedRectangle(),
-              notchMargin: 8.0,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: <Widget>[
-                  // Lado izquierdo (2 botones)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.dashboard),
-                        tooltip: 'Dashboard',
-                        color: tabIndex == 0
-                            ? Theme.of(context).colorScheme.primary
-                            : null,
-                        onPressed: () => _onTab(0),
-                      ),
-                      const SizedBox(width: 20),
-                      IconButton(
-                        icon: const Icon(Icons.people),
-                        tooltip: 'Clientes',
-                        color: tabIndex == 1
-                            ? Theme.of(context).colorScheme.primary
-                            : null,
-                        onPressed: () => _onTab(1),
-                      ),
+          child: Stack(
+            children: [
+              // Fondo degradado igual que dashboard_screen.dart
+              Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF7C3AED), // Morado principal
+                      Color(0xFF4F46E5), // Azul/morado
+                      Color(0xFF60A5FA), // Azul claro
                     ],
                   ),
-                  const SizedBox(width: 32), // Espacio para el FAB
-                  // Lado derecho (2 botones)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.list_alt),
-                        tooltip: 'Movimientos',
-                        color: tabIndex == 2
-                            ? Theme.of(context).colorScheme.primary
-                            : null,
-                        onPressed: () => _onTab(2),
+                ),
+              ),
+              Scaffold(
+                backgroundColor: Colors.transparent,
+                appBar: null,
+                body: IndexedStack(index: tabIndex, children: screens),
+                floatingActionButton: fab,
+                floatingActionButtonLocation:
+                    FloatingActionButtonLocation.centerDocked,
+                bottomNavigationBar: BottomAppBar(
+                  shape: const CircularNotchedRectangle(),
+                  notchMargin: 8.0,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: <Widget>[
+                      // Lado izquierdo (2 botones)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.dashboard),
+                            tooltip: 'Dashboard',
+                            color: tabIndex == 0
+                                ? Theme.of(context).colorScheme.primary
+                                : null,
+                            onPressed: () => _onTab(0),
+                          ),
+                          const SizedBox(width: 20),
+                          IconButton(
+                            icon: const Icon(Icons.people),
+                            tooltip: 'Clientes',
+                            color: tabIndex == 1
+                                ? Theme.of(context).colorScheme.primary
+                                : null,
+                            onPressed: () => _onTab(1),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 20),
-                      IconButton(
-                        icon: const Icon(Icons.menu),
-                        tooltip: 'Menú',
-                        onPressed: () {
-                          // Pasar el callback de logout directamente al modal
-                          final logout = _logout;
-                          showModalBottomSheet(
-                            context: context,
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(16),
-                              ),
-                            ),
-                            builder: (ctx) {
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 24,
-                                  horizontal: 24,
+                      const SizedBox(width: 32), // Espacio para el FAB
+                      // Lado derecho (2 botones)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.list_alt),
+                            tooltip: 'Movimientos',
+                            color: tabIndex == 2
+                                ? Theme.of(context).colorScheme.primary
+                                : null,
+                            onPressed: () => _onTab(2),
+                          ),
+                          const SizedBox(width: 20),
+                          IconButton(
+                            icon: const Icon(Icons.menu),
+                            tooltip: 'Menú',
+                            onPressed: () {
+                              // Pasar el callback de logout directamente al modal
+                              final logout = _logout;
+                              showModalBottomSheet(
+                                context: context,
+                                shape: const RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.vertical(
+                                    top: Radius.circular(16),
+                                  ),
                                 ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    const SizedBox(height: 16),
-                                    // Toggle USD/VES
-                                    Consumer<CurrencyProvider>(
-                                      builder: (context, currencyProvider, _) {
-                                        return Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            const Icon(
-                                              Icons.attach_money_rounded,
-                                            ),
-                                            Switch(
-                                              value:
-                                                  currencyProvider.currency ==
-                                                  'USD',
-                                              onChanged: (val) {
-                                                if (val) {
-                                                  currencyProvider.setCurrency(
-                                                    'USD',
-                                                  );
-                                                  Future.delayed(
-                                                    const Duration(
-                                                      milliseconds: 200,
+                                builder: (ctx) {
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 24,
+                                      horizontal: 24,
+                                    ),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        const SizedBox(height: 16),
+                                        // Toggle USD/VES
+                                        Consumer<CurrencyProvider>(
+                                          builder:
+                                              (context, currencyProvider, _) {
+                                                return Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    const Icon(
+                                                      Icons
+                                                          .attach_money_rounded,
                                                     ),
-                                                    () {
-                                                      showDialog(
-                                                        context: context,
-                                                        builder: (ctx2) {
-                                                          final rate =
-                                                              currencyProvider
-                                                                  .rate;
-                                                          final controller =
-                                                              TextEditingController(
-                                                                text: rate
-                                                                    .toString(),
+                                                    Switch(
+                                                      value:
+                                                          currencyProvider
+                                                              .currency ==
+                                                          'USD',
+                                                      onChanged: (val) {
+                                                        if (val) {
+                                                          currencyProvider
+                                                              .setCurrency(
+                                                                'USD',
                                                               );
-                                                          return AlertDialog(
-                                                            shape: RoundedRectangleBorder(
-                                                              borderRadius:
-                                                                  BorderRadius.circular(
-                                                                    16,
-                                                                  ),
-                                                            ),
-                                                            title: const Text(
-                                                              'Registrar Tasa USD',
-                                                            ),
-                                                            content: TextField(
-                                                              controller:
-                                                                  controller,
-                                                              decoration:
-                                                                  const InputDecoration(
-                                                                    labelText:
-                                                                        'Tasa USD',
-                                                                    border:
-                                                                        OutlineInputBorder(),
-                                                                    isDense:
-                                                                        true,
-                                                                  ),
-                                                              keyboardType:
-                                                                  TextInputType.numberWithOptions(
-                                                                    decimal:
-                                                                        true,
-                                                                  ),
-                                                            ),
-                                                            actions: [
-                                                              TextButton(
-                                                                onPressed: () =>
-                                                                    Navigator.of(
-                                                                      ctx2,
-                                                                    ).pop(),
-                                                                child:
-                                                                    const Text(
-                                                                      'Cancelar',
-                                                                    ),
-                                                              ),
-                                                              ElevatedButton(
-                                                                onPressed: () {
-                                                                  final rate =
-                                                                      double.tryParse(
-                                                                        controller
-                                                                            .text
-                                                                            .replaceAll(
-                                                                              ',',
-                                                                              '.',
-                                                                            ),
-                                                                      ) ??
-                                                                      1.0;
-                                                                  currencyProvider
-                                                                      .setRate(
-                                                                        rate,
-                                                                      );
-                                                                  Navigator.of(
-                                                                    ctx2,
-                                                                  ).pop();
-                                                                },
-                                                                child: const Text(
-                                                                  'Registrar',
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          );
-                                                        },
-                                                      );
-                                                    },
-                                                  );
-                                                } else {
-                                                  currencyProvider.setCurrency(
-                                                    'VES',
-                                                  );
-                                                }
+                                                        } else {
+                                                          currencyProvider
+                                                              .setCurrency(
+                                                                'VES',
+                                                              );
+                                                        }
+                                                      },
+                                                    ),
+                                                    const Text('USD'),
+                                                  ],
+                                                );
                                               },
-                                            ),
-                                            const Text('USD'),
-                                          ],
-                                        );
-                                      },
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 8,
-                                      ),
-                                      child: Consumer<ThemeProvider>(
-                                        builder: (context, themeProvider, _) =>
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: [
-                                                const Icon(Icons.brightness_6),
-                                                Switch(
-                                                  value:
-                                                      themeProvider.isDarkMode,
-                                                  onChanged: (val) {
-                                                    themeProvider.toggleTheme(
-                                                      val,
-                                                    );
-                                                  },
-                                                ),
-                                                Text(
-                                                  themeProvider.isDarkMode
-                                                      ? 'Dark'
-                                                      : 'Light',
-                                                ),
-                                              ],
-                                            ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    ElevatedButton.icon(
-                                      icon: const Icon(
-                                        Icons.logout,
-                                        color: Colors.red,
-                                      ),
-                                      label: const Text(
-                                        'Cerrar sesión',
-                                        style: TextStyle(color: Colors.red),
-                                      ),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.white,
-                                        foregroundColor: Colors.red,
-                                        elevation: 0,
-                                        side: const BorderSide(
-                                          color: Colors.red,
                                         ),
-                                      ),
-                                      onPressed: () {
-                                        Navigator.of(ctx).pop();
-                                        logout();
-                                      },
+                                        const SizedBox(height: 16),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 8,
+                                          ),
+                                          child: Consumer<ThemeProvider>(
+                                            builder:
+                                                (
+                                                  context,
+                                                  themeProvider,
+                                                  _,
+                                                ) => Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    const Icon(
+                                                      Icons.brightness_6,
+                                                    ),
+                                                    Switch(
+                                                      value: themeProvider
+                                                          .isDarkMode,
+                                                      onChanged: (val) {
+                                                        themeProvider
+                                                            .toggleTheme(val);
+                                                      },
+                                                    ),
+                                                    Text(
+                                                      themeProvider.isDarkMode
+                                                          ? 'Dark'
+                                                          : 'Light',
+                                                    ),
+                                                  ],
+                                                ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        ElevatedButton.icon(
+                                          icon: const Icon(
+                                            Icons.logout,
+                                            color: Colors.red,
+                                          ),
+                                          label: const Text(
+                                            'Cerrar sesión',
+                                            style: TextStyle(color: Colors.red),
+                                          ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.white,
+                                            foregroundColor: Colors.red,
+                                            elevation: 0,
+                                            side: const BorderSide(
+                                              color: Colors.red,
+                                            ),
+                                          ),
+                                          onPressed: () {
+                                            Navigator.of(ctx).pop();
+                                            logout();
+                                          },
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
+                                  );
+                                },
                               );
                             },
-                          );
-                        },
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ],

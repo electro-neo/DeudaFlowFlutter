@@ -371,7 +371,7 @@ class _ClientsScreenState extends State<ClientsScreen>
           }
         },
         child: Scaffold(
-          backgroundColor: const Color(0xFFE6F0FF),
+          backgroundColor: Colors.transparent,
           body: SafeArea(
             child: Consumer<ClientProvider>(
               builder: (context, provider, child) {

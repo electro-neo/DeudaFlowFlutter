@@ -400,10 +400,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 18,
-                                color: Colors.deepPurple,
+                                color: Color.fromARGB(255, 241, 240, 243),
                                 shadows: [
                                   Shadow(
-                                    color: Colors.white,
+                                    color: Color.fromARGB(0, 255, 255, 255),
                                     offset: Offset(0, 0),
                                     blurRadius: 6,
                                   ),
@@ -417,12 +417,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 child: Text(
                                   'No hay movimientos registrados aún',
                                   style: TextStyle(
-                                    color: Colors.deepPurple,
+                                    color: Color.fromARGB(255, 245, 243, 243),
                                     fontWeight: FontWeight.w500,
                                     fontSize: 15,
                                     shadows: [
                                       Shadow(
-                                        color: Colors.white,
+                                        color: Color.fromARGB(0, 255, 255, 255),
                                         offset: Offset(0, 0),
                                         blurRadius: 6,
                                       ),

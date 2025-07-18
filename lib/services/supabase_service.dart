@@ -4,6 +4,14 @@ import '../models/client.dart';
 import '../models/transaction.dart';
 
 class SupabaseService {
+  /// Actualiza solo el balance de un cliente en Supabase por id
+  Future<void> updateClientBalance(String clientId, double balance) async {
+    await _client
+        .from('clients')
+        .update({'balance': balance})
+        .eq('id', clientId);
+  }
+
   final _client = Supabase.instance.client;
 
   Future<List<Client>> fetchClients(String userId) async {

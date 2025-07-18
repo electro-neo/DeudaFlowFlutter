@@ -9,6 +9,46 @@ import '../services/supabase_service.dart';
 import 'transaction_provider.dart';
 
 class ClientProvider extends ChangeNotifier {
+  /// Recalcula el balance de un cliente sumando todas sus transacciones y lo sincroniza en Hive y Supabase
+  Future<void> recalculateAndSyncClientBalance(
+    String clientId,
+    String userId,
+  ) async {
+    // 1. Sumar todas las transacciones del cliente (ignorando las pendingDelete)
+    final txBox = Hive.isBoxOpen('transactions')
+        ? Hive.box<TransactionHive>('transactions')
+        : await Hive.openBox<TransactionHive>('transactions');
+    double balance = 0;
+    for (final tx in txBox.values.where(
+      (t) => t.clientId == clientId && t.pendingDelete != true,
+    )) {
+      if (tx.type == 'debt') balance -= tx.amount;
+      if (tx.type == 'payment') balance += tx.amount;
+    }
+
+    // 2. Actualizar balance en Hive
+    final clientBox = Hive.box<ClientHive>('clients');
+    final c = clientBox.get(clientId);
+    if (c != null) {
+      c.balance = balance;
+      await c.save();
+    }
+
+    // 3. Actualizar balance en Supabase si estamos online
+    if (await _isOnline()) {
+      try {
+        await _service.updateClientBalance(clientId, balance);
+      } catch (e) {
+        debugPrint(
+          '[SYNC][ERROR] No se pudo actualizar balance en Supabase para cliente $clientId: $e',
+        );
+      }
+    }
+
+    await _refreshClientsFromHive();
+    notifyListeners();
+  }
+
   /// Sincroniza los clientes locales pendientes cuando hay internet
   Future<void> syncPendingClients(String userId) async {
     if (!await _isOnline()) return;
@@ -52,10 +92,14 @@ class ClientProvider extends ChangeNotifier {
                   .toList();
               for (final t in orphanTxs) {
                 await t.delete();
-                debugPrint('[SYNC][CLEAN] Transacción huérfana eliminada tras sync: id=${t.id}, clientId=${t.clientId}, desc=${t.description}');
+                debugPrint(
+                  '[SYNC][CLEAN] Transacción huérfana eliminada tras sync: id=${t.id}, clientId=${t.clientId}, desc=${t.description}',
+                );
               }
             } catch (e) {
-              debugPrint('[SYNC][CLEAN][ERROR] Error eliminando transacciones huérfanas tras sync: $e');
+              debugPrint(
+                '[SYNC][CLEAN][ERROR] Error eliminando transacciones huérfanas tras sync: $e',
+              );
             }
             notifyListeners();
           } else {

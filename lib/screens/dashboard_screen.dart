@@ -12,6 +12,7 @@ import '../utils/no_scrollbar_behavior.dart';
 import '../widgets/cyclic_animated_fade_list.dart';
 import '../widgets/dashboard_stats.dart';
 import '../widgets/sync_banner.dart';
+import '../services/supabase_service.dart';
 
 // Para kIsWeb
 class DashboardScreen extends StatefulWidget {
@@ -84,6 +85,55 @@ class _DashboardScreenState extends State<DashboardScreen> {
         listen: false,
       ).initializeConnectionStatus();
     });
+    // Comprobar diferencias de balance tras cargar datos
+    Future.delayed(const Duration(milliseconds: 800), _checkBalanceDifferences);
+  }
+
+  // Compara balances locales y remotos y muestra SnackBar si hay diferencias
+  Future<void> _checkBalanceDifferences() async {
+    final clientProvider = Provider.of<ClientProvider>(context, listen: false);
+    final localClients = clientProvider.clients;
+    try {
+      // Asume que tienes un método en SupabaseService para obtener clientes remotos
+      final supabaseService = SupabaseService();
+      final remoteClients = await supabaseService.fetchClients(widget.userId);
+      // Mapear por id para comparar
+      final localMap = {for (var c in localClients) c.id: c};
+      final remoteMap = {for (var c in remoteClients) c.id: c};
+      bool difference = false;
+      for (final id in localMap.keys) {
+        if (remoteMap.containsKey(id)) {
+          final localBal = localMap[id]!.balance;
+          final remoteBal = remoteMap[id]!.balance;
+          if ((localBal - remoteBal).abs() > 0.01) {
+            difference = true;
+            break;
+          }
+        }
+      }
+      if (difference && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              '¡Atención! Hay diferencias entre los balances locales y online.',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            duration: const Duration(minutes: 5),
+            action: SnackBarAction(
+              label: 'X',
+              onPressed: () {
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              },
+              textColor: Colors.white,
+            ),
+            backgroundColor: Colors.deepOrange,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      // Silenciar error si no hay conexión o método no implementado
+    }
   }
 
   Future<void> _loadData() async {

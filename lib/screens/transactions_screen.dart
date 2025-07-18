@@ -758,6 +758,15 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       final transactionIdToDelete = t.id;
                       final transactionDescription = t.description;
 
+                      debugPrint('--- SWIPE DELETE ---');
+                      debugPrint('ID transacción: $transactionIdToDelete');
+                      debugPrint('Descripción: $transactionDescription');
+                      debugPrint(
+                        '¿UUID? (id.length == 36): ${transactionIdToDelete.length == 36}',
+                      );
+                      debugPrint(
+                        'Estado online: ${(await txProvider.isOnline())}',
+                      );
                       txProvider.removeTransactionLocally(
                         transactionIdToDelete,
                       );

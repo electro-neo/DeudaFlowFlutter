@@ -51,8 +51,8 @@ class _ClientsScreenState extends State<ClientsScreen>
         listen: false,
       );
       //final clientProvider = Provider.of<ClientProvider>(
-        //context,
-       // listen: false,
+      //context,
+      // listen: false,
       //);
       await txProvider.addTransaction(tx, widget.userId, client.id);
       // Sincroniza en segundo plano tras agregar movimiento para refrescar statscards
@@ -431,287 +431,303 @@ class _ClientsScreenState extends State<ClientsScreen>
                                   textAlign: TextAlign.center,
                                 ),
                                 const SizedBox(height: 12),
-                                if (allClients.isEmpty)
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      FloatingActionButton(
-                                        heroTag: 'registrarCliente',
-                                        mini: true,
-                                        backgroundColor: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                        foregroundColor: Colors.white,
-                                        elevation: 2,
-                                        onPressed: () => _showClientForm(),
-                                        tooltip: 'Registrar Cliente',
-                                        child: const Icon(Icons.add),
-                                      ),
-                                    ],
-                                  )
-                                else
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      FloatingActionButton(
-                                        heroTag: 'registrarCliente',
-                                        mini: true,
-                                        backgroundColor: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                        foregroundColor: Colors.white,
-                                        elevation: 2,
-                                        onPressed: () => _showClientForm(),
-                                        tooltip: 'Registrar Cliente',
-                                        child: const Icon(Icons.add),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      FloatingActionButton(
-                                        heroTag: 'reciboGeneral',
-                                        mini: true,
-                                        backgroundColor: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                        foregroundColor: Colors.white,
-                                        elevation: 2,
-                                        onPressed: () {
-                                          // Convierte ClientHive a Client para el modal
-                                          final clientData = allClients
-                                              .map(
-                                                (c) => {
-                                                  'client': Client.fromHive(c),
-                                                  'transactions': txProvider
-                                                      .transactions
-                                                      .where(
-                                                        (tx) =>
-                                                            tx.clientId == c.id,
-                                                      )
-                                                      .toList(),
-                                                },
-                                              )
-                                              .toList();
-                                          showDialog(
-                                            context: context,
-                                            builder: (_) => GeneralReceiptModal(
-                                              clientData: clientData,
-                                            ),
-                                          );
-                                        },
-                                        tooltip: 'Recibo general',
-                                        child: const Icon(Icons.receipt_long),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      FutureBuilder<bool>(
-                                        future:
+                                // --- Botones principales ---
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    FloatingActionButton(
+                                      heroTag: 'registrarCliente',
+                                      mini: true,
+                                      backgroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                      foregroundColor: Colors.white,
+                                      elevation: 2,
+                                      onPressed: () => _showClientForm(),
+                                      tooltip: 'Registrar Cliente',
+                                      child: const Icon(Icons.add),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    FloatingActionButton(
+                                      heroTag: 'reciboGeneral',
+                                      mini: true,
+                                      backgroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                      foregroundColor: Colors.white,
+                                      elevation: 2,
+                                      onPressed: () {
+                                        final clientData = allClients
+                                            .map(
+                                              (c) => {
+                                                'client': Client.fromHive(c),
+                                                'transactions': txProvider
+                                                    .transactions
+                                                    .where(
+                                                      (tx) =>
+                                                          tx.clientId == c.id,
+                                                    )
+                                                    .toList(),
+                                              },
+                                            )
+                                            .toList();
+                                        showDialog(
+                                          context: context,
+                                          builder: (_) => GeneralReceiptModal(
+                                            clientData: clientData,
+                                          ),
+                                        );
+                                      },
+                                      tooltip: 'Recibo general',
+                                      child: const Icon(Icons.receipt_long),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    FutureBuilder<bool>(
+                                      future: Provider.of<TransactionProvider>(
+                                        context,
+                                        listen: false,
+                                      ).isOnline(),
+                                      builder: (context, snapshot) {
+                                        final online = snapshot.data ?? true;
+                                        if (!online) {
+                                          return const SizedBox.shrink();
+                                        }
+                                        return FloatingActionButton(
+                                          heroTag: 'syncClientes',
+                                          mini: true,
+                                          backgroundColor: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                          foregroundColor: Colors.white,
+                                          elevation: 2,
+                                          onPressed: _isSyncing
+                                              ? null
+                                              : _syncAll,
+                                          tooltip:
+                                              'Forzar sincronización de clientes y transacciones',
+                                          child: AnimatedBuilder(
+                                            animation: _syncController,
+                                            builder: (context, child) {
+                                              return Transform.rotate(
+                                                angle: _isSyncing
+                                                    ? -_syncController.value *
+                                                          6.28319
+                                                    : 0,
+                                                child: Icon(
+                                                  Icons.sync,
+                                                  color: _isSyncing
+                                                      ? Colors.green
+                                                      : Colors.white,
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    const SizedBox(width: 12),
+                                    FloatingActionButton(
+                                      heroTag: 'buscarCliente',
+                                      mini: true,
+                                      backgroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                      foregroundColor: Colors.white,
+                                      elevation: 2,
+                                      onPressed: _toggleSearch,
+                                      tooltip: _showSearch
+                                          ? 'Ocultar buscador'
+                                          : 'Buscar cliente',
+                                      child: const Icon(Icons.search),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    FloatingActionButton(
+                                      heroTag: 'eliminarTodos',
+                                      mini: true,
+                                      backgroundColor: Colors.red[700],
+                                      foregroundColor: Colors.white,
+                                      elevation: 2,
+                                      onPressed: () async {
+                                        final provider =
+                                            Provider.of<ClientProvider>(
+                                              context,
+                                              listen: false,
+                                            );
+                                        final txProvider =
                                             Provider.of<TransactionProvider>(
                                               context,
                                               listen: false,
-                                            ).isOnline(),
-                                        builder: (context, snapshot) {
-                                          final online = snapshot.data ?? true;
-                                          if (!online) {
-                                            // Si está offline, no muestra el botón de sincronizar
-                                            return const SizedBox.shrink();
-                                          }
-                                          return FloatingActionButton(
-                                            heroTag: 'syncClientes',
-                                            mini: true,
-                                            backgroundColor: Theme.of(
-                                              context,
-                                            ).colorScheme.primary,
-                                            foregroundColor: Colors.white,
-                                            elevation: 2,
-                                            onPressed: _isSyncing
-                                                ? null
-                                                : _syncAll,
-                                            tooltip:
-                                                'Forzar sincronización de clientes y transacciones',
-                                            child: AnimatedBuilder(
-                                              animation: _syncController,
-                                              builder: (context, child) {
-                                                return Transform.rotate(
-                                                  angle: _isSyncing
-                                                      ? -_syncController.value *
-                                                            6.28319
-                                                      : 0, // 2*pi (sentido inverso)
-                                                  child: Icon(
-                                                    Icons.sync,
-                                                    color: _isSyncing
-                                                        ? Colors.green
-                                                        : Colors.white,
-                                                  ),
-                                                );
-                                              },
+                                            );
+                                        final box = Hive.box<ClientHive>(
+                                          'clients',
+                                        );
+                                        final allClients = box.values.toList();
+                                        debugPrint(
+                                          '[ELIMINAR_TODOS] Clientes encontrados: \\${allClients.length}',
+                                        );
+                                        if (allClients.isEmpty) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'No hay clientes para eliminar.',
+                                              ),
                                             ),
                                           );
-                                        },
-                                      ),
-                                      const SizedBox(width: 12),
-                                      FloatingActionButton(
-                                        heroTag: 'buscarCliente',
-                                        mini: true,
-                                        backgroundColor: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                        foregroundColor: Colors.white,
-                                        elevation: 2,
-                                        onPressed: _toggleSearch,
-                                        tooltip: _showSearch
-                                            ? 'Ocultar buscador'
-                                            : 'Buscar cliente',
-                                        child: const Icon(Icons.search),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      FloatingActionButton(
-                                        heroTag: 'eliminarTodos',
-                                        mini: true,
-                                        backgroundColor: Colors.red[700],
-                                        foregroundColor: Colors.white,
-                                        elevation: 2,
-                                        onPressed: () async {
-                                          final provider =
-                                              Provider.of<ClientProvider>(
-                                                context,
-                                                listen: false,
-                                              );
-                                          final txProvider =
-                                              Provider.of<TransactionProvider>(
-                                                context,
-                                                listen: false,
-                                              );
-                                          final box = Hive.box<ClientHive>(
-                                            'clients',
-                                          );
-                                          final allClients = box.values
-                                              .toList();
+                                          return;
+                                        }
+                                        final confirm = await showDialog<bool>(
+                                          context: context,
+                                          builder: (_) => AlertDialog(
+                                            title: const Text(
+                                              'Eliminar TODOS los clientes',
+                                            ),
+                                            content: const Text(
+                                              '¿Estás seguro de eliminar TODOS los clientes y sus transacciones? Esta acción no se puede deshacer.',
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.of(
+                                                  context,
+                                                ).pop(false),
+                                                child: const Text('Cancelar'),
+                                              ),
+                                              TextButton(
+                                                onPressed: () => Navigator.of(
+                                                  context,
+                                                ).pop(true),
+                                                child: const Text(
+                                                  'Eliminar todo',
+                                                  style: TextStyle(
+                                                    color: Colors.red,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                        if (confirm == true) {
                                           debugPrint(
-                                            '[ELIMINAR_TODOS] Clientes encontrados: ${allClients.length}',
+                                            '[ELIMINAR_TODOS] Eliminando todos los clientes...',
                                           );
-                                          if (allClients.isEmpty) {
+                                          for (final client in allClients) {
+                                            debugPrint(
+                                              '[ELIMINAR_TODOS] Eliminando cliente: \\${client.id} (\\${client.name})',
+                                            );
+                                            await provider.deleteClient(
+                                              client.id,
+                                              widget.userId,
+                                            );
+                                          }
+                                          await provider
+                                              .cleanLocalPendingDeletedClients();
+                                          debugPrint(
+                                            '[ELIMINAR_TODOS] Sincronizando eliminaciones...',
+                                          );
+                                          await provider.syncPendingClients(
+                                            widget.userId,
+                                          );
+                                          await txProvider
+                                              .syncPendingTransactions(
+                                                widget.userId,
+                                              );
+                                          int intentos = 0;
+                                          bool hayPendientes;
+                                          do {
+                                            await provider.loadClients(
+                                              widget.userId,
+                                            );
+                                            final box = Hive.box<ClientHive>(
+                                              'clients',
+                                            );
+                                            hayPendientes = box.values.any(
+                                              (c) => c.pendingDelete == true,
+                                            );
+                                            debugPrint(
+                                              '[ELIMINAR_TODOS] Intento \\${intentos + 1}: ¿Quedan clientes pendientes de eliminar? \\$hayPendientes',
+                                            );
+                                            if (hayPendientes) {
+                                              await Future.delayed(
+                                                const Duration(
+                                                  milliseconds: 500,
+                                                ),
+                                              );
+                                            }
+                                            intentos++;
+                                          } while (hayPendientes &&
+                                              intentos < 8);
+                                          debugPrint(
+                                            '[ELIMINAR_TODOS] Recargando transacciones...',
+                                          );
+                                          await txProvider.loadTransactions(
+                                            widget.userId,
+                                          );
+                                          if (mounted) {
+                                            debugPrint(
+                                              '[ELIMINAR_TODOS] Proceso completado.',
+                                            );
+                                            final isOnline = await txProvider
+                                                .isOnline();
                                             ScaffoldMessenger.of(
                                               context,
                                             ).showSnackBar(
-                                              const SnackBar(
+                                              SnackBar(
                                                 content: Text(
-                                                  'No hay clientes para eliminar.',
+                                                  isOnline
+                                                      ? 'Todos los clientes eliminados.'
+                                                      : 'Clientes pendientes por eliminar',
                                                 ),
                                               ),
                                             );
-                                            return;
                                           }
-                                          final confirm = await showDialog<bool>(
-                                            context: context,
-                                            builder: (_) => AlertDialog(
-                                              title: const Text(
-                                                'Eliminar TODOS los clientes',
-                                              ),
-                                              content: const Text(
-                                                '¿Estás seguro de eliminar TODOS los clientes y sus transacciones? Esta acción no se puede deshacer.',
-                                              ),
-                                              actions: [
-                                                TextButton(
-                                                  onPressed: () => Navigator.of(
-                                                    context,
-                                                  ).pop(false),
-                                                  child: const Text('Cancelar'),
-                                                ),
-                                                TextButton(
-                                                  onPressed: () => Navigator.of(
-                                                    context,
-                                                  ).pop(true),
-                                                  child: const Text(
-                                                    'Eliminar todo',
-                                                    style: TextStyle(
-                                                      color: Colors.red,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
+                                        }
+                                      },
+                                      tooltip: 'Eliminar TODOS los clientes',
+                                      child: const Icon(Icons.delete_forever),
+                                    ),
+                                  ],
+                                ),
+                                // --- Botón compacto para poblar datos demo ---
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8.0),
+                                  child: Align(
+                                    alignment: Alignment.centerRight,
+                                    child: SizedBox(
+                                      height: 28,
+                                      child: TextButton(
+                                        style: TextButton.styleFrom(
+                                          minimumSize: const Size(36, 28),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 0,
+                                          ),
+                                          tapTargetSize:
+                                              MaterialTapTargetSize.shrinkWrap,
+                                          backgroundColor: const Color(
+                                            0xFFE0E7FF,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              8,
                                             ),
-                                          );
-                                          if (confirm == true) {
-                                            debugPrint(
-                                              '[ELIMINAR_TODOS] Eliminando todos los clientes...',
-                                            );
-                                            for (final client in allClients) {
-                                              debugPrint(
-                                                '[ELIMINAR_TODOS] Eliminando cliente: ${client.id} (${client.name})',
-                                              );
-                                              await provider.deleteClient(
-                                                client.id,
-                                                widget.userId,
-                                              );
-                                            }
-                                            await provider
-                                                .cleanLocalPendingDeletedClients();
-                                            debugPrint(
-                                              '[ELIMINAR_TODOS] Sincronizando eliminaciones...',
-                                            );
-                                            await provider.syncPendingClients(
-                                              widget.userId,
-                                            );
-                                            await txProvider
-                                                .syncPendingTransactions(
-                                                  widget.userId,
-                                                );
-                                            int intentos = 0;
-                                            bool hayPendientes;
-                                            do {
-                                              await provider.loadClients(
-                                                widget.userId,
-                                              );
-                                              final box = Hive.box<ClientHive>(
-                                                'clients',
-                                              );
-                                              hayPendientes = box.values.any(
-                                                (c) => c.pendingDelete == true,
-                                              );
-                                              debugPrint(
-                                                '[ELIMINAR_TODOS] Intento ${intentos + 1}: ¿Quedan clientes pendientes de eliminar? $hayPendientes',
-                                              );
-                                              if (hayPendientes) {
-                                                await Future.delayed(
-                                                  const Duration(
-                                                    milliseconds: 500,
-                                                  ),
-                                                );
-                                              }
-                                              intentos++;
-                                            } while (hayPendientes &&
-                                                intentos < 8);
-                                            debugPrint(
-                                              '[ELIMINAR_TODOS] Recargando transacciones...',
-                                            );
-                                            await txProvider.loadTransactions(
-                                              widget.userId,
-                                            );
-                                            if (mounted) {
-                                              debugPrint(
-                                                '[ELIMINAR_TODOS] Proceso completado.',
-                                              );
-                                              // Verifica si está offline
-                                              final isOnline = await txProvider
-                                                  .isOnline();
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    isOnline
-                                                        ? 'Todos los clientes eliminados.'
-                                                        : 'Clientes pendientes por eliminar',
-                                                  ),
-                                                ),
-                                              );
-                                            }
-                                          }
+                                          ),
+                                        ),
+                                        onPressed: () async {
+                                          // TODO: Lógica para poblar clientes y transacciones demo
                                         },
-                                        tooltip: 'Eliminar TODOS los clientes',
-                                        child: const Icon(Icons.delete_forever),
+                                        child: const Text(
+                                          'Demo datos',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Color(0xFF7C3AED),
+                                          ),
+                                        ),
                                       ),
-                                    ],
+                                    ),
                                   ),
+                                ),
                                 if (_showSearch && allClients.isNotEmpty)
                                   Padding(
                                     padding: const EdgeInsets.only(top: 14.0),
@@ -933,7 +949,8 @@ class _ClientsScreenState extends State<ClientsScreen>
                                               // NOTA: Este warning aparece porque el linter de Flutter no siempre detecta correctamente el patrón de chequeo de 'mounted'.
                                               // El uso de context aquí es seguro porque se verifica 'mounted' justo antes. Puedes ignorar este warning: no afecta la ejecución ni la seguridad del código.
                                               // Verifica si está online antes de mostrar el mensaje
-                                              final isOnline = await txProvider.isOnline();
+                                              final isOnline = await txProvider
+                                                  .isOnline();
                                               ScaffoldMessenger.of(
                                                 context,
                                               ).showSnackBar(

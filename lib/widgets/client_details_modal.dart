@@ -7,6 +7,7 @@ import '../widgets/transaction_form.dart';
 import '../providers/transaction_provider.dart';
 import '../providers/client_provider.dart';
 import '../widgets/general_receipt_modal.dart';
+import '../providers/tab_provider.dart';
 
 class ClientDetailsModal extends StatelessWidget {
   final Client client;
@@ -239,32 +240,9 @@ class ClientDetailsModal extends StatelessWidget {
                     color: Colors.orange,
                     onPressed: () {
                       Navigator.of(context, rootNavigator: true).pop();
-                      if (onViewMovements != null) {
-                        Future.delayed(Duration.zero, onViewMovements!);
-                      } else {
-                        final navigator = Navigator.of(
-                          context,
-                          rootNavigator: true,
-                        );
-                        final filterProvider =
-                            Provider.of<TransactionFilterProvider>(
-                              context,
-                              listen: false,
-                            );
-                        filterProvider.setClientId(client.id);
-                        Future.delayed(Duration.zero, () {
-                          if (navigator.mounted) {
-                            navigator.push(
-                              MaterialPageRoute(
-                                builder: (_) => TransactionsScreen(
-                                  userId: userId,
-                                  initialClientId: client.id,
-                                ),
-                              ),
-                            );
-                          }
-                        });
-                      }
+                      // Cambia el tab a Movimientos igual que la barra inferior
+                      final tabProvider = Provider.of<TabProvider>(context, listen: false);
+                      tabProvider.setTab(2);
                     },
                   ),
                 ),

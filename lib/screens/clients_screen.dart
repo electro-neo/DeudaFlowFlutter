@@ -781,260 +781,291 @@ class _ClientsScreenState extends State<ClientsScreen>
                                             prefixIconColor: Color(0xFF7C3AED),
                                             suffixIconColor: Colors.black,
                                           ),
-                                                                onChanged: (value) {
-                                                                  setState(() {
-                                                                    _searchText = value;
-                                                                  });
-                                                                },
-                                                              ),
-                                                            ),
-                                                          ),
-                                                      ],
-                                                    ),
+                                          onChanged: (value) {
+                                            setState(() {
+                                              _searchText = value;
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.translucent,
+                            onTap: () {
+                              if (_searchFocusNode.hasFocus) {
+                                _searchFocusNode.unfocus();
+                              }
+                              if (_showSearch && !_searchFocusNode.hasFocus) {
+                                setState(() {
+                                  _showSearch = false;
+                                  _searchText = '';
+                                  _searchController.clear();
+                                });
+                              }
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(
+                                  0,
+                                  0,
+                                  0,
+                                  0,
+                                ).withValues(alpha: 0.00),
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color.fromARGB(
+                                      0,
+                                      0,
+                                      0,
+                                      0,
+                                    ).withValues(alpha: 0.00),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: clientsWithBalance.isEmpty
+                                  ? const Center(
+                                      child: Text(
+                                        'No hay clientes.',
+                                        style: TextStyle(
+                                          color: Color.fromARGB(
+                                            255,
+                                            255,
+                                            255,
+                                            255,
+                                          ),
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    )
+                                  : GestureDetector(
+                                      behavior: HitTestBehavior.translucent,
+                                      onTap: () {
+                                        if (_showSearch) {
+                                          setState(() {
+                                            _showSearch = false;
+                                            _searchText = '';
+                                            _searchController.clear();
+                                            _searchFocusNode.unfocus();
+                                          });
+                                        }
+                                      },
+                                      child: ScrollConfiguration(
+                                        behavior: NoScrollbarBehavior(),
+                                        child: ListView.separated(
+                                          padding: EdgeInsets.fromLTRB(
+                                            0,
+                                            10,
+                                            0,
+                                            kBottomNavigationBarHeight + 20,
+                                          ),
+                                          itemCount: clientsWithBalance.length,
+                                          separatorBuilder: (_, __) =>
+                                              const SizedBox(height: 10),
+                                          itemBuilder: (context, index) {
+                                            final client =
+                                                clientsWithBalance[index];
+                                            return Container(
+                                              decoration: BoxDecoration(
+                                                color: const Color.fromARGB(
+                                                  0,
+                                                  0,
+                                                  0,
+                                                  0,
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: const Color.fromARGB(
+                                                      0,
+                                                      0,
+                                                      0,
+                                                      0,
+                                                    ).withValues(alpha: 0.03),
+                                                    blurRadius: 8,
+                                                    offset: const Offset(0, 2),
                                                   ),
                                                 ],
                                               ),
-                                            ),
-                                            Expanded(
-                                              child: Padding(
-                                                padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                                                child: GestureDetector(
-                                                  behavior: HitTestBehavior.translucent,
-                                                  onTap: () {
-                                                    if (_searchFocusNode.hasFocus) {
-                                                      _searchFocusNode.unfocus();
-                                                    }
-                                                    if (_showSearch && !_searchFocusNode.hasFocus) {
-                                                      setState(() {
-                                                        _showSearch = false;
-                                                        _searchText = '';
-                                                        _searchController.clear();
-                                                      });
-                                                    }
-                                                  },
-                                                  child: Container(
-                                                    decoration: BoxDecoration(
-                                                      color: const Color.fromARGB(
-                                                        0,
-                                                        0,
-                                                        0,
-                                                        0,
-                                                      ).withValues(alpha: 0.00),
-                                                      borderRadius: BorderRadius.circular(16),
-                                                      boxShadow: [
-                                                        BoxShadow(
-                                                          color: const Color.fromARGB(
-                                                            0,
-                                                            0,
-                                                            0,
-                                                            0,
-                                                          ).withValues(alpha: 0.00),
-                                                          blurRadius: 10,
-                                                          offset: const Offset(0, 2),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    child: clientsWithBalance.isEmpty
-                                                        ? const Center(
-                                                            child: Text(
-                                                              'No hay clientes.',
-                                                              style: TextStyle(
-                                                                color: Color.fromARGB(
-                                                                    255, 255, 255, 255),
-                                                                fontWeight: FontWeight.w500,
-                                                              ),
-                                                            ),
+                                              child: ClientCard(
+                                                client: client,
+                                                userId: widget.userId,
+                                                onEdit: () =>
+                                                    _showClientForm(client),
+                                                onDelete: () async {
+                                                  final provider =
+                                                      Provider.of<
+                                                        ClientProvider
+                                                      >(context, listen: false);
+                                                  final txProvider =
+                                                      Provider.of<
+                                                        TransactionProvider
+                                                      >(context, listen: false);
+                                                  final userTransactions =
+                                                      txProvider.transactions
+                                                          .where(
+                                                            (tx) =>
+                                                                tx.clientId ==
+                                                                client.id,
                                                           )
-                                                        : GestureDetector(
-                                                            behavior: HitTestBehavior.translucent,
-                                                            onTap: () {
-                                                              if (_showSearch) {
-                                                                setState(() {
-                                                                  _showSearch = false;
-                                                                  _searchText = '';
-                                                                  _searchController.clear();
-                                                                  _searchFocusNode.unfocus();
-                                                                });
-                                                              }
-                                                            },
-                                                            child: ScrollConfiguration(
-                                                              behavior: NoScrollbarBehavior(),
-                                                              child: ListView.separated(
-                                                                padding: const EdgeInsets.symmetric(
-                                                                  vertical: 10,
-                                                                ),
-                                                                itemCount: clientsWithBalance.length,
-                                                                separatorBuilder: (_, __) =>
-                                                                    const SizedBox(height: 10),
-                                                                itemBuilder: (context, index) {
-                                                                  final client =
-                                                                      clientsWithBalance[index];
-                                                                  return Container(
-                                                                    decoration: BoxDecoration(
-                                                                      color: const Color.fromARGB(
-                                                                          0, 0, 0, 0),
-                                                                      borderRadius:
-                                                                          BorderRadius.circular(16),
-                                                                      boxShadow: [
-                                                                        BoxShadow(
-                                                                          color: const Color.fromARGB(
-                                                                                  0, 0, 0, 0)
-                                                                              .withValues(
-                                                                                  alpha: 0.03),
-                                                                          blurRadius: 8,
-                                                                          offset: const Offset(0, 2),
-                                                                        ),
-                                                                      ],
-                                                                    ),
-                                                                    child: ClientCard(
-                                                                      client: client,
-                                                                      userId: widget.userId,
-                                                                      onEdit: () =>
-                                                                          _showClientForm(client),
-                                                                      onDelete: () async {
-                                                                        final provider = Provider.of<
-                                                                                ClientProvider>(
-                                                                            context,
-                                                                            listen: false);
-                                                                        final txProvider = Provider.of<
-                                                                                TransactionProvider>(
-                                                                            context,
-                                                                            listen: false);
-                                                                        final userTransactions =
-                                                                            txProvider.transactions
-                                                                                .where((tx) =>
-                                                                                    tx.clientId ==
-                                                                                    client.id)
-                                                                                .toList();
-                                                                        String warning = '';
-                                                                        if (userTransactions
-                                                                            .isNotEmpty) {
-                                                                          warning =
-                                                                              '\n\nADVERTENCIA: Este cliente tiene \\${userTransactions.length} transacción(es) asociada(s). Se eliminarán TODAS las transacciones de este cliente.';
-                                                                        }
-                                                                        final confirm =
-                                                                            await showDialog<bool>(
-                                                                          context: context,
-                                                                          builder: (_) =>
-                                                                              AlertDialog(
-                                                                            title: const Text(
-                                                                                'Eliminar Cliente'),
-                                                                            content: Text(
-                                                                                '¿Estás seguro de eliminar a \\${client.name}?$warning'),
-                                                                            actions: [
-                                                                              TextButton(
-                                                                                onPressed: () =>
-                                                                                    Navigator.of(
-                                                                                            context)
-                                                                                        .pop(false),
-                                                                                child: const Text(
-                                                                                    'Cancelar'),
-                                                                              ),
-                                                                              TextButton(
-                                                                                onPressed: () =>
-                                                                                    Navigator.of(
-                                                                                            context)
-                                                                                        .pop(true),
-                                                                                child: const Text(
-                                                                                    'Eliminar'),
-                                                                              ),
-                                                                            ],
-                                                                          ),
-                                                                        );
-                                                                        if (confirm == true) {
-                                                                          await provider
-                                                                              .deleteClient(
-                                                                                  client.id,
-                                                                                  widget.userId);
-                                                                          await provider
-                                                                              .cleanLocalPendingDeletedClients();
-                                                                          await provider
-                                                                              .syncPendingClients(
-                                                                                  widget.userId);
-                                                                          await txProvider
-                                                                              .syncPendingTransactions(
-                                                                                  widget.userId);
-                                                                          await provider.loadClients(
-                                                                              widget.userId);
-                                                                          await txProvider
-                                                                              .loadTransactions(
-                                                                                  widget.userId);
-                                                                          if (!mounted) return;
-                                                                          final isOnline =
-                                                                              await txProvider
-                                                                                  .isOnline();
-                                                                          ScaffoldMessenger.of(
-                                                                                  context)
-                                                                              .showSnackBar(
-                                                                            SnackBar(
-                                                                              content: Text(isOnline
-                                                                                  ? 'Cliente eliminado correctamente.'
-                                                                                  : 'Cliente pendiente por eliminar'),
-                                                                              duration:
-                                                                                  const Duration(
-                                                                                      seconds: 2),
-                                                                            ),
-                                                                          );
-                                                                        }
-                                                                      },
-                                                                      onAddTransaction: () =>
-                                                                          _showTransactionForm(
-                                                                              client),
-                                                                      onViewMovements: () {
-                                                                        Navigator.of(context,
-                                                                                rootNavigator: true)
-                                                                            .push(
-                                                                          MaterialPageRoute(
-                                                                            builder: (_) =>
-                                                                                TransactionsScreen(
-                                                                              userId: widget.userId,
-                                                                              initialClientId:
-                                                                                  client.id,
-                                                                            ),
-                                                                          ),
-                                                                        );
-                                                                      },
-                                                                      onReceipt: () {
-                                                                        final clientData = [
-                                                                          {
-                                                                            'client': client,
-                                                                            'transactions': txProvider
-                                                                                .transactions
-                                                                                .where((tx) =>
-                                                                                    tx.clientId ==
-                                                                                    client.id)
-                                                                                .toList(),
-                                                                          },
-                                                                        ];
-                                                                        showDialog(
-                                                                          context: context,
-                                                                          builder: (_) =>
-                                                                              GeneralReceiptModal(
-                                                                                  clientData:
-                                                                                      clientData),
-                                                                        );
-                                                                      },
-                                                                    ),
-                                                                  );
-                                                                },
+                                                          .toList();
+                                                  String warning = '';
+                                                  if (userTransactions
+                                                      .isNotEmpty) {
+                                                    warning =
+                                                        '\n\nADVERTENCIA: Este cliente tiene \\${userTransactions.length} transacción(es) asociada(s). Se eliminarán TODAS las transacciones de este cliente.';
+                                                  }
+                                                  final confirm =
+                                                      await showDialog<bool>(
+                                                        context: context,
+                                                        builder: (_) => AlertDialog(
+                                                          title: const Text(
+                                                            'Eliminar Cliente',
+                                                          ),
+                                                          content: Text(
+                                                            '¿Estás seguro de eliminar a \\${client.name}?$warning',
+                                                          ),
+                                                          actions: [
+                                                            TextButton(
+                                                              onPressed: () =>
+                                                                  Navigator.of(
+                                                                    context,
+                                                                  ).pop(false),
+                                                              child: const Text(
+                                                                'Cancelar',
                                                               ),
                                                             ),
+                                                            TextButton(
+                                                              onPressed: () =>
+                                                                  Navigator.of(
+                                                                    context,
+                                                                  ).pop(true),
+                                                              child: const Text(
+                                                                'Eliminar',
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      );
+                                                  if (confirm == true) {
+                                                    await provider.deleteClient(
+                                                      client.id,
+                                                      widget.userId,
+                                                    );
+                                                    await provider
+                                                        .cleanLocalPendingDeletedClients();
+                                                    await provider
+                                                        .syncPendingClients(
+                                                          widget.userId,
+                                                        );
+                                                    await txProvider
+                                                        .syncPendingTransactions(
+                                                          widget.userId,
+                                                        );
+                                                    await provider.loadClients(
+                                                      widget.userId,
+                                                    );
+                                                    await txProvider
+                                                        .loadTransactions(
+                                                          widget.userId,
+                                                        );
+                                                    if (!mounted) return;
+                                                    final isOnline =
+                                                        await txProvider
+                                                            .isOnline();
+                                                    ScaffoldMessenger.of(
+                                                      context,
+                                                    ).showSnackBar(
+                                                      SnackBar(
+                                                        content: Text(
+                                                          isOnline
+                                                              ? 'Cliente eliminado correctamente.'
+                                                              : 'Cliente pendiente por eliminar',
+                                                        ),
+                                                        duration:
+                                                            const Duration(
+                                                              seconds: 2,
+                                                            ),
+                                                      ),
+                                                    );
+                                                  }
+                                                },
+                                                onAddTransaction: () =>
+                                                    _showTransactionForm(
+                                                      client,
+                                                    ),
+                                                onViewMovements: () {
+                                                  Navigator.of(
+                                                    context,
+                                                    rootNavigator: true,
+                                                  ).push(
+                                                    MaterialPageRoute(
+                                                      builder: (_) =>
+                                                          TransactionsScreen(
+                                                            userId:
+                                                                widget.userId,
+                                                            initialClientId:
+                                                                client.id,
                                                           ),
-                                                  ),
-                                                ),
+                                                    ),
+                                                  );
+                                                },
+                                                onReceipt: () {
+                                                  final clientData = [
+                                                    {
+                                                      'client': client,
+                                                      'transactions': txProvider
+                                                          .transactions
+                                                          .where(
+                                                            (tx) =>
+                                                                tx.clientId ==
+                                                                client.id,
+                                                          )
+                                                          .toList(),
+                                                    },
+                                                  ];
+                                                  showDialog(
+                                                    context: context,
+                                                    builder: (_) =>
+                                                        GeneralReceiptModal(
+                                                          clientData:
+                                                              clientData,
+                                                        ),
+                                                  );
+                                                },
                                               ),
-                                            ),
-                                          ],
-                                        );
-                                      },
+                                            );
+                                          },
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                              ],
                             ),
-                          );
-                        }
-                      }
-                      
-                      // --- FIN: Layout desacoplado e independiente para pantalla de clientes --
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// --- FIN: Layout desacoplado e independiente para pantalla de clientes --
 // --- FIN: Layout desacoplado e independiente para pantalla de clientes ---

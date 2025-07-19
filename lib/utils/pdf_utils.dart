@@ -54,7 +54,8 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
   const appName = 'Deuda Flow';
   const appVersion = '1.0.0'; // Cambia aquí si la versión cambia
   // Puedes cambiar la ruta del ícono si tienes un asset local, aquí se usa emoji como ejemplo
-  const appIcon = ' '; // Emoji de teléfono, puedes cambiarlo por un asset si lo tienes
+  const appIcon =
+      ' '; // Emoji de teléfono, puedes cambiarlo por un asset si lo tienes
   const playStoreIcon =
       ''; // Emoji Play Store, puedes cambiarlo por un asset si lo tienes
   pdf.addPage(
@@ -301,16 +302,16 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
               if (txs.isEmpty) pw.Text('Sin movimientos en el rango.'),
               if (txs.isNotEmpty)
                 pw.TableHelper.fromTextArray(
-                  headers: ['Tipo', 'Descripción', 'Fecha', 'Monto'],
+                  headers: ['Fecha', 'Descripción', 'Tipo', 'Monto'],
                   headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                   data: txs
                       .map(
                         (tx) => [
+                          tx.date.toLocal().toString().split(' ')[0],
+                          tx.description,
                           tx.type == 'deuda' || tx.type == 'debt'
                               ? 'Deuda'
                               : 'Abono',
-                          tx.description,
-                          tx.date.toLocal().toString().split(' ')[0],
                           formatAmount(
                             tx.amount as num,
                             convertCurrency,
@@ -446,14 +447,14 @@ Future<void> exportAndShareClientReceiptPDF(
           pw.Text('ID: ${client.id}'),
           pw.SizedBox(height: 10),
           pw.TableHelper.fromTextArray(
-            headers: ['Tipo', 'Monto', 'Descripción', 'Fecha'],
+            headers: ['Fecha', 'Descripción', 'Tipo', 'Monto'],
             data: transactions
                 .map(
                   (tx) => [
+                    tx.date.toLocal().toString().split(' ')[0],
+                    tx.description,
                     tx.type == 'debt' ? 'Deuda' : 'Abono',
                     tx.amount.toStringAsFixed(2),
-                    tx.description,
-                    tx.date.toLocal().toString().split(' ')[0],
                   ],
                 )
                 .toList(),

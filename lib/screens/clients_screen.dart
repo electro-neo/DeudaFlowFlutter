@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:provider/provider.dart';
 import '../providers/transaction_provider.dart';
+import '../providers/transaction_filter_provider.dart';
 import '../providers/client_provider.dart';
 import 'package:hive/hive.dart';
 import '../models/client_hive.dart';
@@ -1007,6 +1008,12 @@ class _ClientsScreenState extends State<ClientsScreen>
                                                       client,
                                                     ),
                                                 onViewMovements: () {
+                                                  // Limpiar filtros al navegar desde la barra inferior
+                                                  final filterProvider =
+                                                      Provider.of<
+                                                        TransactionFilterProvider
+                                                      >(context, listen: false);
+                                                  filterProvider.clear();
                                                   Navigator.of(
                                                     context,
                                                     rootNavigator: true,
@@ -1017,7 +1024,7 @@ class _ClientsScreenState extends State<ClientsScreen>
                                                             userId:
                                                                 widget.userId,
                                                             initialClientId:
-                                                                client.id,
+                                                                null,
                                                           ),
                                                     ),
                                                   );

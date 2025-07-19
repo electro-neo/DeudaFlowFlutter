@@ -24,16 +24,17 @@ class TransactionsScreen extends StatefulWidget {
 }
 
 class _TransactionsScreenState extends State<TransactionsScreen> {
-  final FocusNode _searchFocusNode = FocusNode();
-  String? _selectedClientId;
-  DateTimeRange? _selectedRange;
-  String? _selectedType; // 'debt', 'payment', o null
-  String _searchQuery = '';
   bool _loading = true;
   // Elimina el flag para que el filtro de tipo siempre se aplique desde el provider
 
   late TransactionFilterProvider _filterProvider;
   late VoidCallback _filterListener;
+
+  final FocusNode _searchFocusNode = FocusNode();
+  String? _selectedClientId;
+  DateTimeRange? _selectedRange;
+  String? _selectedType; // 'debt', 'payment', o null
+  String _searchQuery = '';
 
   @override
   void dispose() {
@@ -69,10 +70,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             'TransactionsScreen: _selectedClientId set from filterProvider: '
             '\u001b[34m$_selectedClientId\u001b[0m',
           );
-          _filterProvider.setClientId(
-            null,
-          ); // Limpia el filtro solo después de aplicarlo
-          _loadTransactions();
+          _filterProvider.setClientId(null);
+          // No llamar a _loadTransactions() aquí para evitar el loading inmediato
         }
       };
       _filterProvider.addListener(_filterListener);

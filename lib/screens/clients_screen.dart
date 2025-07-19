@@ -708,44 +708,6 @@ class _ClientsScreenState extends State<ClientsScreen>
                                       ),
                                     ],
                                   ),
-                                  // --- Botón compacto para poblar datos demo ---
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 8.0),
-                                    child: Align(
-                                      alignment: Alignment.centerRight,
-                                      child: SizedBox(
-                                        height: 28,
-                                        child: TextButton(
-                                          style: TextButton.styleFrom(
-                                            minimumSize: const Size(36, 28),
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 10,
-                                              vertical: 0,
-                                            ),
-                                            tapTargetSize: MaterialTapTargetSize
-                                                .shrinkWrap,
-                                            backgroundColor: const Color(
-                                              0xFFE0E7FF,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                          ),
-                                          onPressed: () async {
-                                            // TODO: Lógica para poblar clientes y transacciones demo
-                                          },
-                                          child: const Text(
-                                            'Demo datos',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Color(0xFF7C3AED),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
                                   if (_showSearch && allClients.isNotEmpty)
                                     Padding(
                                       padding: const EdgeInsets.only(top: 14.0),

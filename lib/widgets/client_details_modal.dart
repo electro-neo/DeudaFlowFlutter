@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/client.dart';
 import 'package:provider/provider.dart';
-import '../providers/transaction_filter_provider.dart';
-import '../screens/transactions_screen.dart';
 import '../widgets/transaction_form.dart';
 import '../providers/transaction_provider.dart';
 import '../providers/client_provider.dart';
@@ -239,16 +237,16 @@ class ClientDetailsModal extends StatelessWidget {
                     icon: const Icon(Icons.list, size: 26),
                     color: Colors.orange,
                     onPressed: () {
-                      debugPrint('[CLIENT_DETAILS_MODAL] Botón Ver movimientos PRESIONADO para cliente: \\${client.id}');
+                      debugPrint(
+                        '[CLIENT_DETAILS_MODAL] Botón Ver movimientos PRESIONADO para cliente: \\${client.id}',
+                      );
                       Navigator.of(context, rootNavigator: true).pop();
-                      Future.delayed(Duration.zero, () {
-                        debugPrint('[CLIENT_DETAILS_MODAL] Seteando filtro de cliente en TransactionFilterProvider: \\${client.id}');
-                        final filterProvider = Provider.of<TransactionFilterProvider>(context, listen: false);
-                        filterProvider.setClientId(client.id);
-                        debugPrint('[CLIENT_DETAILS_MODAL] Cambiando tab a Movimientos (2)');
-                        final tabProvider = Provider.of<TabProvider>(context, listen: false);
-                        tabProvider.setTab(2);
-                      });
+                      // Cambia el tab a Movimientos igual que la barra inferior
+                      final tabProvider = Provider.of<TabProvider>(
+                        context,
+                        listen: false,
+                      );
+                      tabProvider.setTab(2);
                     },
                   ),
                 ),

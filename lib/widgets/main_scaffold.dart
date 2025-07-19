@@ -9,6 +9,7 @@ import '../services/guest_cleanup_service.dart' as guest_cleanup;
 import '../providers/tab_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/currency_provider.dart';
+import '../providers/transaction_filter_provider.dart';
 import 'add_global_transaction_modal.dart';
 
 // Banner de debug para mostrar un número aleatorio que cambia en cada hot reload
@@ -68,7 +69,29 @@ class MainScaffold extends StatefulWidget {
 
 class _MainScaffoldState extends State<MainScaffold> {
   void _onTab(int index) {
-    Provider.of<TabProvider>(context, listen: false).setTab(index);
+    final tabProvider = Provider.of<TabProvider>(context, listen: false);
+    if (index == 2) {
+      final filterProvider = Provider.of<TransactionFilterProvider>(
+        context,
+        listen: false,
+      );
+      filterProvider.setClientId(null);
+      filterProvider.setType(null);
+      // Si ya estamos en el tab de movimientos, forzar rebuild
+      if (tabProvider.currentIndex == 2) {
+        setState(() {});
+      }
+      // Navegar a la misma ruta pero con argumento especial
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => MainScaffold(userId: widget.userId),
+          settings: RouteSettings(arguments: {'fromBar': true}),
+        ),
+      );
+      tabProvider.setTab(index);
+      return;
+    }
+    tabProvider.setTab(index);
   }
 
   void _logout() async {

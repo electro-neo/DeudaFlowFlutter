@@ -77,12 +77,27 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       _filterProvider.addListener(_filterListener);
 
       // Lógica inicial: si hay filtro, úsalo; si no, usa el inicial
+      // --- MODIFICADO: Si navigation argument fromBar == true, limpiar filtro visual ---
+      final route = ModalRoute.of(context);
+      final settings = route?.settings;
+      final args = settings?.arguments;
+      bool fromBar = false;
+      if (args is Map && args['fromBar'] == true) {
+        fromBar = true;
+      }
       debugPrint(
         'TransactionsScreen: initState PostFrame. filterProvider.clientId: '
         '\u001b[32m${_filterProvider.clientId}\u001b[0m, initialClientId: '
-        '\u001b[33m${widget.initialClientId}\u001b[0m',
+        '\u001b[33m${widget.initialClientId}\u001b[0m, fromBar: $fromBar',
       );
-      if (_filterProvider.clientId != null &&
+      if (fromBar) {
+        // Si viene del bottom bar, limpiar filtro visual
+        setState(() {
+          _selectedClientId = null;
+        });
+        _filterProvider.setClientId(null);
+        debugPrint('TransactionsScreen: Limpiando filtro visual por fromBar');
+      } else if (_filterProvider.clientId != null &&
           _filterProvider.clientId!.isNotEmpty) {
         setState(() {
           _selectedClientId = _filterProvider.clientId;

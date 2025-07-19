@@ -32,33 +32,75 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   bool _loading = true;
   // Elimina el flag para que el filtro de tipo siempre se aplique desde el provider
 
+  late TransactionFilterProvider _filterProvider;
+  late VoidCallback _filterListener;
+
   @override
   void dispose() {
     _searchFocusNode.dispose();
+    // Remueve el listener del provider
+    _filterProvider.removeListener(_filterListener);
     super.dispose();
   }
 
   @override
   void initState() {
     super.initState();
-    // Si el filtro de cliente está seteado en el provider, úsalo como filtro inicial
+    // Inicializa el provider y listener
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final filterProvider = Provider.of<TransactionFilterProvider>(
+      _filterProvider = Provider.of<TransactionFilterProvider>(
         context,
         listen: false,
       );
-      if (filterProvider.clientId != null &&
-          filterProvider.clientId!.isNotEmpty) {
+      // Listener para cambios en el filtro global
+      _filterListener = () {
+        if (!mounted) return;
+        final clientId = _filterProvider.clientId;
+        debugPrint(
+          'TransactionsScreen: _filterListener triggered. clientId: '
+          '\u001b[32m$clientId\u001b[0m',
+        );
+        if (clientId != null && clientId.isNotEmpty) {
+          setState(() {
+            _selectedClientId = clientId;
+          });
+          debugPrint(
+            'TransactionsScreen: _selectedClientId set from filterProvider: '
+            '\u001b[34m$_selectedClientId\u001b[0m',
+          );
+          _filterProvider.setClientId(
+            null,
+          ); // Limpia el filtro solo después de aplicarlo
+          _loadTransactions();
+        }
+      };
+      _filterProvider.addListener(_filterListener);
+
+      // Lógica inicial: si hay filtro, úsalo; si no, usa el inicial
+      debugPrint(
+        'TransactionsScreen: initState PostFrame. filterProvider.clientId: '
+        '\u001b[32m${_filterProvider.clientId}\u001b[0m, initialClientId: '
+        '\u001b[33m${widget.initialClientId}\u001b[0m',
+      );
+      if (_filterProvider.clientId != null &&
+          _filterProvider.clientId!.isNotEmpty) {
         setState(() {
-          _selectedClientId = filterProvider.clientId;
+          _selectedClientId = _filterProvider.clientId;
         });
-        // Limpiar el filtro para futuros cambios de tab
-        filterProvider.setClientId(null);
+        debugPrint(
+          'TransactionsScreen: _selectedClientId set from filterProvider (init): '
+          '\u001b[34m$_selectedClientId\u001b[0m',
+        );
+        _filterProvider.setClientId(null);
       } else {
         setState(() {
           _selectedClientId = widget.initialClientId;
         });
+        debugPrint(
+          'TransactionsScreen: _selectedClientId set from widget.initialClientId: '
+          '\u001b[33m$_selectedClientId\u001b[0m',
+        );
       }
       _loadTransactions();
     });
@@ -66,6 +108,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   Future<void> _loadTransactions() async {
     if (!mounted) return;
+    debugPrint(
+      '[TRANSACTIONS_SCREEN][_loadTransactions] INICIO. userId: ${widget.userId}, _selectedClientId: $_selectedClientId',
+    );
     setState(() => _loading = true);
     final txProvider = Provider.of<TransactionProvider>(context, listen: false);
     await txProvider.loadTransactions(widget.userId);
@@ -100,11 +145,17 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             setState(() {
               _selectedClientId = newClientList.first.id;
             });
+            debugPrint(
+              '[TRANSACTIONS_SCREEN][_loadTransactions] Cliente resuelto por nombre: $_selectedClientId',
+            );
           }
         }
       }
     }
     if (!mounted) return;
+    debugPrint(
+      '[TRANSACTIONS_SCREEN][_loadTransactions] FIN. _selectedClientId: $_selectedClientId',
+    );
     setState(() => _loading = false);
   }
 
@@ -129,11 +180,32 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         .where((t) => t.pendingDelete != true)
         .toList();
 
+    // Refuerzo: si _selectedClientId es null y el provider tiene valor, tomarlo aquí
+    if ((_selectedClientId == null || _selectedClientId!.isEmpty) &&
+        filterProvider.clientId != null &&
+        filterProvider.clientId!.isNotEmpty) {
+      debugPrint(
+        '[TRANSACTIONS_SCREEN][build] Refuerzo: _selectedClientId era null, tomando de filterProvider: ${filterProvider.clientId}',
+      );
+      _selectedClientId = filterProvider.clientId;
+      // Limpia el filtro para evitar loops
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        filterProvider.setClientId(null);
+        setState(() {});
+      });
+    }
+
     // Validar que el cliente seleccionado exista en la lista
     final clientIds = clients.map((c) => c.id).toList();
     if (_selectedClientId != null && !clientIds.contains(_selectedClientId)) {
+      debugPrint(
+        '[TRANSACTIONS_SCREEN][build] _selectedClientId ($_selectedClientId) no existe en clientIds. Reseteando a null.',
+      );
       _selectedClientId = null;
     }
+    debugPrint(
+      '[TRANSACTIONS_SCREEN][build] _selectedClientId: $_selectedClientId, transactions: ${transactions.length}',
+    );
 
     // Siempre sincroniza el filtro de tipo con el provider si viene de fuera
     if (filterProvider.type != null) {

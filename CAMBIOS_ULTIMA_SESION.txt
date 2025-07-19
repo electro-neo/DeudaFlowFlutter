@@ -1,4 +1,3 @@
----
 Actualización 18/07/2025:
 
 - El fondo degradado global y el notch transparente ahora se aplican correctamente en todas las pantallas principales (Dashboard, Clientes y Transacciones), eliminando superposiciones y glitches visuales.

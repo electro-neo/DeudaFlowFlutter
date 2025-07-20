@@ -377,7 +377,9 @@ Future<void> exportAndShareClientReceiptPDF(
   );
   final bytes = await pdf.save();
   final dir = await getTemporaryDirectory();
-  final file = File('${dir.path}/recibo_cliente_${client.id}.pdf');
+  // Sanitizar el nombre del cliente para el archivo
+  final safeName = client.name.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+  final file = File('${dir.path}/Recibo de Cliente ($safeName).pdf');
   await file.writeAsBytes(bytes);
   await Share.shareXFiles([XFile(file.path)], text: 'Recibo de ${client.name}');
 }
@@ -411,11 +413,20 @@ Future<void> exportAndShareGeneralReceiptWithMovementsPDF(
   );
   final bytes = await pdf.save();
   final dir = await getTemporaryDirectory();
-  final file = File('${dir.path}/recibo_general.pdf');
+  String fileName;
+  String shareText;
+  if (filtered.length == 1) {
+    final client = filtered[0]['client'] as Client;
+    final safeName = client.name.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+    fileName = 'Recibo de Cliente $safeName.pdf';
+    shareText = 'Recibo de ${client.name}';
+  } else {
+    fileName = 'Recibo General de Clientes.pdf';
+    shareText = 'Recibo General de Clientes';
+  }
+  final file = File('${dir.path}/$fileName');
   await file.writeAsBytes(bytes);
-  await Share.shareXFiles([
-    XFile(file.path),
-  ], text: 'Recibo General de Clientes');
+  await Share.shareXFiles([XFile(file.path)], text: shareText);
 }
 
 Future<void> exportClientReceiptToPDF(

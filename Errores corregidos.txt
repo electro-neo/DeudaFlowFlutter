@@ -22,3 +22,8 @@ Errores encontrados y soluciones aplicadas en la sesión:
    - Solución: Se centralizó la lógica de cambio de pestaña y filtrado en MainScaffold, exponiendo un método público que puede ser llamado desde el modal o desde cualquier parte de la app. Ahora, al pulsar "Ver movimientos", se actualiza tanto el provider como el estado local, garantizando que la UI y los filtros estén sincronizados.
 
 Resultado: Ahora los filtros de la pantalla de movimientos están 100% sincronizados con el provider global y cualquier cambio (desde la barra inferior, modal, etc.) se refleja correctamente en la UI. Además, el swipe para eliminar transacciones funciona sin errores visuales, la transacción desaparece de inmediato y la sincronización en background se mantiene. Por último, el nombre del archivo PDF es claro y personalizado según el caso, facilitando la identificación y el envío correcto del recibo.
+
+
+7. Mejora: El buscador de transacciones ahora se limpia correctamente tanto la variable interna como el texto visible del campo de búsqueda al cambiar de pantalla, recargar la pestaña de movimientos o presionar el botón "Movimientos" en la barra inferior.
+   - Solución: Se implementó el método resetSearchState en TransactionsScreen, que limpia tanto la variable interna como el texto del TextField usando un TextEditingController. Este método se llama desde MainScaffold usando un GlobalKey, asegurando que el buscador se limpie visual y lógicamente en todos los flujos relevantes.
+   - Resultado: El usuario siempre ve el campo de búsqueda vacío y sin foco al cambiar de pestaña o recargar movimientos, evitando confusiones y mejorando la experiencia de usuario.

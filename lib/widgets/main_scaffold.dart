@@ -70,12 +70,23 @@ class MainScaffold extends StatefulWidget {
 class _MainScaffoldState extends State<MainScaffold> {
   final GlobalKey<ClientsScreenState> _clientsScreenKey =
       GlobalKey<ClientsScreenState>();
+  final GlobalKey _transactionsScreenKey = GlobalKey();
   int _currentIndex = 0;
 
   void _onTab(int index) {
     // Si cambias desde la pestaña de clientes, limpia el buscador
     if (_currentIndex == 1 && index != 1) {
       _clientsScreenKey.currentState?.resetSearchState();
+    }
+    // Si cambias desde la pestaña de movimientos, limpia el buscador de transacciones
+    if (_currentIndex == 2 && index != 2) {
+      final state = _transactionsScreenKey.currentState;
+      if (state != null) {
+        try {
+          // ignore: avoid_dynamic_calls, invalid_use_of_protected_member
+          (state as dynamic).resetSearchState();
+        } catch (_) {}
+      }
     }
     if (index == 2) {
       final filterProvider = Provider.of<TransactionFilterProvider>(
@@ -86,6 +97,14 @@ class _MainScaffoldState extends State<MainScaffold> {
       filterProvider.setType(null);
       final tabProvider = Provider.of<TabProvider>(context, listen: false);
       if (tabProvider.currentIndex == 2) {
+        // Si ya estás en la pestaña de movimientos, también limpia el buscador
+        final state = _transactionsScreenKey.currentState;
+        if (state != null) {
+          try {
+            // ignore: avoid_dynamic_calls, invalid_use_of_protected_member
+            (state as dynamic).resetSearchState();
+          } catch (_) {}
+        }
         setState(() {});
       }
       tabProvider.setTab(index);
@@ -142,7 +161,7 @@ class _MainScaffoldState extends State<MainScaffold> {
         userId: widget.userId,
         onViewMovements: goToMovementsWithClient,
       ),
-      TransactionsScreen(userId: widget.userId),
+      TransactionsScreen(key: _transactionsScreenKey, userId: widget.userId),
     ];
     final viewInsets = MediaQuery.of(context).viewInsets;
     final isKeyboardVisible = viewInsets.bottom > 0.0;

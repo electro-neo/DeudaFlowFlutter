@@ -24,6 +24,20 @@ class TransactionsScreen extends StatefulWidget {
 }
 
 class _TransactionsScreenState extends State<TransactionsScreen> {
+  // Permite limpiar el buscador desde fuera usando GlobalKey
+  final TextEditingController _searchController = TextEditingController();
+  void resetSearchState() {
+    if (_searchQuery.isNotEmpty ||
+        _searchFocusNode.hasFocus ||
+        _searchController.text.isNotEmpty) {
+      setState(() {
+        _searchQuery = '';
+        _searchController.clear();
+        _searchFocusNode.unfocus();
+      });
+    }
+  }
+
   bool _loading = true;
   // Elimina el flag para que el filtro de tipo siempre se aplique desde el provider
 
@@ -37,6 +51,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   @override
   void dispose() {
     _searchFocusNode.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -300,6 +315,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             borderRadius: BorderRadius.circular(8),
           ),
           child: TextField(
+            controller: _searchController,
             focusNode: _searchFocusNode,
             decoration: const InputDecoration(
               hintText: 'Buscar por cliente o descripción...',

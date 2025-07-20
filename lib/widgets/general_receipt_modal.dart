@@ -111,8 +111,11 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
         !kIsWeb &&
         (platform == TargetPlatform.android || platform == TargetPlatform.iOS);
 
-return AlertDialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24), // Puedes reducir horizontal para permitir más ancho
+    return AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 24,
+      ), // Puedes reducir horizontal para permitir más ancho
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -200,7 +203,10 @@ return AlertDialog(
                       text: TextSpan(
                         style: DefaultTextStyle.of(context).style,
                         children: [
-                          const TextSpan(text: 'Nombre: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                          const TextSpan(
+                            text: 'Nombre: ',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           TextSpan(text: client.name ?? ''),
                         ],
                       ),
@@ -209,7 +215,10 @@ return AlertDialog(
                       text: TextSpan(
                         style: DefaultTextStyle.of(context).style,
                         children: [
-                          const TextSpan(text: 'Teléfono: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                          const TextSpan(
+                            text: 'Teléfono: ',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           TextSpan(text: phone),
                         ],
                       ),
@@ -218,8 +227,13 @@ return AlertDialog(
                       text: TextSpan(
                         style: DefaultTextStyle.of(context).style,
                         children: [
-                          const TextSpan(text: 'ID: ', style: TextStyle(fontWeight: FontWeight.bold)),
-                          TextSpan(text: client.id != null ? client.id.toString() : ''),
+                          const TextSpan(
+                            text: 'ID: ',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          TextSpan(
+                            text: client.id != null ? client.id.toString() : '',
+                          ),
                         ],
                       ),
                     ),

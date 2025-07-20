@@ -487,7 +487,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             if (!showAbono && !showDeuda) return SizedBox.shrink();
             return Padding(
               padding: const EdgeInsets.symmetric(
-                vertical: 12.0,
+                vertical: 1.0, //espacio vertical entre stats y listview
                 horizontal: 2.0,
               ), //color de los statscard abono/deuda
               child: Container(
@@ -512,7 +512,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   ),
                 ),
                 padding: const EdgeInsets.symmetric(
-                  vertical: 10,
+                  vertical: 0,
                   horizontal: 20,
                 ),
                 child: Row(
@@ -631,7 +631,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               ],
             ),
           ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 1), // Espacio entre stats deuda/abono y listview
         // Listado de transacciones
         transactions.isEmpty
             ? Center(

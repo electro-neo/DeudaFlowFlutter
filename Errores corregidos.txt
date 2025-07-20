@@ -1,0 +1,17 @@
+Fecha: 2025-07-19
+
+Errores encontrados y soluciones aplicadas en la sesión:
+
+1. Error: Al presionar el botón "Movimientos" en la barra inferior, los filtros de cliente y tipo no se limpiaban correctamente o no se reflejaban en la UI.
+   - Solución: Se modificó el método _onTab en MainScaffold para que use filterProvider.setClientId(null) y filterProvider.setType(null), que es el valor correcto para mostrar "Todos" en los dropdowns.
+
+2. Error: Al limpiar los filtros desde la barra inferior, la pantalla de movimientos no actualizaba visualmente los dropdowns.
+   - Solución: Se refactorizó TransactionsScreen para que los dropdowns de cliente y tipo usen SIEMPRE el valor del provider global (TransactionFilterProvider) y no variables locales. Así, cualquier cambio en el filtro se refleja automáticamente en la UI.
+
+3. Error: Al aplicar la refactorización, quedaron referencias a variables locales (_selectedClientId, _selectedType) que ya no existían, causando errores de compilación.
+   - Solución: Se eliminaron todas las referencias a esas variables y se ajustó la lógica para depender únicamente del provider.
+
+4. Error: Al eliminar una transacción con swipe (Dismissible), Flutter mostraba el error "A dismissed Dismissible widget is still part of the tree" y la transacción no desaparecía de la UI inmediatamente.
+   - Solución: Se corrigió el handler de onDismissed para eliminar la transacción de la lista visible en la UI usando setState en el mismo momento del swipe, cumpliendo el patrón recomendado por Flutter. El estado "pendiente por eliminar" ahora se muestra como feedback visual (snackbar/banner), y la sincronización/eliminación real ocurre en segundo plano con delay. Así se evita el error y la experiencia es fluida.
+
+Resultado: Ahora los filtros de la pantalla de movimientos están 100% sincronizados con el provider global y cualquier cambio (desde la barra inferior, modal, etc.) se refleja correctamente en la UI. Además, el swipe para eliminar transacciones funciona sin errores visuales, la transacción desaparece de inmediato y la sincronización en background se mantiene.

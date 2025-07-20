@@ -60,29 +60,23 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
       ''; // Emoji Play Store, puedes cambiarlo por un asset si lo tienes
   pdf.addPage(
     pw.MultiPage(
+      header: (context) => pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(
+            filtered.length == 1
+                ? 'Recibo general de ${(filtered[0]['client'] as Client).name}'
+                : 'Recibo General de Clientes',
+            style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
+          ),
+          pw.Text(
+            fechaRecibo,
+            style: pw.TextStyle(fontSize: 10, fontStyle: pw.FontStyle.italic),
+          ),
+        ],
+      ),
       build: (context) {
         List<pw.Widget> widgets = [
-          pw.Row(
-            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-            children: [
-              pw.Text(
-                filtered.length == 1
-                    ? 'Recibo general de ${(filtered[0]['client'] as Client).name}'
-                    : 'Recibo General de Clientes',
-                style: pw.TextStyle(
-                  fontSize: 20,
-                  fontWeight: pw.FontWeight.bold,
-                ),
-              ),
-              pw.Text(
-                fechaRecibo,
-                style: pw.TextStyle(
-                  fontSize: 10,
-                  fontStyle: pw.FontStyle.italic,
-                ),
-              ),
-            ],
-          ),
           if (convertCurrency && conversionRate != null && conversionRate > 0)
             pw.Text(
               'Nota: Todos los montos han sido convertidos a la tasa $conversionRate.',
@@ -120,219 +114,135 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
               );
             }
           }
-          if (filtered.length == 1) {
-            widgets.addAll([
-              pw.RichText(
-                text: pw.TextSpan(
+          // --- BLOQUE DE INFORMACIÓN DEL CLIENTE ---
+          widgets.add(
+            pw.Wrap(
+              children: [
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.TextSpan(
-                      text: 'Nombre Cliente: ',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                    ),
-                    pw.TextSpan(text: client.name),
-                  ],
-                ),
-              ),
-              pw.RichText(
-                text: pw.TextSpan(
-                  children: [
-                    pw.TextSpan(
-                      text: 'Teléfono: ',
-                      style: pw.TextStyle(
-                        fontWeight: pw.FontWeight.bold,
-                        fontSize: 10,
+                    pw.RichText(
+                      text: pw.TextSpan(
+                        children: [
+                          pw.TextSpan(
+                            text: 'Nombre Cliente: ',
+                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                          ),
+                          pw.TextSpan(text: client.name),
+                        ],
                       ),
                     ),
-                    pw.TextSpan(
-                      text:
-                          (client.phone != null &&
-                              client.phone.toString().trim().isNotEmpty)
-                          ? client.phone.toString()
-                          : 'Sin Información',
-                      style: pw.TextStyle(fontSize: 10),
-                    ),
-                  ],
-                ),
-              ),
-              pw.RichText(
-                text: pw.TextSpan(
-                  children: [
-                    pw.TextSpan(
-                      text: 'Correo: ',
-                      style: pw.TextStyle(
-                        fontWeight: pw.FontWeight.bold,
-                        fontSize: 10,
-                      ),
-                    ),
-                    pw.TextSpan(
-                      text:
-                          (client.email != null &&
-                              client.email.toString().trim().isNotEmpty)
-                          ? client.email.toString()
-                          : 'Sin Información',
-                      style: pw.TextStyle(fontSize: 10),
-                    ),
-                  ],
-                ),
-              ),
-              pw.RichText(
-                text: pw.TextSpan(
-                  children: [
-                    pw.TextSpan(
-                      text: 'ID Cliente: ',
-                      style: pw.TextStyle(
-                        fontWeight: pw.FontWeight.bold,
-                        fontSize: 10,
-                      ),
-                    ),
-                    pw.TextSpan(
-                      text: client.id,
-                      style: pw.TextStyle(fontSize: 10),
-                    ),
-                  ],
-                ),
-              ),
-              pw.SizedBox(height: 4),
-              if (txs.isEmpty) pw.Text('Sin movimientos en el rango.'),
-              if (txs.isNotEmpty)
-                pw.TableHelper.fromTextArray(
-                  headers: ['Fecha', 'Descripción', 'Tipo', 'Monto'],
-                  headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                  data: txs
-                      .map(
-                        (tx) => [
-                          tx.date.toLocal().toString().split(' ')[0],
-                          tx.description,
-                          tx.type == 'deuda' || tx.type == 'debt'
-                              ? 'Deuda'
-                              : 'Abono',
-                          formatAmount(
-                            tx.amount as num,
-                            convertCurrency,
-                            conversionRate,
-                            symbol: currencySymbol,
+                    pw.RichText(
+                      text: pw.TextSpan(
+                        children: [
+                          pw.TextSpan(
+                            text: 'Teléfono: ',
+                            style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold,
+                              fontSize: 10,
+                            ),
+                          ),
+                          pw.TextSpan(
+                            text:
+                                (client.phone != null &&
+                                    client.phone.toString().trim().isNotEmpty)
+                                ? client.phone.toString()
+                                : 'Sin Información',
+                            style: pw.TextStyle(fontSize: 10),
                           ),
                         ],
-                      )
-                      .toList(),
-                ),
-              if (txs.isNotEmpty)
-                pw.Container(
-                  alignment: pw.Alignment.centerRight,
-                  child: pw.Text(
-                    'Total Deuda: ${formatAmount(totalDeuda, false, null, symbol: currencySymbol)}   /   Total Abono: ${formatAmount(totalAbono, false, null, symbol: currencySymbol)}',
-                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                  ),
-                ),
-              pw.SizedBox(height: 12),
-            ]);
-          } else {
-            widgets.addAll([
-              pw.RichText(
-                text: pw.TextSpan(
-                  children: [
-                    pw.TextSpan(
-                      text: 'Nombre Cliente: ',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                    ),
-                    pw.TextSpan(text: client.name),
-                  ],
-                ),
-              ),
-              pw.RichText(
-                text: pw.TextSpan(
-                  children: [
-                    pw.TextSpan(
-                      text: 'Teléfono: ',
-                      style: pw.TextStyle(
-                        fontWeight: pw.FontWeight.bold,
-                        fontSize: 10,
                       ),
                     ),
-                    pw.TextSpan(
-                      text:
-                          (client.phone != null &&
-                              client.phone.toString().trim().isNotEmpty)
-                          ? client.phone.toString()
-                          : 'Sin Información',
-                      style: pw.TextStyle(fontSize: 10),
-                    ),
-                  ],
-                ),
-              ),
-              pw.RichText(
-                text: pw.TextSpan(
-                  children: [
-                    pw.TextSpan(
-                      text: 'Correo: ',
-                      style: pw.TextStyle(
-                        fontWeight: pw.FontWeight.bold,
-                        fontSize: 10,
-                      ),
-                    ),
-                    pw.TextSpan(
-                      text:
-                          (client.email != null &&
-                              client.email.toString().trim().isNotEmpty)
-                          ? client.email.toString()
-                          : 'Sin Información',
-                      style: pw.TextStyle(fontSize: 10),
-                    ),
-                  ],
-                ),
-              ),
-              pw.RichText(
-                text: pw.TextSpan(
-                  children: [
-                    pw.TextSpan(
-                      text: 'ID Cliente: ',
-                      style: pw.TextStyle(
-                        fontWeight: pw.FontWeight.bold,
-                        fontSize: 10,
-                      ),
-                    ),
-                    pw.TextSpan(
-                      text: client.id,
-                      style: pw.TextStyle(fontSize: 10),
-                    ),
-                  ],
-                ),
-              ),
-              pw.SizedBox(height: 4),
-              if (txs.isEmpty) pw.Text('Sin movimientos en el rango.'),
-              if (txs.isNotEmpty)
-                pw.TableHelper.fromTextArray(
-                  headers: ['Fecha', 'Descripción', 'Tipo', 'Monto'],
-                  headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                  data: txs
-                      .map(
-                        (tx) => [
-                          tx.date.toLocal().toString().split(' ')[0],
-                          tx.description,
-                          tx.type == 'deuda' || tx.type == 'debt'
-                              ? 'Deuda'
-                              : 'Abono',
-                          formatAmount(
-                            tx.amount as num,
-                            convertCurrency,
-                            conversionRate,
-                            symbol: currencySymbol,
+                    pw.RichText(
+                      text: pw.TextSpan(
+                        children: [
+                          pw.TextSpan(
+                            text: 'Correo: ',
+                            style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold,
+                              fontSize: 10,
+                            ),
+                          ),
+                          pw.TextSpan(
+                            text:
+                                (client.email != null &&
+                                    client.email.toString().trim().isNotEmpty)
+                                ? client.email.toString()
+                                : 'Sin Información',
+                            style: pw.TextStyle(fontSize: 10),
                           ),
                         ],
-                      )
-                      .toList(),
+                      ),
+                    ),
+                    pw.RichText(
+                      text: pw.TextSpan(
+                        children: [
+                          pw.TextSpan(
+                            text: 'ID Cliente: ',
+                            style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold,
+                              fontSize: 10,
+                            ),
+                          ),
+                          pw.TextSpan(
+                            text: client.id,
+                            style: pw.TextStyle(fontSize: 10),
+                          ),
+                        ],
+                      ),
+                    ),
+                    pw.SizedBox(height: 4),
+                  ],
                 ),
-              if (txs.isNotEmpty)
-                pw.Container(
-                  alignment: pw.Alignment.centerRight,
-                  child: pw.Text(
-                    'Total Deuda: ${formatAmount(totalDeuda, false, null, symbol: currencySymbol)}   /   Total Abono: ${formatAmount(totalAbono, false, null, symbol: currencySymbol)}',
-                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                  ),
-                ),
-              pw.SizedBox(height: 12),
-            ]);
+              ],
+              runSpacing: 0,
+              spacing: 0,
+              alignment: pw.WrapAlignment.start,
+              crossAxisAlignment: pw.WrapCrossAlignment.start,
+              // --- Salto de página manual si no cabe el bloque ---
+              // El siguiente builder fuerza salto si el bloque no cabe
+              // (esto es un truco: el widget Wrap con un solo hijo nunca parte el bloque)
+              // Si el espacio es insuficiente, el paquete pdf lo mueve a la siguiente página
+            ),
+          );
+          if (txs.isEmpty) {
+            widgets.add(pw.Text('Sin movimientos en el rango de fechas.'));
           }
+          if (txs.isNotEmpty) {
+            widgets.add(
+              pw.TableHelper.fromTextArray(
+                headers: ['Fecha', 'Descripción', 'Tipo', 'Monto'],
+                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                data: txs
+                    .map(
+                      (tx) => [
+                        tx.date.toLocal().toString().split(' ')[0],
+                        tx.description,
+                        tx.type == 'deuda' || tx.type == 'debt'
+                            ? 'Deuda'
+                            : 'Abono',
+                        formatAmount(
+                          tx.amount as num,
+                          convertCurrency,
+                          conversionRate,
+                          symbol: currencySymbol,
+                        ),
+                      ],
+                    )
+                    .toList(),
+              ),
+            );
+            widgets.add(
+              pw.Container(
+                alignment: pw.Alignment.centerRight,
+                child: pw.Text(
+                  'Total Deuda: ${formatAmount(totalDeuda, false, null, symbol: currencySymbol)}   /   Total Abono: ${formatAmount(totalAbono, false, null, symbol: currencySymbol)}',
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                ),
+              ),
+            );
+          }
+          widgets.add(pw.SizedBox(height: 12));
         }
         if (filtered.length > 1) {
           widgets.add(

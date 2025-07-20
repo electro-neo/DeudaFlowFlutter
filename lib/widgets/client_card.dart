@@ -13,7 +13,7 @@ class ClientCard extends StatelessWidget {
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final VoidCallback? onAddTransaction;
-  final VoidCallback? onViewMovements;
+  final void Function(String clientId)? onViewMovements;
   final VoidCallback? onReceipt;
   const ClientCard({
     super.key,
@@ -81,7 +81,9 @@ class ClientCard extends StatelessWidget {
               onEdit: onEdit,
               onDelete: onDelete,
               onAddTransaction: onAddTransaction,
-              onViewMovements: onViewMovements,
+              onViewMovements: onViewMovements != null
+                  ? ((_) => onViewMovements!(client.id))
+                  : null,
               onReceipt: onReceipt,
             ),
           );
@@ -339,7 +341,9 @@ class ClientCard extends StatelessWidget {
                   onEdit: onEdit,
                   onDelete: onDelete,
                   onAddTransaction: onAddTransaction,
-                  onViewMovements: onViewMovements,
+                  onViewMovements: onViewMovements != null
+                      ? (() => onViewMovements!(client.id))
+                      : null,
                   onReceipt: onReceipt,
                 ),
               ],

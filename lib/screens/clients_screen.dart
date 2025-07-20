@@ -5,7 +5,7 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:provider/provider.dart';
 import '../providers/transaction_provider.dart';
-import '../providers/transaction_filter_provider.dart';
+// import '../providers/transaction_filter_provider.dart';
 import '../providers/client_provider.dart';
 import 'package:hive/hive.dart';
 import '../models/client_hive.dart';
@@ -15,20 +15,53 @@ import '../models/client.dart';
 import '../widgets/client_card.dart';
 import '../widgets/general_receipt_modal.dart';
 import '../widgets/transaction_form.dart';
-import 'transactions_screen.dart';
+// import 'transactions_screen.dart';
 import '../utils/no_scrollbar_behavior.dart';
+import '../providers/tab_provider.dart';
 
 class ClientsScreen extends StatefulWidget {
   final String userId;
-  const ClientsScreen({super.key, required this.userId});
+  final void Function(String clientId)? onViewMovements;
+  const ClientsScreen({Key? key, required this.userId, this.onViewMovements})
+    : super(key: key);
 
   @override
-  State<ClientsScreen> createState() => _ClientsScreenState();
+  State<ClientsScreen> createState() => ClientsScreenState();
 }
 
-class _ClientsScreenState extends State<ClientsScreen>
+class ClientsScreenState extends State<ClientsScreen>
     with SingleTickerProviderStateMixin {
-  // ...existing code...
+  // Permite limpiar el buscador desde fuera usando GlobalKey
+  void resetSearchState() {
+    if (_showSearch || _searchText.isNotEmpty) {
+      setState(() {
+        _showSearch = false;
+        _searchText = '';
+        _searchController.clear();
+        _searchFocusNode.unfocus();
+      });
+    }
+  }
+
+  int? _lastTabIndex;
+
+  // Limpia el buscador si la pestaña de clientes se vuelve visible
+  void _handleTabChange() {
+    final tabProvider = Provider.of<TabProvider>(context, listen: false);
+    final currentTab = tabProvider.currentIndex;
+    if (_lastTabIndex != null && _lastTabIndex != 1 && currentTab == 1) {
+      // Se acaba de volver a la pestaña de clientes
+      if (_showSearch || _searchText.isNotEmpty) {
+        setState(() {
+          _showSearch = false;
+          _searchText = '';
+          _searchController.clear();
+          _searchFocusNode.unfocus();
+        });
+      }
+    }
+    _lastTabIndex = currentTab;
+  }
 
   bool _isSyncing = false;
   StreamSubscription? _connectivitySubscription;
@@ -39,7 +72,7 @@ class _ClientsScreenState extends State<ClientsScreen>
   String _searchText = '';
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
-  bool _didLoadClients = false;
+  // final bool _didLoadClients = false;
 
   // Método para mostrar el formulario de transacción
   void _showTransactionForm(ClientHive client) async {
@@ -162,15 +195,19 @@ class _ClientsScreenState extends State<ClientsScreen>
     _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
       result,
     ) async {
-      // NOTA: En versiones recientes de connectivity_plus, 'result' es una lista.
-      // El warning 'unrelated_type_equality_checks' aparece si comparas una lista con un solo valor.
-      // Solución: verifica si la lista NO contiene ConnectivityResult.none para saber si hay conexión.
       if (!result.contains(ConnectivityResult.none) && !_isSyncing) {
         await _syncAll();
       }
     });
+    // Inicializa el índice de pestaña
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final tabProvider = Provider.of<TabProvider>(context, listen: false);
+      _lastTabIndex = tabProvider.currentIndex;
+    });
   }
 
+  // dispose fusionado aquí
+  // dispose único y fusionado
   @override
   void dispose() {
     _searchController.dispose();
@@ -179,6 +216,13 @@ class _ClientsScreenState extends State<ClientsScreen>
     _connectivitySubscription?.cancel();
     _syncController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Escucha cambios de pestaña en cada build
+    WidgetsBinding.instance.addPostFrameCallback((_) => _handleTabChange());
   }
 
   Future<void> _syncAll() async {
@@ -243,17 +287,6 @@ class _ClientsScreenState extends State<ClientsScreen>
           duration: Duration(seconds: 2),
         ),
       );
-    }
-  }
-
-  // initState eliminado completamente para evitar cualquier acceso a context
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_didLoadClients) {
-      // Ya no es necesario recalcular balances manualmente, el provider lo hace automáticamente
-      _didLoadClients = true;
     }
   }
 
@@ -1007,27 +1040,25 @@ class _ClientsScreenState extends State<ClientsScreen>
                                                     _showTransactionForm(
                                                       client,
                                                     ),
-                                                onViewMovements: () {
-                                                  // Limpiar filtros al navegar desde la barra inferior
-                                                  final filterProvider =
-                                                      Provider.of<
-                                                        TransactionFilterProvider
-                                                      >(context, listen: false);
-                                                  filterProvider.clear();
-                                                  Navigator.of(
-                                                    context,
-                                                    rootNavigator: true,
-                                                  ).push(
-                                                    MaterialPageRoute(
-                                                      builder: (_) =>
-                                                          TransactionsScreen(
-                                                            userId:
-                                                                widget.userId,
-                                                            initialClientId:
-                                                                null,
-                                                          ),
-                                                    ),
-                                                  );
+                                                onViewMovements: (clientId) {
+                                                  // Reinicia el estado del buscador antes de navegar
+                                                  if (_showSearch ||
+                                                      _searchText.isNotEmpty) {
+                                                    setState(() {
+                                                      _showSearch = false;
+                                                      _searchText = '';
+                                                      _searchController.clear();
+                                                      _searchFocusNode
+                                                          .unfocus();
+                                                    });
+                                                  }
+                                                  // Lógica centralizada: usa el callback de MainScaffold si está disponible
+                                                  if (widget.onViewMovements !=
+                                                      null) {
+                                                    widget.onViewMovements!(
+                                                      clientId,
+                                                    );
+                                                  }
                                                 },
                                                 onReceipt: () {
                                                   final clientData = [

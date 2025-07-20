@@ -5,8 +5,8 @@ import '../widgets/transaction_form.dart';
 import '../providers/transaction_provider.dart';
 import '../providers/client_provider.dart';
 import '../widgets/general_receipt_modal.dart';
-import '../providers/tab_provider.dart';
-import '../providers/transaction_filter_provider.dart';
+// import '../providers/tab_provider.dart';
+// import '../providers/transaction_filter_provider.dart';
 
 class ClientDetailsModal extends StatelessWidget {
   final Client client;
@@ -14,7 +14,7 @@ class ClientDetailsModal extends StatelessWidget {
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final VoidCallback? onAddTransaction;
-  final VoidCallback? onViewMovements;
+  final void Function(String clientId)? onViewMovements;
   final VoidCallback? onReceipt;
 
   const ClientDetailsModal({
@@ -242,12 +242,12 @@ class ClientDetailsModal extends StatelessWidget {
                         '[CLIENT_DETAILS_MODAL] Botón Ver movimientos PRESIONADO para cliente: \\${client.id}',
                       );
                       Navigator.of(context, rootNavigator: true).pop();
-                      final filterProvider = Provider.of<TransactionFilterProvider>(context, listen: false);
-                      debugPrint('[CLIENT_DETAILS_MODAL] Seteando filtro de cliente en TransactionFilterProvider: \\${client.id}');
-                      filterProvider.setClientId(client.id);
-                      final tabProvider = Provider.of<TabProvider>(context, listen: false);
-                      debugPrint('[CLIENT_DETAILS_MODAL] Cambiando tab a Movimientos (2)');
-                      tabProvider.setTab(2);
+                      if (onViewMovements != null) {
+                        Future.delayed(
+                          Duration.zero,
+                          () => onViewMovements!(client.id),
+                        );
+                      }
                     },
                   ),
                 ),

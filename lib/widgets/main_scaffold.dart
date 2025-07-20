@@ -68,24 +68,45 @@ class MainScaffold extends StatefulWidget {
 }
 
 class _MainScaffoldState extends State<MainScaffold> {
+  final GlobalKey<ClientsScreenState> _clientsScreenKey =
+      GlobalKey<ClientsScreenState>();
+  int _currentIndex = 0;
+
   void _onTab(int index) {
-    final tabProvider = Provider.of<TabProvider>(context, listen: false);
+    // Si cambias desde la pestaña de clientes, limpia el buscador
+    if (_currentIndex == 1 && index != 1) {
+      _clientsScreenKey.currentState?.resetSearchState();
+    }
     if (index == 2) {
       final filterProvider = Provider.of<TransactionFilterProvider>(
         context,
         listen: false,
       );
-      // Selecciona null para cliente y tipo ("Todos")
       filterProvider.setClientId(null);
       filterProvider.setType(null);
-      // Si ya estamos en el tab de movimientos, forzar rebuild
+      final tabProvider = Provider.of<TabProvider>(context, listen: false);
       if (tabProvider.currentIndex == 2) {
         setState(() {});
       }
       tabProvider.setTab(index);
+      setState(() => _currentIndex = index);
       return;
     }
-    tabProvider.setTab(index);
+    Provider.of<TabProvider>(context, listen: false).setTab(index);
+    setState(() => _currentIndex = index);
+  }
+
+  // Permite cambiar a la pestaña de movimientos y filtrar por cliente
+  void goToMovementsWithClient(String clientId) {
+    final filterProvider = Provider.of<TransactionFilterProvider>(
+      context,
+      listen: false,
+    );
+    filterProvider.setClientId(clientId);
+    filterProvider.setType(null);
+    final tabProvider = Provider.of<TabProvider>(context, listen: false);
+    tabProvider.setTab(2);
+    setState(() => _currentIndex = 2);
   }
 
   void _logout() async {
@@ -113,15 +134,16 @@ class _MainScaffoldState extends State<MainScaffold> {
 
   @override
   Widget build(BuildContext context) {
-    final tabIndex = Provider.of<TabProvider>(context).currentIndex;
+    final tabIndex = _currentIndex;
     final screens = [
       DashboardScreen(userId: widget.userId),
-      ClientsScreen(userId: widget.userId),
+      ClientsScreen(
+        key: _clientsScreenKey,
+        userId: widget.userId,
+        onViewMovements: goToMovementsWithClient,
+      ),
       TransactionsScreen(userId: widget.userId),
     ];
-    // final width = MediaQuery.of(context).size.width;
-    // final isWeb = identical(0, 0.0);
-    // Detectar si el teclado está visible
     final viewInsets = MediaQuery.of(context).viewInsets;
     final isKeyboardVisible = viewInsets.bottom > 0.0;
 
@@ -147,23 +169,21 @@ class _MainScaffoldState extends State<MainScaffold> {
         Expanded(
           child: Stack(
             children: [
-              // Fondo degradado igual que dashboard_screen.dart
               Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      Color(0xFF7C3AED), // Morado principal
-                      Color(0xFF4F46E5), // Azul/morado
-                      Color(0xFF60A5FA), // Azul claro
+                      Color(0xFF7C3AED),
+                      Color(0xFF4F46E5),
+                      Color(0xFF60A5FA),
                     ],
                   ),
                 ),
               ),
               Scaffold(
-                extendBody:
-                    true, // <-- AÑADIDO PARA QUE EL FONDO SE VEA EN EL NOTCH
+                extendBody: true,
                 backgroundColor: Colors.transparent,
                 appBar: null,
                 body: IndexedStack(index: tabIndex, children: screens),
@@ -172,13 +192,12 @@ class _MainScaffoldState extends State<MainScaffold> {
                     FloatingActionButtonLocation.centerDocked,
                 bottomNavigationBar: BottomAppBar(
                   color: Colors.white,
-                  elevation: 0, // Es importante mantener la elevación en 0
+                  elevation: 0,
                   shape: const CircularNotchedRectangle(),
                   notchMargin: 8.0,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: <Widget>[
-                      // Lado izquierdo (2 botones)
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -201,8 +220,7 @@ class _MainScaffoldState extends State<MainScaffold> {
                           ),
                         ],
                       ),
-                      const SizedBox(width: 32), // Espacio para el FAB
-                      // Lado derecho (2 botones)
+                      const SizedBox(width: 32),
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [

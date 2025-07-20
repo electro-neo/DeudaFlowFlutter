@@ -75,19 +75,13 @@ class _MainScaffoldState extends State<MainScaffold> {
         context,
         listen: false,
       );
+      // Selecciona null para cliente y tipo ("Todos")
       filterProvider.setClientId(null);
       filterProvider.setType(null);
       // Si ya estamos en el tab de movimientos, forzar rebuild
       if (tabProvider.currentIndex == 2) {
         setState(() {});
       }
-      // Navegar a la misma ruta pero con argumento especial
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => MainScaffold(userId: widget.userId),
-          settings: RouteSettings(arguments: {'fromBar': true}),
-        ),
-      );
       tabProvider.setTab(index);
       return;
     }

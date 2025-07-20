@@ -27,149 +27,34 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   bool _loading = true;
   // Elimina el flag para que el filtro de tipo siempre se aplique desde el provider
 
-  late TransactionFilterProvider _filterProvider;
-  late VoidCallback _filterListener;
+  // Eliminado: late TransactionFilterProvider _filterProvider;
+  // Eliminado: late VoidCallback _filterListener;
 
   final FocusNode _searchFocusNode = FocusNode();
-  String? _selectedClientId;
   DateTimeRange? _selectedRange;
-  String? _selectedType; // 'debt', 'payment', o null
   String _searchQuery = '';
 
   @override
   void dispose() {
     _searchFocusNode.dispose();
-    // Remueve el listener del provider
-    _filterProvider.removeListener(_filterListener);
     super.dispose();
   }
 
   @override
   void initState() {
     super.initState();
-    // Inicializa el provider y listener
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _filterProvider = Provider.of<TransactionFilterProvider>(
-        context,
-        listen: false,
-      );
-      // Listener para cambios en el filtro global
-      _filterListener = () {
-        if (!mounted) return;
-        final clientId = _filterProvider.clientId;
-        debugPrint(
-          'TransactionsScreen: _filterListener triggered. clientId: '
-          '\u001b[32m$clientId\u001b[0m',
-        );
-        if (clientId != null && clientId.isNotEmpty) {
-          setState(() {
-            _selectedClientId = clientId;
-          });
-          debugPrint(
-            'TransactionsScreen: _selectedClientId set from filterProvider: '
-            '\u001b[34m$_selectedClientId\u001b[0m',
-          );
-          _filterProvider.setClientId(null);
-          // No llamar a _loadTransactions() aquí para evitar el loading inmediato
-        }
-      };
-      _filterProvider.addListener(_filterListener);
-
-      // Lógica inicial: si hay filtro, úsalo; si no, usa el inicial
-      // --- MODIFICADO: Si navigation argument fromBar == true, limpiar filtro visual ---
-      final route = ModalRoute.of(context);
-      final settings = route?.settings;
-      final args = settings?.arguments;
-      bool fromBar = false;
-      if (args is Map && args['fromBar'] == true) {
-        fromBar = true;
-      }
-      debugPrint(
-        'TransactionsScreen: initState PostFrame. filterProvider.clientId: '
-        '\u001b[32m${_filterProvider.clientId}\u001b[0m, initialClientId: '
-        '\u001b[33m${widget.initialClientId}\u001b[0m, fromBar: $fromBar',
-      );
-      if (fromBar) {
-        // Si viene del bottom bar, limpiar filtro visual
-        setState(() {
-          _selectedClientId = null;
-        });
-        _filterProvider.setClientId(null);
-        debugPrint('TransactionsScreen: Limpiando filtro visual por fromBar');
-      } else if (_filterProvider.clientId != null &&
-          _filterProvider.clientId!.isNotEmpty) {
-        setState(() {
-          _selectedClientId = _filterProvider.clientId;
-        });
-        debugPrint(
-          'TransactionsScreen: _selectedClientId set from filterProvider (init): '
-          '\u001b[34m$_selectedClientId\u001b[0m',
-        );
-        _filterProvider.setClientId(null);
-      } else {
-        setState(() {
-          _selectedClientId = widget.initialClientId;
-        });
-        debugPrint(
-          'TransactionsScreen: _selectedClientId set from widget.initialClientId: '
-          '\u001b[33m$_selectedClientId\u001b[0m',
-        );
-      }
-      _loadTransactions();
-    });
+    // Si necesitas lógica de inicialización, agrégala aquí, pero sin usar _selectedClientId
+    _loadTransactions();
   }
 
   Future<void> _loadTransactions() async {
     if (!mounted) return;
     debugPrint(
-      '[TRANSACTIONS_SCREEN][_loadTransactions] INICIO. userId: ${widget.userId}, _selectedClientId: $_selectedClientId',
+      '[TRANSACTIONS_SCREEN][_loadTransactions] INICIO. userId: ${widget.userId}',
     );
     setState(() => _loading = true);
     final txProvider = Provider.of<TransactionProvider>(context, listen: false);
     await txProvider.loadTransactions(widget.userId);
-    // --- Sincroniza el id seleccionado si fue reemplazado (por ejemplo, tras sincronización de clientes offline) ---
-    final clientProvider = Provider.of<ClientProvider>(context, listen: false);
-    if (_selectedClientId != null && _selectedClientId!.isNotEmpty) {
-      final exists = clientProvider.clients.any(
-        (c) => c.id == _selectedClientId,
-      );
-      if (!exists) {
-        // Buscar cliente por nombre (asumiendo que el nombre no cambió)
-        String? clientName;
-        // Buscar la transacción con el id antiguo
-        final txList = txProvider.transactions
-            .where((t) => t.clientId == _selectedClientId)
-            .toList();
-        if (txList.isNotEmpty) {
-          // Buscar el cliente antiguo en la lista de clientes (por id)
-          final oldClientList = clientProvider.clients
-              .where((c) => c.id == txList.first.clientId)
-              .toList();
-          if (oldClientList.isNotEmpty) {
-            clientName = oldClientList.first.name;
-          }
-        }
-        // Buscar cliente por nombre
-        if (clientName != null) {
-          final newClientList = clientProvider.clients
-              .where((c) => c.name == clientName)
-              .toList();
-          if (newClientList.isNotEmpty) {
-            setState(() {
-              _selectedClientId = newClientList.first.id;
-            });
-            debugPrint(
-              '[TRANSACTIONS_SCREEN][_loadTransactions] Cliente resuelto por nombre: $_selectedClientId',
-            );
-          }
-        }
-      }
-    }
-    if (!mounted) return;
-    debugPrint(
-      '[TRANSACTIONS_SCREEN][_loadTransactions] FIN. _selectedClientId: $_selectedClientId',
-    );
     setState(() => _loading = false);
   }
 
@@ -194,46 +79,24 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         .where((t) => t.pendingDelete != true)
         .toList();
 
-    // Refuerzo: si _selectedClientId es null y el provider tiene valor, tomarlo aquí
-    if ((_selectedClientId == null || _selectedClientId!.isEmpty) &&
-        filterProvider.clientId != null &&
-        filterProvider.clientId!.isNotEmpty) {
-      debugPrint(
-        '[TRANSACTIONS_SCREEN][build] Refuerzo: _selectedClientId era null, tomando de filterProvider: ${filterProvider.clientId}',
-      );
-      _selectedClientId = filterProvider.clientId;
-      // Limpia el filtro para evitar loops
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        filterProvider.setClientId(null);
-        setState(() {});
-      });
-    }
+    // Usar SIEMPRE el valor del provider para los filtros visuales
+    final selectedClientId = filterProvider.clientId;
+    final selectedType = filterProvider.type;
 
     // Validar que el cliente seleccionado exista en la lista
     final clientIds = clients.map((c) => c.id).toList();
-    if (_selectedClientId != null && !clientIds.contains(_selectedClientId)) {
-      debugPrint(
-        '[TRANSACTIONS_SCREEN][build] _selectedClientId ($_selectedClientId) no existe en clientIds. Reseteando a null.',
-      );
-      _selectedClientId = null;
-    }
+    final effectiveClientId =
+        (selectedClientId != null && clientIds.contains(selectedClientId))
+        ? selectedClientId
+        : null;
+
     debugPrint(
-      '[TRANSACTIONS_SCREEN][build] _selectedClientId: $_selectedClientId, transactions: ${transactions.length}',
+      '[TRANSACTIONS_SCREEN][build] selectedClientId: $selectedClientId, effectiveClientId: $effectiveClientId, selectedType: $selectedType, transactions: ${transactions.length}',
     );
 
-    // Siempre sincroniza el filtro de tipo con el provider si viene de fuera
-    if (filterProvider.type != null) {
-      _selectedType = filterProvider.type;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        filterProvider.setType(null); // Limpia solo el tipo, no el clientId
-        if (!mounted) return;
-        setState(() {});
-      });
-    }
-
-    if (_selectedClientId != null && _selectedClientId!.isNotEmpty) {
+    if (effectiveClientId != null && effectiveClientId.isNotEmpty) {
       transactions = transactions
-          .where((t) => t.clientId == _selectedClientId)
+          .where((t) => t.clientId == effectiveClientId)
           .toList();
     }
     if (_selectedRange != null) {
@@ -244,10 +107,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             t.date.isBefore(_selectedRange!.end.add(const Duration(days: 1)));
       }).toList();
     }
-    if (_selectedType != null && _selectedType!.isNotEmpty) {
-      transactions = transactions
-          .where((t) => t.type == _selectedType)
-          .toList();
+    if (selectedType != null && selectedType.isNotEmpty) {
+      transactions = transactions.where((t) => t.type == selectedType).toList();
     }
     if (_searchQuery.isNotEmpty) {
       transactions = transactions.where((t) {
@@ -282,19 +143,15 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     }
 
     if (isMobile) {
-      // En móvil: igualar el ancho y estilo visual del box de clientes
       content = gestureWrapper(
         child: Column(
           children: [
-            // Header y filtros
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
               child: Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(
-                    0.92,
-                  ), // Fondo blanco translúcido igual que dashboard/clients
+                  color: Colors.white.withOpacity(0.92),
                   borderRadius: BorderRadius.circular(18),
                   boxShadow: [
                     BoxShadow(
@@ -308,14 +165,19 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   vertical: 18,
                   horizontal: 10,
                 ),
-                child: _buildTransactionColumn(format, clients, transactions),
+                child: _buildTransactionColumn(
+                  format,
+                  clients,
+                  transactions,
+                  effectiveClientId,
+                  selectedType,
+                ),
               ),
             ),
           ],
         ),
       );
     } else {
-      // En escritorio: Card centrado y ancho máximo
       content = gestureWrapper(
         child: Center(
           child: ConstrainedBox(
@@ -331,7 +193,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   horizontal: 18,
                   vertical: 24,
                 ),
-                child: _buildTransactionColumn(format, clients, transactions),
+                child: _buildTransactionColumn(
+                  format,
+                  clients,
+                  transactions,
+                  effectiveClientId,
+                  selectedType,
+                ),
               ),
             ),
           ),
@@ -368,13 +236,15 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     String Function(num) format,
     List<Client> clients,
     List transactions,
+    String? selectedClientId,
+    String? selectedType,
   ) {
     // --- NUEVO: Detectar si el cliente está pendiente por eliminar y si estamos offline ---
     final clientProvider = Provider.of<ClientProvider>(context, listen: false);
     final syncProvider = Provider.of<SyncProvider?>(context, listen: false);
     bool isOffline = false;
     bool clientPendingDelete = false;
-    String? selectedClientId = _selectedClientId;
+    // Eliminado: String? selectedClientId = _selectedClientId;
     if (selectedClientId != null && selectedClientId.isNotEmpty) {
       // Buscar el cliente en Hive si no está en la lista visible
       final client = clientProvider.clients.firstWhere(
@@ -451,45 +321,52 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               flex: 4,
               child: SizedBox(
                 height: 52,
-                child: DropdownButtonFormField<String>(
-                  value: _selectedClientId,
-                  decoration: const InputDecoration(
-                    labelText: 'Filtrar por cliente',
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.symmetric(
-                      vertical: 8,
-                      horizontal: 8,
-                    ),
-                  ),
-                  items: [
-                    const DropdownMenuItem(value: null, child: Text('Todos')),
-                    ...clients.map(
-                      (c) => DropdownMenuItem(value: c.id, child: Text(c.name)),
-                    ),
-                  ],
-                  selectedItemBuilder: (context) {
-                    return [
-                      const Text(
-                        'Todos',
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
-                      ...clients.map(
-                        (c) => Text(
-                          c.name,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
+                child: Consumer<TransactionFilterProvider>(
+                  builder: (context, filterProvider, _) =>
+                      DropdownButtonFormField<String>(
+                        value: selectedClientId,
+                        decoration: const InputDecoration(
+                          labelText: 'Filtrar por cliente',
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(
+                            vertical: 8,
+                            horizontal: 8,
+                          ),
                         ),
+                        items: [
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Text('Todos'),
+                          ),
+                          ...clients.map(
+                            (c) => DropdownMenuItem(
+                              value: c.id,
+                              child: Text(c.name),
+                            ),
+                          ),
+                        ],
+                        selectedItemBuilder: (context) {
+                          return [
+                            const Text(
+                              'Todos',
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                            ...clients.map(
+                              (c) => Text(
+                                c.name,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            ),
+                          ];
+                        },
+                        onChanged: (value) {
+                          filterProvider.setClientId(value);
+                        },
+                        isExpanded: true,
                       ),
-                    ];
-                  },
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedClientId = value;
-                    });
-                  },
-                  isExpanded: true,
                 ),
               ),
             ),
@@ -498,27 +375,31 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               flex: 3,
               child: SizedBox(
                 height: 52,
-                child: DropdownButtonFormField<String>(
-                  value: _selectedType,
-                  decoration: const InputDecoration(
-                    labelText: 'Tipo',
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.symmetric(
-                      vertical: 8,
-                      horizontal: 8,
-                    ),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: null, child: Text('Todos')),
-                    DropdownMenuItem(value: 'debt', child: Text('Deuda')),
-                    DropdownMenuItem(value: 'payment', child: Text('Abono')),
-                  ],
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedType = value;
-                    });
-                  },
+                child: Consumer<TransactionFilterProvider>(
+                  builder: (context, filterProvider, _) =>
+                      DropdownButtonFormField<String>(
+                        value: selectedType,
+                        decoration: const InputDecoration(
+                          labelText: 'Tipo',
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(
+                            vertical: 8,
+                            horizontal: 8,
+                          ),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: null, child: Text('Todos')),
+                          DropdownMenuItem(value: 'debt', child: Text('Deuda')),
+                          DropdownMenuItem(
+                            value: 'payment',
+                            child: Text('Abono'),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          filterProvider.setType(value);
+                        },
+                      ),
                 ),
               ),
             ),
@@ -601,9 +482,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 totalDeuda += tx.amount;
               }
             }
-            final showAbono =
-                _selectedType == null || _selectedType == 'payment';
-            final showDeuda = _selectedType == null || _selectedType == 'debt';
+            final showAbono = selectedType == null || selectedType == 'payment';
+            final showDeuda = selectedType == null || selectedType == 'debt';
             if (!showAbono && !showDeuda) return SizedBox.shrink();
             return Padding(
               padding: const EdgeInsets.symmetric(

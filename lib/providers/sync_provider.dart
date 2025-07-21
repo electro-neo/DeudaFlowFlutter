@@ -135,6 +135,7 @@ class SyncProvider extends ChangeNotifier {
           // El uso de context aquí es seguro porque se verifica 'context.mounted' antes de cada uso tras un await.
           // Puedes ignorar este warning: no afecta la ejecución ni la seguridad del código.
           final clientProvider = Provider.of<ClientProvider>(
+            // ignore: use_build_context_synchronously
             context,
             listen: false,
           );

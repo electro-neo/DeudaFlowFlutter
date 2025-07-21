@@ -9,20 +9,6 @@ import '../providers/transaction_provider.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 
-// --- TEST: Google Sign-In mínimo ---
-// Estas variables y función deben estar dentro del State
-
-import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:hive/hive.dart';
-import 'package:provider/provider.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import '../providers/client_provider.dart';
-import '../providers/transaction_provider.dart';
-import 'register_screen.dart';
-import 'forgot_password_screen.dart';
-
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -356,17 +342,17 @@ class _LoginScreenState extends State<LoginScreen> {
                 constraints: const BoxConstraints(maxWidth: 370),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.10),
+                    color: Colors.white.withAlpha((0.10 * 255).toInt()),
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
+                        color: Colors.black.withAlpha((0.08 * 255).toInt()),
                         blurRadius: 16,
                         offset: const Offset(0, 8),
                       ),
                     ],
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.18),
+                      color: Colors.white.withAlpha((0.18 * 255).toInt()),
                       width: 1.2,
                     ),
                   ),

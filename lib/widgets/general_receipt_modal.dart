@@ -190,11 +190,6 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                     ? client.phone.toString()
                     : 'Sin Información';
                 final filteredTxs = e['filteredTxs'] as List<dynamic>;
-                final currencyProvider = Provider.of<CurrencyProvider>(
-                  context,
-                  listen: false,
-                );
-                final convertCurrency = currencyProvider.currency == 'USD';
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

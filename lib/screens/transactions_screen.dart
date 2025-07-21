@@ -166,11 +166,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               child: Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.92),
+                  color: Colors.white.withAlpha((0.92 * 255).toInt()),
                   borderRadius: BorderRadius.circular(18),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
+                      color: Colors.black.withAlpha((0.08 * 255).toInt()),
                       blurRadius: 14,
                       offset: const Offset(0, 3),
                     ),
@@ -680,7 +680,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       alignment: Alignment.centerRight,
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.12),
+                        color: Colors.red.withAlpha((0.12 * 255).toInt()),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: const Icon(
@@ -814,12 +814,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         ), // Bordes redondeados
                         boxShadow: [
                           BoxShadow(
-                            color: const Color.fromARGB(
-                              255,
-                              11,
-                              11,
-                              11,
-                            ).withOpacity(0.25), // Sombra muy suave
+                            color: const Color.fromARGB(255, 11, 11, 11)
+                                .withAlpha(
+                                  (0.25 * 255).toInt(),
+                                ), // Sombra muy suave
                             blurRadius: 4, // Difuminado de la sombra
                             offset: Offset(0, 2), // Desplazamiento de la sombra
                           ),
@@ -929,8 +927,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                               vertical: 2,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: Colors.red.withOpacity(
-                                                0.09,
+                                              color: Colors.red.withAlpha(
+                                                (0.09 * 255).toInt(),
                                               ),
                                               borderRadius:
                                                   BorderRadius.circular(10),
@@ -973,8 +971,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                               vertical: 2,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: Colors.orange.withOpacity(
-                                                0.09,
+                                              color: Colors.orange.withAlpha(
+                                                (0.09 * 255).toInt(),
                                               ),
                                               borderRadius:
                                                   BorderRadius.circular(10),
@@ -1020,8 +1018,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                               vertical: 2,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: Colors.green.withOpacity(
-                                                0.09,
+                                              color: Colors.green.withAlpha(
+                                                (0.09 * 255).toInt(),
                                               ),
                                               borderRadius:
                                                   BorderRadius.circular(10),

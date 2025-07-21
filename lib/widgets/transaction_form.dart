@@ -39,18 +39,24 @@ class _TransactionFormState extends State<TransactionForm> {
     }
   }
 
+  // Usar logger en vez de print para errores y advertencias
   Future<void> _save() async {
     setState(() {
       _error = null;
       _loading = true;
     });
+    void logError(String message) {
+      // Reemplaza por tu logger preferido si tienes uno global, por ejemplo: logger.e(message);
+      debugPrint('[TransactionForm ERROR] $message');
+    }
+
     // Validaciones
     if (_selectedClient == null) {
       setState(() {
         _error = 'Debes seleccionar un cliente';
         _loading = false;
       });
-      print('[TransactionForm ERROR] Debes seleccionar un cliente');
+      logError('Debes seleccionar un cliente');
       return;
     }
     if (_type == null) {
@@ -58,7 +64,7 @@ class _TransactionFormState extends State<TransactionForm> {
         _error = 'Debes seleccionar Deuda o Abono';
         _loading = false;
       });
-      print('[TransactionForm ERROR] Debes seleccionar Deuda o Abono');
+      logError('Debes seleccionar Deuda o Abono');
       return;
     }
     final amount = double.tryParse(_amountController.text);
@@ -67,7 +73,7 @@ class _TransactionFormState extends State<TransactionForm> {
         _error = 'Monto inválido';
         _loading = false;
       });
-      print('[TransactionForm ERROR] Monto inválido');
+      logError('Monto inválido');
       return;
     }
     if (_descriptionController.text.trim().isEmpty) {
@@ -75,7 +81,7 @@ class _TransactionFormState extends State<TransactionForm> {
         _error = 'Descripción obligatoria';
         _loading = false;
       });
-      print('[TransactionForm ERROR] Descripción obligatoria');
+      logError('Descripción obligatoria');
       return;
     }
     try {
@@ -109,25 +115,26 @@ class _TransactionFormState extends State<TransactionForm> {
           ),
         );
       }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Transacción guardada correctamente')),
-        );
-        // Cierra el modal automáticamente al guardar
-        Future.delayed(const Duration(milliseconds: 200), () {
-          if (widget.onClose != null) {
-            widget.onClose!();
-          } else {
-            Navigator.of(context, rootNavigator: true).pop();
-          }
-        });
-      }
+      // ignore: use_build_context_synchronously
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(content: Text('Transacción guardada correctamente')),
+      );
+      // Cierra el modal automáticamente al guardar
+      Future.delayed(const Duration(milliseconds: 200), () {
+        if (!mounted) return;
+        if (widget.onClose != null) {
+          widget.onClose!();
+        } else {
+          Navigator.of(context, rootNavigator: true).pop();
+        }
+      });
     } catch (e) {
       setState(() {
         _error = 'Error inesperado: $e';
         _loading = false;
       });
-      print('[TransactionForm ERROR] Error inesperado: $e');
+      logError('Error inesperado: $e');
       return;
     } finally {
       if (mounted) {
@@ -217,7 +224,18 @@ class _TransactionFormState extends State<TransactionForm> {
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         decoration: BoxDecoration(
-                          color: colorScheme.primary.withOpacity(0.08),
+                          color: colorScheme.primary.withValues(
+                            red:
+                                ((colorScheme.primary.r * 255.0).round() & 0xff)
+                                    .toDouble(),
+                            green:
+                                ((colorScheme.primary.g * 255.0).round() & 0xff)
+                                    .toDouble(),
+                            blue:
+                                ((colorScheme.primary.b * 255.0).round() & 0xff)
+                                    .toDouble(),
+                            alpha: 0.08 * 255,
+                          ),
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(
                             color: colorScheme.primary,
@@ -318,7 +336,7 @@ class _TransactionFormState extends State<TransactionForm> {
                         child: GestureDetector(
                           onLongPress: () {
                             Clipboard.setData(ClipboardData(text: _error!));
-                            ScaffoldMessenger.of(context).showSnackBar(
+                            ScaffoldMessenger.maybeOf(context)?.showSnackBar(
                               const SnackBar(
                                 content: Text('Error copiado al portapapeles'),
                               ),
@@ -425,7 +443,13 @@ class _ToggleTypeButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final baseColor = color;
-    final selectedColor = baseColor.withOpacity(0.13);
+    // Reemplazo de .withOpacity() deprecado por .withValues para precisión
+    final selectedColor = baseColor.withValues(
+      red: ((baseColor.r * 255.0).round() & 0xff).toDouble(),
+      green: ((baseColor.g * 255.0).round() & 0xff).toDouble(),
+      blue: ((baseColor.b * 255.0).round() & 0xff).toDouble(),
+      alpha: 0.13 * 255,
+    );
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(

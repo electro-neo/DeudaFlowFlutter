@@ -74,6 +74,14 @@ class SyncProvider extends ChangeNotifier {
     }
   }
 
+  ///
+  /// NOTA IMPORTANTE SOBRE EL USO DE BuildContext EN PROVIDERS:
+  /// ----------------------------------------------------------
+  /// El uso de `context` tras un await aquí está protegido por:
+  ///   if (context is Element && !context.mounted) return;
+  /// Esto es seguro en providers y ChangeNotifier, aunque el linter de Flutter
+  /// muestre advertencia. No es posible usar `mounted` como en un State.
+  /// Puedes ignorar el warning `use_build_context_synchronously` en este contexto.
   Future<void> _syncAll(BuildContext context, String userId) async {
     try {
       if (context is Element && !context.mounted) return;
@@ -117,6 +125,7 @@ class SyncProvider extends ChangeNotifier {
           '[SYNC][PROVIDER] Reconectado a internet. Iniciando sincronización de clientes y transacciones...',
         );
         if (context is Element && !context.mounted) return;
+        // ignore: use_build_context_synchronously
         await _syncAll(context, userId);
         // Refuerzo: recargar clientes solo cuando no haya pendientes de eliminar
         try {
@@ -133,6 +142,7 @@ class SyncProvider extends ChangeNotifier {
           bool hayPendientes;
           do {
             if (context is Element && !context.mounted) return;
+            // ignore: use_build_context_synchronously
             await clientProvider.loadClients(userId);
             final box = await Hive.openBox<ClientHive>('clients');
             hayPendientes = box.values.any((c) => c.pendingDelete == true);

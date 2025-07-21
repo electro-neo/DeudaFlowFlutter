@@ -43,7 +43,12 @@ class _DebugBannerState extends State<DebugBanner> {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      color: Colors.purple.withOpacity(0.8),
+      color: Colors.purple.withValues(
+        red: ((Colors.purple.r * 255.0).round() & 0xff).toDouble(),
+        green: ((Colors.purple.g * 255.0).round() & 0xff).toDouble(),
+        blue: ((Colors.purple.b * 255.0).round() & 0xff).toDouble(),
+        alpha: 0.8 * 255,
+      ),
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Center(
         child: Text(
@@ -509,6 +514,7 @@ class _MobileBottomBarState extends State<_MobileBottomBar> {
                                           // ignore: use_build_context_synchronously
                                           // NOTA: El uso de 'context' aquí es seguro porque este callback se ejecuta en el mismo frame y no hay await previo. El linter puede reportar un falso positivo.
                                           showDialog(
+                                            // ignore: use_build_context_synchronously
                                             context: context,
                                             builder: (ctx2) {
                                               final rate =

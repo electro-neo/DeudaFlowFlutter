@@ -749,7 +749,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       // Por lo tanto, el warning puede ser ignorado.
                       // ignore: use_build_context_synchronously
                       if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      // ignore: use_build_context_synchronously
+                      final messenger = ScaffoldMessenger.maybeOf(context);
+                      messenger?.showSnackBar(
                         SnackBar(
                           content: Text(
                             'Transacción "$transactionDescription" eliminada. Pendiente de sincronizar.',
@@ -800,6 +802,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           '--- FIN ERROR FLUJO ELIMINACIÓN TRANSACCIÓN ---',
                         );
                         if (mounted) {
+                          // ignore: use_build_context_synchronously
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(

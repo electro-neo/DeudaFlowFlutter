@@ -284,24 +284,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.10),
+                          color: Colors.white.withAlpha((0.10 * 255).toInt()),
                           borderRadius: const BorderRadius.only(
                             bottomLeft: Radius.circular(32),
                             bottomRight: Radius.circular(32),
                           ),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.07),
+                            color: Colors.white.withAlpha((0.07 * 255).toInt()),
                             width: 2.2,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.white.withOpacity(0.12),
+                              color: Colors.white.withAlpha(
+                                (0.12 * 255).toInt(),
+                              ),
                               blurRadius: 16,
                               spreadRadius: 2,
                               offset: const Offset(0, 2),
                             ),
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.04),
+                              color: Colors.black.withAlpha(
+                                (0.04 * 255).toInt(),
+                              ),
                               blurRadius: 16,
                               offset: const Offset(0, 8),
                             ),
@@ -326,7 +330,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                             251,
                                             250,
                                             250,
-                                          ).withOpacity(0.25),
+                                          ).withAlpha((0.25 * 255).toInt()),
                                           shape: BoxShape.circle,
                                         ),
                                         padding: const EdgeInsets.all(12),
@@ -481,14 +485,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                           : '+$symbol$formatted';
                                       return Container(
                                         decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.85),
+                                          color: Colors.white.withAlpha(
+                                            (0.85 * 255).toInt(),
+                                          ),
                                           borderRadius: BorderRadius.circular(
                                             16,
                                           ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Colors.black.withOpacity(
-                                                0.04,
+                                              color: Colors.black.withAlpha(
+                                                (0.04 * 255).toInt(),
                                               ),
                                               blurRadius: 8,
                                               offset: const Offset(0, 2),

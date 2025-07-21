@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/budgeto_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/client.dart';
@@ -322,16 +323,7 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             decoration: BoxDecoration(
-              // .withOpacity está deprecado, usar .withValues para precisión
-              color: colorScheme.primary.withValues(
-                red: ((colorScheme.primary.r * 255.0).round() & 0xff)
-                    .toDouble(),
-                green: ((colorScheme.primary.g * 255.0).round() & 0xff)
-                    .toDouble(),
-                blue: ((colorScheme.primary.b * 255.0).round() & 0xff)
-                    .toDouble(),
-                alpha: 0.08 * 255,
-              ),
+              color: kSliderContainerBg,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: colorScheme.primary, width: 1.5),
             ),

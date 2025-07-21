@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/budgeto_colors.dart';
 import 'package:flutter/services.dart';
 import '../models/transaction.dart';
 import '../models/client.dart';
@@ -224,18 +225,8 @@ class _TransactionFormState extends State<TransactionForm> {
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         decoration: BoxDecoration(
-                          color: colorScheme.primary.withValues(
-                            red:
-                                ((colorScheme.primary.r * 255.0).round() & 0xff)
-                                    .toDouble(),
-                            green:
-                                ((colorScheme.primary.g * 255.0).round() & 0xff)
-                                    .toDouble(),
-                            blue:
-                                ((colorScheme.primary.b * 255.0).round() & 0xff)
-                                    .toDouble(),
-                            alpha: 0.08 * 255,
-                          ),
+                          // Fondo unificado desde budgeto_colors.dart
+                          color: kSliderContainerBg,
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(
                             color: colorScheme.primary,

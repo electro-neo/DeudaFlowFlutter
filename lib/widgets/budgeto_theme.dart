@@ -5,7 +5,7 @@ class BudgetoTheme {
   static ThemeData light = ThemeData(
     fontFamily: 'Outfit',
     scaffoldBackgroundColor: Colors.white,
-    colorScheme: const ColorScheme.light(),
+    colorScheme: const ColorScheme.light(primary: kGreenColor),
     primaryColor: kGreenColor,
     cardColor: kCardColor,
     textTheme: const TextTheme(
@@ -59,7 +59,7 @@ class BudgetoTheme {
   static ThemeData dark = ThemeData(
     fontFamily: 'Outfit',
     scaffoldBackgroundColor: kDarkScaffoldC,
-    colorScheme: const ColorScheme.dark(),
+    colorScheme: const ColorScheme.dark(primary: kDarkGreenColor),
     primaryColor: kDarkGreenColor,
     cardColor: kDarkCardC,
     appBarTheme: const AppBarTheme(

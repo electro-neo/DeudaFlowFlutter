@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 // Paleta Budgeto
@@ -17,3 +18,6 @@ const kDarkCardC = Color(0xff1B1F24);
 const kDarkGreenColor = Color(0xff198786);
 const kDarkGreenBackC = Color(0xff027273);
 const kDarkGreenNavIconC = Color.fromARGB(255, 0, 91, 93);
+
+// Fondo translúcido para el contenedor deslizable de tipo de transacción
+const kSliderContainerBg = Color.fromARGB(33, 33, 150, 243);

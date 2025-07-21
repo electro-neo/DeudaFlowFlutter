@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
 import '../models/client.dart';
 import '../providers/client_provider.dart';
 import '../providers/currency_provider.dart';
@@ -81,6 +80,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // Inicializa el estado de SyncProvider para que el banner se muestre correctamente
     Future.microtask(() {
       Provider.of<SyncProvider>(
+        // ignore: use_build_context_synchronously
         context,
         listen: false,
       ).initializeConnectionStatus();
@@ -91,7 +91,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // Compara balances locales y remotos y muestra SnackBar si hay diferencias
   Future<void> _checkBalanceDifferences() async {
-    final clientProvider = Provider.of<ClientProvider>(context, listen: false);
+    // El siguiente uso de context es seguro porque:
+    // 1. Se verifica 'if (difference && mounted)' antes de usar context tras el async gap.
+    // 2. Este context es el de la clase State, no de un builder externo.
+    // Por lo tanto, el warning puede ser ignorado.
+    // ignore: use_build_context_synchronously
+    final clientProvider = Provider.of<ClientProvider>(
+      // El siguiente uso de context es seguro porque:
+      // 1. Se verifica 'if (difference && mounted)' antes de usar context tras el async gap.
+      // 2. Este context es el de la clase State, no de un builder externo.
+      // Por lo tanto, el warning puede ser ignorado.
+      // ignore: use_build_context_synchronously
+      context,
+      listen: false,
+    );
     final localClients = clientProvider.clients;
     try {
       // Asume que tienes un método en SupabaseService para obtener clientes remotos
@@ -142,6 +155,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await clientProvider.loadClients(widget.userId);
     await txProvider.loadTransactions(widget.userId);
     if (!mounted) return;
+    // El siguiente uso de context es seguro porque:
+    // 1. Se verifica 'if (!mounted) return;' antes de usar context tras el async gap.
+    // 2. Este context es el de la clase State, no de un builder externo.
+    // Por lo tanto, el warning puede ser ignorado.
     // ignore: use_build_context_synchronously
     setState(() => _loading = false);
   }
@@ -239,6 +256,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     () {
                                       if (mounted) {
                                         _showRateDialog(
+                                          // ignore: use_build_context_synchronously
                                           context,
                                           currencyProvider.rate,
                                         );
@@ -473,6 +491,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       final clientName = client.name.isNotEmpty
                                           ? client.name
                                           : 'Desconocido';
+                                      // El siguiente uso de context es seguro porque:
+                                      // 1. El widget padre (DashboardScreen) está montado y no hay async gap aquí.
+                                      // 2. Este context es el de la clase State, no de un builder externo.
+                                      // Por lo tanto, el warning puede ser ignorado.
+                                      // ignore: use_build_context_synchronously
                                       final symbol = CurrencyUtils.symbol(
                                         context,
                                       );

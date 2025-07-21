@@ -297,9 +297,24 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Fondo translúcido y borde blanco más notorio para resaltar sobre el fondo degradado
-    final cardColor = Colors.white.withOpacity(0.10);
-    final borderColor = Colors.white.withOpacity(0.65); // Más visible
-    final glowColor = Colors.white.withOpacity(0.18); // Efecto de brillo
+    final cardColor = Colors.white.withValues(
+      red: ((Colors.white.r * 255.0).round() & 0xff).toDouble(),
+      green: ((Colors.white.g * 255.0).round() & 0xff).toDouble(),
+      blue: ((Colors.white.b * 255.0).round() & 0xff).toDouble(),
+      alpha: 0.10 * 255,
+    );
+    final borderColor = Colors.white.withValues(
+      red: ((Colors.white.r * 255.0).round() & 0xff).toDouble(),
+      green: ((Colors.white.g * 255.0).round() & 0xff).toDouble(),
+      blue: ((Colors.white.b * 255.0).round() & 0xff).toDouble(),
+      alpha: 0.65 * 255,
+    ); // Más visible
+    final glowColor = Colors.white.withValues(
+      red: ((Colors.white.r * 255.0).round() & 0xff).toDouble(),
+      green: ((Colors.white.g * 255.0).round() & 0xff).toDouble(),
+      blue: ((Colors.white.b * 255.0).round() & 0xff).toDouble(),
+      alpha: 0.18 * 255,
+    ); // Efecto de brillo
     // Ajustes de layout para que el texto del label nunca se corte ni salte de línea innecesariamente:
     // - Se usa un layout flexible y padding reducido
     // - El label se ajusta a una sola línea si cabe, o máximo dos líneas sin cortar palabras
@@ -314,7 +329,12 @@ class _StatCard extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.25),
+              color: Colors.white.withValues(
+                red: ((Colors.white.r * 255.0).round() & 0xff).toDouble(),
+                green: ((Colors.white.g * 255.0).round() & 0xff).toDouble(),
+                blue: ((Colors.white.b * 255.0).round() & 0xff).toDouble(),
+                alpha: 0.25 * 255,
+              ),
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
@@ -411,7 +431,12 @@ class _StatCard extends StatelessWidget {
           elevation: 8,
           shape: cardShape,
           color: cardColor,
-          shadowColor: Colors.black.withOpacity(0.08),
+          shadowColor: Colors.black.withValues(
+            red: ((Colors.black.r * 255.0).round() & 0xff).toDouble(),
+            green: ((Colors.black.g * 255.0).round() & 0xff).toDouble(),
+            blue: ((Colors.black.b * 255.0).round() & 0xff).toDouble(),
+            alpha: 0.08 * 255,
+          ),
           child: cardContent,
         ),
       );
@@ -420,7 +445,12 @@ class _StatCard extends StatelessWidget {
         color: cardColor,
         shape: cardShape,
         elevation: 8,
-        shadowColor: Colors.black.withOpacity(0.08),
+        shadowColor: Colors.black.withValues(
+          red: ((Colors.black.r * 255.0).round() & 0xff).toDouble(),
+          green: ((Colors.black.g * 255.0).round() & 0xff).toDouble(),
+          blue: ((Colors.black.b * 255.0).round() & 0xff).toDouble(),
+          alpha: 0.08 * 255,
+        ),
         child: cardContent,
       );
     }

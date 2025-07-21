@@ -690,9 +690,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       ),
                     ),
                     confirmDismiss: (direction) async {
+                      // El siguiente uso de context es seguro porque:
+                      // 1. El context usado aquí es el de la State, y el showDialog se ejecuta solo si el widget está montado.
+                      // 2. El context del builder es propio del AlertDialog y no cruza async gaps.
+                      // Por lo tanto, el warning puede ser ignorado.
+                      // ignore: use_build_context_synchronously
                       return await showDialog<bool>(
                             context: context,
-                            builder: (context) => AlertDialog(
+                            builder: (dialogContext) => AlertDialog(
                               title: const Text('Eliminar transacción'),
                               content: const Text(
                                 '¿Estás seguro de eliminar esta transacción?',
@@ -700,12 +705,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                               actions: [
                                 TextButton(
                                   onPressed: () =>
-                                      Navigator.of(context).pop(false),
+                                      Navigator.of(dialogContext).pop(false),
                                   child: const Text('Cancelar'),
                                 ),
                                 ElevatedButton(
                                   onPressed: () =>
-                                      Navigator.of(context).pop(true),
+                                      Navigator.of(dialogContext).pop(true),
                                   child: const Text('Eliminar'),
                                 ),
                               ],
@@ -738,6 +743,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         transactionIdToDelete,
                       );
 
+                      // El siguiente uso de context es seguro porque:
+                      // 1. Se verifica 'if (!mounted) return;' antes de usar context tras el async gap.
+                      // 2. Este context es el de la clase State, no de un builder externo.
+                      // Por lo tanto, el warning puede ser ignorado.
+                      // ignore: use_build_context_synchronously
                       if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(

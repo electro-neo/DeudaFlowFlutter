@@ -38,6 +38,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       final res = await Supabase.instance.client.auth.updateUser(
         UserAttributes(password: _passwordController.text),
       );
+      // El siguiente uso de context es seguro porque:
+      // 1. Se verifica 'if (!mounted) return;' antes de usar context tras el async gap.
+      // 2. Este context es el de la clase State, no de un builder externo.
+      // Por lo tanto, el warning puede ser ignorado.
+      // ignore: use_build_context_synchronously
+      if (!mounted) return;
       if (res.user == null) {
         setState(() {
           _error = 'Error al cambiar contraseña';

@@ -276,7 +276,21 @@ class _ClientFormState extends State<ClientForm> {
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
                           decoration: BoxDecoration(
-                            color: colorScheme.primary.withOpacity(0.08),
+                            color: colorScheme.primary.withValues(
+                              red:
+                                  ((colorScheme.primary.r * 255.0).round() &
+                                          0xff)
+                                      .toDouble(),
+                              green:
+                                  ((colorScheme.primary.g * 255.0).round() &
+                                          0xff)
+                                      .toDouble(),
+                              blue:
+                                  ((colorScheme.primary.b * 255.0).round() &
+                                          0xff)
+                                      .toDouble(),
+                              alpha: 0.08 * 255,
+                            ),
                             borderRadius: BorderRadius.circular(24),
                             border: Border.all(
                               color: colorScheme.primary,

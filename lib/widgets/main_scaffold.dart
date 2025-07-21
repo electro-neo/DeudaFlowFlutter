@@ -11,6 +11,7 @@ import '../providers/theme_provider.dart';
 import '../providers/currency_provider.dart';
 import '../providers/transaction_filter_provider.dart';
 import 'add_global_transaction_modal.dart';
+import 'faq_help_sheet.dart';
 
 // Banner de debug para mostrar un número aleatorio que cambia en cada hot reload
 class DebugBanner extends StatefulWidget {
@@ -347,6 +348,37 @@ class _MainScaffoldState extends State<MainScaffold> {
                                           ),
                                         ),
                                         const SizedBox(height: 16),
+                                        ElevatedButton.icon(
+                                          icon: const Icon(
+                                            Icons.help_outline,
+                                            color: Colors.indigo,
+                                          ),
+                                          label: const Text(
+                                            'Ayuda / FAQ',
+                                            style: TextStyle(
+                                              color: Colors.indigo,
+                                            ),
+                                          ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.white,
+                                            foregroundColor: Colors.indigo,
+                                            elevation: 0,
+                                            side: const BorderSide(
+                                              color: Colors.indigo,
+                                            ),
+                                          ),
+                                          onPressed: () {
+                                            showModalBottomSheet(
+                                              context: ctx,
+                                              isScrollControlled: true,
+                                              backgroundColor:
+                                                  Colors.transparent,
+                                              builder: (_) =>
+                                                  const FaqHelpSheet(),
+                                            );
+                                          },
+                                        ),
+                                        const SizedBox(height: 8),
                                         ElevatedButton.icon(
                                           icon: const Icon(
                                             Icons.logout,

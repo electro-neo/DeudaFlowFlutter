@@ -16,7 +16,7 @@ class AppNavigationBar extends StatelessWidget {
     return BottomAppBar(
       shape: CircularNotchedRectangle(),
       notchMargin: 8,
-      color: Colors.indigo[700],
+      color: const Color.fromARGB(255, 76, 48, 159),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [

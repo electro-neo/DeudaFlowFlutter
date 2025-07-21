@@ -4,17 +4,21 @@ import 'budgeto_colors.dart';
 class BudgetoTheme {
   static ThemeData light = ThemeData(
     fontFamily: 'Outfit',
+    // Fondo principal del Scaffold (tema claro)
     scaffoldBackgroundColor: Colors.white,
-    colorScheme: const ColorScheme.light(primary: kGreenColor),
-    primaryColor: kGreenColor,
-    cardColor: kCardColor,
+    // ColorScheme principal (usa kGreenColor como color primario)
+    colorScheme: const ColorScheme.light(
+      primary: Color.fromARGB(255, 42, 0, 150),
+    ), // kGreenColor: color principal/acento
+    primaryColor: const Color.fromARGB(255, 65, 0, 150), // kGreenColor: color principal/acento
+    cardColor: kCardColor, // kCardColor: fondo de tarjetas
     textTheme: const TextTheme(
-      bodyLarge: TextStyle(color: kFontBlackC),
+      bodyLarge: TextStyle(color: kFontBlackC), // kFontBlackC: texto principal
       bodyMedium: TextStyle(color: kFontBlackC),
       bodySmall: TextStyle(color: kFontBlackC),
     ),
     appBarTheme: const AppBarTheme(
-      backgroundColor: kGreenColor,
+      backgroundColor: kGreenColor, // kGreenColor: fondo de AppBar
       foregroundColor: Colors.white,
       elevation: 0,
       centerTitle: true,
@@ -27,20 +31,25 @@ class BudgetoTheme {
       iconTheme: IconThemeData(color: Colors.white),
     ),
     inputDecorationTheme: InputDecorationTheme(
-      hoverColor: kGreenColor,
-      focusColor: kTextFieldColor,
+      hoverColor: kGreenColor, // kGreenColor: hover en campos
+      focusColor:
+          kTextFieldColor, // kTextFieldColor: fondo de TextField enfocado
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: kTextFieldBorderC),
+        borderSide: const BorderSide(
+          color: kTextFieldBorderC,
+        ), // kTextFieldBorderC: borde enfocado
       ),
       enabledBorder: OutlineInputBorder(
-        borderSide: const BorderSide(color: kTextFieldBorderC),
+        borderSide: const BorderSide(
+          color: kTextFieldBorderC,
+        ), // kTextFieldBorderC: borde habilitado
         borderRadius: BorderRadius.circular(12),
       ),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: kGreenColor,
+        backgroundColor: kGreenColor, // kGreenColor: fondo de botón
         foregroundColor: Colors.white,
         textStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 20),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -49,7 +58,7 @@ class BudgetoTheme {
       ),
     ),
     cardTheme: CardThemeData(
-      color: kCardColor,
+      color: kCardColor, // kCardColor: fondo de tarjetas
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
@@ -58,12 +67,19 @@ class BudgetoTheme {
 
   static ThemeData dark = ThemeData(
     fontFamily: 'Outfit',
-    scaffoldBackgroundColor: kDarkScaffoldC,
-    colorScheme: const ColorScheme.dark(primary: kDarkGreenColor),
-    primaryColor: kDarkGreenColor,
-    cardColor: kDarkCardC,
+    // Fondo principal del Scaffold (tema oscuro)
+    scaffoldBackgroundColor:
+        kDarkScaffoldC, // kDarkScaffoldC: fondo principal oscuro
+    // ColorScheme principal (usa kDarkGreenColor como color primario)
+    colorScheme: const ColorScheme.dark(
+      primary: kDarkGreenColor,
+    ), // kDarkGreenColor: color principal/acento oscuro
+    primaryColor:
+        kDarkGreenColor, // kDarkGreenColor: color principal/acento oscuro
+    cardColor: kDarkCardC, // kDarkCardC: fondo de tarjetas oscuro
     appBarTheme: const AppBarTheme(
-      backgroundColor: kDarkGreenColor,
+      backgroundColor:
+          kDarkGreenColor, // kDarkGreenColor: fondo de AppBar oscuro
       foregroundColor: Colors.white,
       elevation: 0,
       centerTitle: true,
@@ -76,20 +92,25 @@ class BudgetoTheme {
       iconTheme: IconThemeData(color: Colors.white),
     ),
     inputDecorationTheme: InputDecorationTheme(
-      hoverColor: kDarkGreenColor,
-      focusColor: kDarkGreenColor,
+      hoverColor: kDarkGreenColor, // kDarkGreenColor: hover en campos
+      focusColor:
+          kDarkGreenColor, // kDarkGreenColor: fondo de TextField enfocado
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: kDarkGreenColor),
+        borderSide: const BorderSide(
+          color: kDarkGreenColor,
+        ), // kDarkGreenColor: borde enfocado
       ),
       enabledBorder: OutlineInputBorder(
-        borderSide: const BorderSide(color: kDarkGreenColor),
+        borderSide: const BorderSide(
+          color: kDarkGreenColor,
+        ), // kDarkGreenColor: borde habilitado
         borderRadius: BorderRadius.circular(12),
       ),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: kDarkGreenColor,
+        backgroundColor: kDarkGreenColor, // kDarkGreenColor: fondo de botón
         foregroundColor: Colors.white,
         textStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 20),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -98,7 +119,7 @@ class BudgetoTheme {
       ),
     ),
     cardTheme: CardThemeData(
-      color: kDarkCardC,
+      color: kDarkCardC, // kDarkCardC: fondo de tarjetas oscuro
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),

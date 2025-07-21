@@ -31,23 +31,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // --- TEST: Google Sign-In mínimo ---
-  GoogleSignInAccount? _testGoogleUser;
-  String? _testGoogleError;
-  Future<void> _testGoogleSignIn() async {
-    setState(() {
-      _testGoogleError = null;
-    });
-    try {
-      final googleSignIn = GoogleSignIn.instance;
-      // Si usas serverClientId, puedes ponerlo aquí, pero para test mínimo lo omitimos
-      await googleSignIn.initialize();
-      final user = await googleSignIn.authenticate();
-      setState(() => _testGoogleUser = user);
-    } catch (e) {
-      setState(() => _testGoogleError = 'Sign-in error: $e');
-    }
-  }
+  // ...existing code...
 
   Future<void> _loginOffline() async {
     setState(() {
@@ -634,58 +618,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         const SizedBox(height: 6),
-                        // --- TEST: Google Sign-In mínimo ---
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: _testGoogleSignIn,
-                            icon: const FaIcon(
-                              FontAwesomeIcons.google,
-                              color: Colors.red,
-                              size: 20,
-                            ),
-                            label: const Text(
-                              '[TEST] Google Sign-In mínimo',
-                              style: TextStyle(fontSize: 14, color: Colors.red),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(
-                                color: Colors.red,
-                                width: 1.2,
-                              ),
-                              minimumSize: const Size(0, 38),
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              backgroundColor: Colors.transparent,
-                            ),
-                          ),
-                        ),
-                        if (_testGoogleUser != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8.0),
-                            child: Text(
-                              '[TEST] Signed in: \\${_testGoogleUser!.displayName} (email: \\${_testGoogleUser!.email})',
-                              style: const TextStyle(
-                                color: Colors.red,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        if (_testGoogleError != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8.0),
-                            child: Text(
-                              '[TEST] Error: \\${_testGoogleError!}',
-                              style: const TextStyle(
-                                color: Colors.red,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
+                        // ...existing code...
                       ],
                     ),
                   ),

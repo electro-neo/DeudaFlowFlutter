@@ -77,7 +77,12 @@ class CustomAnimatedAppBarState extends State<CustomAnimatedAppBar>
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.15),
+                color: Colors.black.withValues(
+                  red: ((Colors.black.r * 255.0).round() & 0xff).toDouble(),
+                  green: ((Colors.black.g * 255.0).round() & 0xff).toDouble(),
+                  blue: ((Colors.black.b * 255.0).round() & 0xff).toDouble(),
+                  alpha: 0.15 * 255,
+                ),
                 blurRadius: 16,
                 offset: const Offset(0, 6),
               ),
@@ -102,7 +107,15 @@ class CustomAnimatedAppBarState extends State<CustomAnimatedAppBar>
                     letterSpacing: 1.1,
                     shadows: [
                       Shadow(
-                        color: Colors.black.withOpacity(0.08),
+                        color: Colors.black.withValues(
+                          red: ((Colors.black.r * 255.0).round() & 0xff)
+                              .toDouble(),
+                          green: ((Colors.black.g * 255.0).round() & 0xff)
+                              .toDouble(),
+                          blue: ((Colors.black.b * 255.0).round() & 0xff)
+                              .toDouble(),
+                          alpha: 0.08 * 255,
+                        ),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),

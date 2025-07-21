@@ -381,7 +381,9 @@ Future<void> exportAndShareClientReceiptPDF(
   final safeName = client.name.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
   final file = File('${dir.path}/Recibo de Cliente ($safeName).pdf');
   await file.writeAsBytes(bytes);
-  await Share.shareXFiles([XFile(file.path)], text: 'Recibo de ${client.name}');
+  await SharePlus.instance.share(
+    ShareParams(files: [XFile(file.path)], text: 'Recibo de ${client.name}'),
+  );
 }
 
 Future<void> exportGeneralReceiptWithMovementsPDF(
@@ -426,7 +428,9 @@ Future<void> exportAndShareGeneralReceiptWithMovementsPDF(
   }
   final file = File('${dir.path}/$fileName');
   await file.writeAsBytes(bytes);
-  await Share.shareXFiles([XFile(file.path)], text: shareText);
+  await SharePlus.instance.share(
+    ShareParams(files: [XFile(file.path)], text: shareText),
+  );
 }
 
 Future<void> exportClientReceiptToPDF(
@@ -478,7 +482,7 @@ Future<void> exportAndShareGeneralReceiptPDF(List<Client> clients) async {
   final dir = await getTemporaryDirectory();
   final file = File('${dir.path}/recibo_general.pdf');
   await file.writeAsBytes(bytes);
-  await Share.shareXFiles([
-    XFile(file.path),
-  ], text: 'Recibo General de Clientes');
+  await SharePlus.instance.share(
+    ShareParams(files: [XFile(file.path)], text: 'Recibo General de Clientes'),
+  );
 }

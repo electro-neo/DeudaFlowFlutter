@@ -35,6 +35,13 @@ class FaqHelpSheet extends StatelessWidget {
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
+            const SizedBox(height: 16),
+            // Párrafo introductorio de funcionalidades
+            const Text(
+              'Deuda Flow te permite gestionar de forma sencilla y segura tus deudas y abonos con clientes. Registra movimientos, consulta balances, genera recibos, sincroniza datos y mantén el control de tus finanzas o de tu negocio. Usa los botones y secciones para navegar, agregar, editar y compartir información de manera intuitiva.',
+              style: TextStyle(fontSize: 15),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 20),
             const Text(
               'Sección Moneda:',

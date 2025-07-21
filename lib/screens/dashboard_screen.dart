@@ -1,3 +1,5 @@
+import 'package:shared_preferences/shared_preferences.dart';
+import '../widgets/faq_help_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -23,6 +25,7 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  bool _faqShown = false;
   void _showRateDialog(BuildContext context, double initialRate) {
     final TextEditingController rateController = TextEditingController(
       text: initialRate.toString(),
@@ -87,6 +90,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
     // Comprobar diferencias de balance tras cargar datos
     Future.delayed(const Duration(milliseconds: 800), _checkBalanceDifferences);
+    // El FAQ solo se mostrará después de cargar datos y si el usuario está autenticado
+  }
+
+  Future<void> _showFaqIfFirstTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenFaq = prefs.getBool('hasSeenFaq') ?? false;
+    if (!hasSeenFaq && mounted && !_faqShown) {
+      _faqShown = true;
+      await showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (ctx) => const FaqHelpSheet(),
+      );
+      await prefs.setBool('hasSeenFaq', true);
+    }
   }
 
   // Compara balances locales y remotos y muestra SnackBar si hay diferencias
@@ -155,12 +174,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await clientProvider.loadClients(widget.userId);
     await txProvider.loadTransactions(widget.userId);
     if (!mounted) return;
-    // El siguiente uso de context es seguro porque:
-    // 1. Se verifica 'if (!mounted) return;' antes de usar context tras el async gap.
-    // 2. Este context es el de la clase State, no de un builder externo.
-    // Por lo tanto, el warning puede ser ignorado.
-    // ignore: use_build_context_synchronously
     setState(() => _loading = false);
+    // Mostrar FAQ solo si el usuario está autenticado y la pantalla está lista
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      Future.delayed(const Duration(milliseconds: 400), _showFaqIfFirstTime);
+    }
   }
 
   @override

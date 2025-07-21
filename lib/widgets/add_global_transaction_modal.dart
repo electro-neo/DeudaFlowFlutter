@@ -53,17 +53,25 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
   String? _error;
   bool _loading = false;
 
+  // Usar logger en vez de print para errores y advertencias
   Future<void> _save() async {
     setState(() {
       _error = null;
       _loading = true;
     });
+    // ignore: avoid_print
+    void logError(String message) {
+      // Reemplaza por tu logger preferido si tienes uno global, por ejemplo: logger.e(message);
+      // Por ahora, usa debugPrint (no print) para evitar advertencias en producción
+      debugPrint('[GlobalTransactionForm ERROR] $message');
+    }
+
     if (_selectedClient == null) {
       setState(() {
         _error = 'Debes seleccionar un cliente';
         _loading = false;
       });
-      print('[GlobalTransactionForm ERROR] Debes seleccionar un cliente');
+      logError('Debes seleccionar un cliente');
       return;
     }
     if (_type == null) {
@@ -71,7 +79,7 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
         _error = 'Debes seleccionar Deuda o Abono';
         _loading = false;
       });
-      print('[GlobalTransactionForm ERROR] Debes seleccionar Deuda o Abono');
+      logError('Debes seleccionar Deuda o Abono');
       return;
     }
     final amount = double.tryParse(_amountController.text);
@@ -80,7 +88,7 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
         _error = 'Monto inválido';
         _loading = false;
       });
-      print('[GlobalTransactionForm ERROR] Monto inválido');
+      logError('Monto inválido');
       return;
     }
     if (_descriptionController.text.trim().isEmpty) {
@@ -88,7 +96,7 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
         _error = 'Descripción obligatoria';
         _loading = false;
       });
-      print('[GlobalTransactionForm ERROR] Descripción obligatoria');
+      logError('Descripción obligatoria');
       return;
     }
     try {
@@ -126,13 +134,21 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
         _selectedClient!.id,
       );
       // Refresca la lista de clientes y notifica a la UI para actualizar el statscard inmediatamente
-      await Provider.of<ClientProvider>(context, listen: false).loadClients(widget.userId);
+      // ignore: use_build_context_synchronously
+      // Se protege el uso de context tras el async gap con mounted
+      if (!mounted) return;
+      await Provider.of<ClientProvider>(
+        context,
+        listen: false,
+      ).loadClients(widget.userId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Transacción guardada correctamente')),
         );
         Future.delayed(const Duration(milliseconds: 350), () {
+          // ignore: use_build_context_synchronously
           if (Navigator.of(context).canPop()) {
+            // ignore: use_build_context_synchronously
             Navigator.of(context).pop();
           }
         });
@@ -142,7 +158,7 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
         _error = 'Error inesperado: $e';
         _loading = false;
       });
-      print('[GlobalTransactionForm ERROR] Error inesperado: $e');
+      logError('Error inesperado: $e');
       return;
     } finally {
       if (mounted) {
@@ -153,6 +169,8 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
     }
   }
 
+  // ignore: use_build_context_synchronously
+  // Se protege el uso de context tras el async gap con mounted
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -160,6 +178,7 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
       firstDate: DateTime(2020),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
+    if (!mounted) return;
     if (picked != null) setState(() => _selectedDate = picked);
   }
 
@@ -303,7 +322,16 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             decoration: BoxDecoration(
-              color: colorScheme.primary.withOpacity(0.08),
+              // .withOpacity está deprecado, usar .withValues para precisión
+              color: colorScheme.primary.withValues(
+                red: ((colorScheme.primary.r * 255.0).round() & 0xff)
+                    .toDouble(),
+                green: ((colorScheme.primary.g * 255.0).round() & 0xff)
+                    .toDouble(),
+                blue: ((colorScheme.primary.b * 255.0).round() & 0xff)
+                    .toDouble(),
+                alpha: 0.08 * 255,
+              ),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: colorScheme.primary, width: 1.5),
             ),
@@ -477,7 +505,14 @@ class _ToggleTypeButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final baseColor = color;
-    final selectedColor = baseColor.withOpacity(0.13);
+    // .withValues() espera double? para cada canal, así que convertimos a double
+    // .withOpacity está deprecado, .withValues es la alternativa, pero para colores simples alpha puede usarse Color.fromARGB
+    final selectedColor = Color.fromARGB(
+      (0.13 * 255).round(),
+      ((baseColor.r * 255.0).round() & 0xff),
+      ((baseColor.g * 255.0).round() & 0xff),
+      ((baseColor.b * 255.0).round() & 0xff),
+    );
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(

@@ -1,7 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hive/hive.dart';
 import 'package:provider/provider.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import '../providers/client_provider.dart';
+import '../providers/transaction_provider.dart';
+import 'register_screen.dart';
+import 'forgot_password_screen.dart';
+
+// --- TEST: Google Sign-In mínimo ---
+// Estas variables y función deben estar dentro del State
+
+import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:hive/hive.dart';
+import 'package:provider/provider.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../providers/client_provider.dart';
 import '../providers/transaction_provider.dart';
 import 'register_screen.dart';
@@ -15,6 +31,24 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  // --- TEST: Google Sign-In mínimo ---
+  GoogleSignInAccount? _testGoogleUser;
+  String? _testGoogleError;
+  Future<void> _testGoogleSignIn() async {
+    setState(() {
+      _testGoogleError = null;
+    });
+    try {
+      final googleSignIn = GoogleSignIn.instance;
+      // Si usas serverClientId, puedes ponerlo aquí, pero para test mínimo lo omitimos
+      await googleSignIn.initialize();
+      final user = await googleSignIn.authenticate();
+      setState(() => _testGoogleUser = user);
+    } catch (e) {
+      setState(() => _testGoogleError = 'Sign-in error: $e');
+    }
+  }
+
   Future<void> _loginOffline() async {
     setState(() {
       _loading = true;
@@ -126,7 +160,7 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.of(context).pushReplacementNamed('/dashboard');
       }
     } on AuthException catch (e) {
-      // Si es error de red, permitir login offline si hay datos guardados
+      // Si es error de red, permitir login offline si hay datos guardadas
       if (e.message.toLowerCase().contains('network') ||
           e.message.toLowerCase().contains('internet')) {
         final sessionBox = await Hive.openBox('session');
@@ -164,7 +198,7 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
     } catch (e) {
-      // Si es error de red, permitir login offline si hay datos guardados
+      // Si es error de red, permitir login offline si hay datos guardadas
       if (e.toString().toLowerCase().contains('network') ||
           e.toString().toLowerCase().contains('internet')) {
         final sessionBox = await Hive.openBox('session');
@@ -198,6 +232,115 @@ class _LoginScreenState extends State<LoginScreen> {
             _error = 'Error inesperado: ${e.toString()}';
           });
         }
+      }
+    } finally {
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _loginWithGoogle() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    debugPrint(
+      'DEBUG: Iniciando login con Google (Android, OAuth tipo Web Client ID, no WebApp)...',
+    );
+    try {
+      final googleSignIn = GoogleSignIn.instance;
+      debugPrint(
+        'DEBUG: Llamando a googleSignIn.initialize con serverClientId (Android, tipo Web)...',
+      );
+      await googleSignIn.initialize(
+        serverClientId:
+            '1059073312131-hj2t8nus9buk7ii3j7cj37bptsfonh8k.apps.googleusercontent.com',
+      );
+      debugPrint('DEBUG: googleSignIn.initialize completado');
+      debugPrint('DEBUG: Llamando a googleSignIn.authenticate...');
+      GoogleSignInAccount? googleUser;
+      try {
+        googleUser = await googleSignIn.authenticate();
+        debugPrint(
+          'DEBUG: googleSignIn.authenticate: usuario seleccionó cuenta: email=[32m[1m[4m[0m[0m${googleUser.email}, id=${googleUser.id}',
+        );
+        debugPrint('DEBUG: googleUser (raw): $googleUser');
+      } catch (e) {
+        debugPrint('DEBUG: googleSignIn.authenticate lanzó excepción: $e');
+        rethrow;
+      }
+
+      GoogleSignInAuthentication? googleAuth;
+      try {
+        googleAuth = googleUser.authentication;
+        debugPrint('DEBUG: googleUser.authentication completado: $googleAuth');
+        debugPrint('DEBUG: googleAuth.idToken: ${googleAuth.idToken}');
+      } catch (e) {
+        debugPrint('DEBUG: googleUser.authentication lanzó excepción: $e');
+        setState(() {
+          _loading = false;
+          _error = 'No se pudo obtener el token de Google.';
+        });
+        return;
+      }
+
+      final idToken = googleAuth.idToken;
+      if (idToken == null) {
+        debugPrint('DEBUG: idToken es null después de seleccionar cuenta.');
+        setState(() {
+          _loading = false;
+          _error = 'No se pudo obtener el token de Google.';
+        });
+        return;
+      }
+      debugPrint(
+        'DEBUG: Llamando a Supabase signInWithIdToken con idToken: $idToken',
+      );
+      final res = await Supabase.instance.client.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+      );
+      debugPrint('DEBUG: Supabase signInWithIdToken completado: $res');
+      final user = res.user;
+      if (user == null) {
+        debugPrint('DEBUG: Supabase devolvió user == null');
+        setState(() {
+          _loading = false;
+          _error = 'No se pudo iniciar sesión con Google.';
+        });
+        return;
+      }
+      // Guardar usuario en Hive para saludo offline
+      final sessionBox = await Hive.openBox('session');
+      final userMeta = user.userMetadata;
+      final userName =
+          (userMeta != null &&
+              userMeta['name'] != null &&
+              userMeta['name'].toString().trim().isNotEmpty)
+          ? userMeta['name']
+          : null;
+      await sessionBox.put('userName', userName ?? '');
+      await sessionBox.put('email', user.email ?? '');
+      if (!mounted) return;
+      debugPrint('DEBUG: Login con Google exitoso, navegando a dashboard.');
+      Navigator.of(context).pushReplacementNamed('/dashboard');
+    } catch (e) {
+      if (e is GoogleSignInException &&
+          e.code == GoogleSignInExceptionCode.canceled) {
+        debugPrint(
+          'DEBUG: Login cancelado por el usuario (GoogleSignInException.canceled)',
+        );
+        setState(() {
+          _error = 'Inicio de sesión cancelado por el usuario.';
+        });
+      } else {
+        debugPrint(
+          'DEBUG: Error inesperado en login con Google: ${e.toString()}',
+        );
+        setState(() {
+          _error = 'Error al iniciar sesión con Google: ${e.toString()}';
+        });
       }
     } finally {
       setState(() {
@@ -459,6 +602,90 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         ),
+                        const SizedBox(height: 6),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: _loading ? null : _loginWithGoogle,
+                            icon: const FaIcon(
+                              FontAwesomeIcons.google,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                            label: const Text(
+                              'Entrar con Google',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.white,
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(
+                                color: Colors.white70,
+                                width: 1.2,
+                              ),
+                              minimumSize: const Size(0, 38),
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              backgroundColor: Colors.transparent,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        // --- TEST: Google Sign-In mínimo ---
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: _testGoogleSignIn,
+                            icon: const FaIcon(
+                              FontAwesomeIcons.google,
+                              color: Colors.red,
+                              size: 20,
+                            ),
+                            label: const Text(
+                              '[TEST] Google Sign-In mínimo',
+                              style: TextStyle(fontSize: 14, color: Colors.red),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(
+                                color: Colors.red,
+                                width: 1.2,
+                              ),
+                              minimumSize: const Size(0, 38),
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              backgroundColor: Colors.transparent,
+                            ),
+                          ),
+                        ),
+                        if (_testGoogleUser != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Text(
+                              '[TEST] Signed in: \\${_testGoogleUser!.displayName} (email: \\${_testGoogleUser!.email})',
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        if (_testGoogleError != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Text(
+                              '[TEST] Error: \\${_testGoogleError!}',
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
                       ],
                     ),
                   ),

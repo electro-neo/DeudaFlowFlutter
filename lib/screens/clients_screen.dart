@@ -22,8 +22,7 @@ import '../providers/tab_provider.dart';
 class ClientsScreen extends StatefulWidget {
   final String userId;
   final void Function(String clientId)? onViewMovements;
-  const ClientsScreen({Key? key, required this.userId, this.onViewMovements})
-    : super(key: key);
+  const ClientsScreen({super.key, required this.userId, this.onViewMovements});
 
   @override
   State<ClientsScreen> createState() => ClientsScreenState();

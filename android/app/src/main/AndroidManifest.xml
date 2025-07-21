@@ -6,6 +6,9 @@
         android:label="Deuda Flow"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <meta-data
+            android:name="com.google.android.gms.client.id"
+            android:value="@string/default_web_client_id"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"

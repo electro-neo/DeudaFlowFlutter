@@ -1,3 +1,5 @@
+Verifica la propiedad de la app (opcional)
+
 Actualización 18/07/2025:
 
 - El fondo degradado global y el notch transparente ahora se aplican correctamente en todas las pantallas principales (Dashboard, Clientes y Transacciones), eliminando superposiciones y glitches visuales.
@@ -134,3 +136,4 @@ Actualización 17/07/2025:
 Commit sugerido:
 
 "PDF: Reordenadas columnas de tabla en recibo general (Fecha, Descripción, Tipo, Monto) para mayor claridad visual."
+

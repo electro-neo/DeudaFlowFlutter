@@ -58,4 +58,4 @@ flutter install
 # Archivos de configuración y claves secretas locales
 .env
 .env.local
-claves_secretas.txt
+release-key.jks

@@ -27,3 +27,17 @@ Resultado: Ahora los filtros de la pantalla de movimientos están 100% sincroniz
 7. Mejora: El buscador de transacciones ahora se limpia correctamente tanto la variable interna como el texto visible del campo de búsqueda al cambiar de pantalla, recargar la pestaña de movimientos o presionar el botón "Movimientos" en la barra inferior.
    - Solución: Se implementó el método resetSearchState en TransactionsScreen, que limpia tanto la variable interna como el texto del TextField usando un TextEditingController. Este método se llama desde MainScaffold usando un GlobalKey, asegurando que el buscador se limpie visual y lógicamente en todos los flujos relevantes.
    - Resultado: El usuario siempre ve el campo de búsqueda vacío y sin foco al cambiar de pestaña o recargar movimientos, evitando confusiones y mejorando la experiencia de usuario.
+
+
+8. Error: El login con Google en Android se cancelaba tras seleccionar la cuenta, mostrando el mensaje "Inicio de sesión cancelado por el usuario" incluso con internet activo. El flujo no llegaba a obtener el idToken ni a autenticar con Supabase.
+   - Solución y pasos para resolverlo:
+     1. Se verificó que el Client ID de tipo Web estuviera correctamente configurado en Supabase y en el código Dart.
+     2. Se revisó que la URI de redirección fuera exactamente la de Supabase en Google Cloud Console y en Supabase.
+     3. Se confirmó que la pantalla de consentimiento OAuth estuviera publicada y sin restricciones de usuario.
+     4. Se habilitaron las APIs necesarias en Google Cloud Console: People API e Identity Toolkit API.
+     5. Se generó el SHA-1 de depuración y de release de la app Android.
+     6. Se creó un Client ID de tipo Android en Google Cloud Console, asociando el nombre de paquete y el SHA-1 de la app.
+     7. Se dejó el Client ID de tipo Web en Supabase y en el código, y el Client ID de tipo Android solo en Google Cloud Console.
+     8. Se probó el login nuevamente y el flujo funcionó correctamente: se obtuvo el idToken, se autenticó con Supabase y se navegó al dashboard.
+   - Resultado: El login con Google en Android funciona correctamente, el flujo OAuth es válido y la experiencia de usuario es fluida.
+

@@ -10,6 +10,15 @@ android {
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "29.0.13599879"
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("C:/Users/MARIA/OneDrive/Desktop/Aplicacion Deudas/release-key.jks")
+            storePassword = "23893937d" // Cambia aquí por tu contraseña real si es diferente
+            keyAlias = "deuda_flow_release"
+            keyPassword = "23893937d" // Cambia aquí por tu contraseña real si es diferente
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -20,10 +29,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.deuda_flow_flutter"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -31,10 +37,8 @@ android {
     }
 
     buildTypes {
-        release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+        getByName("release") {
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }
@@ -42,3 +46,5 @@ android {
 flutter {
     source = "../.."
 }
+
+

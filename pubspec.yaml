@@ -48,6 +48,8 @@ dependencies:
   hive_flutter: ^1.1.0
   connectivity_plus: ^6.1.4
   path_provider: ^2.1.5
+  google_sign_in: ^7.1.1
+  font_awesome_flutter: ^10.7.0
 
 dev_dependencies:
   flutter_test:
@@ -66,12 +68,11 @@ dev_dependencies:
 # following page: https://dart.dev/tools/pub/pubspec
 
 # The following section is specific to Flutter packages.
-flutter:
 
-  # The following line ensures that the Material Icons font is
-  # included with your application, so that you can use the icons in
-  # the material Icons class.
+flutter:
   uses-material-design: true
+  assets:
+    # - assets/google_logo.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -101,5 +102,5 @@ flutter:
   #       - asset: fonts/TrajanPro_Bold.ttf
   #         weight: 700
   #
-  # For details regarding fonts from package dependencies,
-  # see https://flutter.dev/to/font-from-package
+# For details regarding fonts from package dependencies,
+# see https://flutter.dev/to/font-from-package

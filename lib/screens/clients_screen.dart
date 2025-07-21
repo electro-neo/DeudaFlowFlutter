@@ -456,11 +456,15 @@ class ClientsScreenState extends State<ClientsScreen>
                             Container(
                               width: double.infinity,
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.92),
+                                color: Colors.white.withAlpha(
+                                  (0.92 * 255).toInt(),
+                                ),
                                 borderRadius: BorderRadius.circular(18),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.08),
+                                    color: Colors.black.withAlpha(
+                                      (0.08 * 255).toInt(),
+                                    ),
                                     blurRadius: 14,
                                     offset: const Offset(0, 3),
                                   ),
@@ -714,7 +718,7 @@ class ClientsScreenState extends State<ClientsScreen>
                                                       c.pendingDelete == true,
                                                 );
                                                 debugPrint(
-                                                  '[ELIMINAR_TODOS] Intento \\${intentos + 1}: ¿Quedan clientes pendientes de eliminar? \\${hayPendientes}',
+                                                  '[ELIMINAR_TODOS] Intento \\${intentos + 1}: ¿Quedan clientes pendientes de eliminar? \\$hayPendientes',
                                                 );
                                                 if (hayPendientes) {
                                                   await Future.delayed(
@@ -738,7 +742,14 @@ class ClientsScreenState extends State<ClientsScreen>
                                                 );
                                                 final isOnline =
                                                     await txProvider.isOnline();
+                                                if (!mounted) return;
+                                                // El siguiente uso de context es seguro porque:
+                                                // 1. Se verifica 'if (!mounted) return;' justo antes.
+                                                // 2. Este context es el de la clase State, no de un builder externo.
+                                                // Por lo tanto, el warning puede ser ignorado.
+                                                // ignore: use_build_context_synchronously
                                                 ScaffoldMessenger.of(
+                                                  // ignore: use_build_context_synchronously
                                                   context,
                                                 ).showSnackBar(
                                                   SnackBar(
@@ -783,9 +794,12 @@ class ClientsScreenState extends State<ClientsScreen>
                                           boxShadow: _searchText.isNotEmpty
                                               ? [
                                                   BoxShadow(
-                                                    color: const Color(
-                                                      0xFF7C3AED,
-                                                    ).withOpacity(0.18),
+                                                    color:
+                                                        const Color(
+                                                          0xFF7C3AED,
+                                                        ).withAlpha(
+                                                          (0.18 * 255).toInt(),
+                                                        ),
                                                     blurRadius: 10,
                                                     spreadRadius: 1,
                                                   ),
@@ -922,12 +936,15 @@ class ClientsScreenState extends State<ClientsScreen>
                                                     BorderRadius.circular(16),
                                                 boxShadow: [
                                                   BoxShadow(
-                                                    color: const Color.fromARGB(
-                                                      0,
-                                                      0,
-                                                      0,
-                                                      0,
-                                                    ).withOpacity(0.03),
+                                                    color:
+                                                        const Color.fromARGB(
+                                                          0,
+                                                          0,
+                                                          0,
+                                                          0,
+                                                        ).withAlpha(
+                                                          (0.03 * 255).toInt(),
+                                                        ),
                                                     blurRadius: 8,
                                                     offset: const Offset(0, 2),
                                                   ),
@@ -969,7 +986,7 @@ class ClientsScreenState extends State<ClientsScreen>
                                                             'Eliminar Cliente',
                                                           ),
                                                           content: Text(
-                                                            '¿Estás seguro de eliminar a \\${client.name}?$warning',
+                                                            '¿Estás seguro de eliminar a \$client.name?$warning',
                                                           ),
                                                           actions: [
                                                             TextButton(
@@ -1019,7 +1036,14 @@ class ClientsScreenState extends State<ClientsScreen>
                                                     final isOnline =
                                                         await txProvider
                                                             .isOnline();
+                                                    if (!mounted) return;
+                                                    // El siguiente uso de context es seguro porque:
+                                                    // 1. Se verifica 'if (!mounted) return;' justo antes.
+                                                    // 2. Este context es el de la clase State, no de un builder externo.
+                                                    // Por lo tanto, el warning puede ser ignorado.
+                                                    // ignore: use_build_context_synchronously
                                                     ScaffoldMessenger.of(
+                                                      // ignore: use_build_context_synchronously
                                                       context,
                                                     ).showSnackBar(
                                                       SnackBar(

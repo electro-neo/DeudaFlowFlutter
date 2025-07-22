@@ -1,6 +1,39 @@
 import 'package:flutter/material.dart';
 
 // =================== PALETA DE COLORES GLOBAL BUDGETO ===================
+/// Fondo degradado principal (usado en login, registro, reset password)
+/// Usado en: login_screen.dart, register_screen.dart, reset_password_screen.dart
+const kBackgroundGradientStart = Color(0xFF7C3AED); // Morado principal
+const kBackgroundGradientEnd = Color(0xFF60A5FA); // Azul claro
+
+/// Fondo de Card (translúcido)
+/// Usado en: login_screen.dart, register_screen.dart, reset_password_screen.dart
+const kCardBackgroundColor = Color.fromARGB(
+  25,
+  255,
+  255,
+  255,
+); // Blanco translúcido
+
+/// Color de iconos principales en pantallas de login/registro/reset
+/// Usado en: login_screen.dart, register_screen.dart, reset_password_screen.dart
+const kIconColor = Colors.white;
+
+/// Color de títulos principales en pantallas de login/registro/reset
+/// Usado en: login_screen.dart, register_screen.dart, reset_password_screen.dart
+const kTitleColor = Colors.white;
+
+/// Color de campos de texto en login/registro/reset
+/// Usado en: login_screen.dart, register_screen.dart, reset_password_screen.dart
+const kInputFieldColor = Colors.white;
+
+/// Color de botón principal en login/registro/reset
+/// Usado en: login_screen.dart, register_screen.dart, reset_password_screen.dart
+const kButtonColor = Color(0xFF7C3AED); // Morado principal
+
+/// Sombra de botón principal
+/// Usado en: login_screen.dart, register_screen.dart, reset_password_screen.dart
+const kButtonShadowColor = Color.fromARGB(40, 0, 0, 0); // Sombra negra suave
 
 /// Color principal de la app (botones, appbar, acentos principales en tema claro)
 /// Usado en: budgeto_theme.dart (colorScheme, primaryColor, AppBar, botones, etc)
@@ -72,6 +105,14 @@ const kErrorColor = Color.fromARGB(255, 255, 35, 35);
 
 /// Sombra para mensajes de error
 const kErrorShadow = [
-  Shadow(color: Color.fromARGB(170, 248, 246, 246), offset: Offset(0, 0), blurRadius: 25),
-  Shadow(color: Color.fromARGB(255, 249, 249, 249), offset: Offset(0, 0), blurRadius: 25),
+  Shadow(
+    color: Color.fromARGB(170, 248, 246, 246),
+    offset: Offset(0, 0),
+    blurRadius: 25,
+  ),
+  Shadow(
+    color: Color.fromARGB(255, 249, 249, 249),
+    offset: Offset(0, 0),
+    blurRadius: 25,
+  ),
 ];

@@ -1,10 +1,10 @@
+import 'scale_on_tap.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../screens/dashboard_screen.dart';
 import '../screens/clients_screen.dart';
 import '../screens/transactions_screen.dart';
-
 import '../services/guest_cleanup_service.dart' as guest_cleanup;
 import '../providers/tab_provider.dart';
 import '../providers/theme_provider.dart';
@@ -353,58 +353,92 @@ class _MainScaffoldState extends State<MainScaffold> {
                                           ),
                                         ),
                                         const SizedBox(height: 16),
-                                        ElevatedButton.icon(
-                                          icon: const Icon(
-                                            Icons.help_outline,
-                                            color: Colors.indigo,
-                                          ),
-                                          label: const Text(
-                                            'Ayuda / FAQ',
-                                            style: TextStyle(
-                                              color: Colors.indigo,
-                                            ),
-                                          ),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.white,
-                                            foregroundColor: Colors.indigo,
-                                            elevation: 0,
-                                            side: const BorderSide(
-                                              color: Colors.indigo,
-                                            ),
-                                          ),
-                                          onPressed: () {
+                                        ScaleOnTap(
+                                          onTap: () {
                                             showModalBottomSheet(
                                               context: ctx,
                                               isScrollControlled: true,
                                               backgroundColor:
-                                                  Colors.transparent,
+                                                  const Color.fromARGB(
+                                                    255,
+                                                    241,
+                                                    239,
+                                                    239,
+                                                  ),
                                               builder: (_) =>
                                                   const FaqHelpSheet(),
                                             );
                                           },
+                                          child: ElevatedButton.icon(
+                                            icon: const Icon(
+                                              Icons.help_outline,
+                                              color: Colors.indigo,
+                                            ),
+                                            label: const Text(
+                                              'Ayuda / FAQ',
+                                              style: TextStyle(
+                                                color: Colors.indigo,
+                                              ),
+                                            ),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: const Color(
+                                                0xFFFFFFFF,
+                                              ),
+                                              foregroundColor: Colors.indigo,
+                                              elevation: 0,
+                                              side: const BorderSide(
+                                                color: Colors.indigo,
+                                              ),
+                                            ),
+                                            onPressed: () {
+                                              showModalBottomSheet(
+                                                context: ctx,
+                                                isScrollControlled: true,
+                                                backgroundColor:
+                                                    const Color.fromARGB(
+                                                      255,
+                                                      241,
+                                                      239,
+                                                      239,
+                                                    ),
+                                                builder: (_) =>
+                                                    const FaqHelpSheet(),
+                                              );
+                                            },
+                                          ),
                                         ),
                                         const SizedBox(height: 8),
-                                        ElevatedButton.icon(
-                                          icon: const Icon(
-                                            Icons.logout,
-                                            color: Colors.red,
-                                          ),
-                                          label: const Text(
-                                            'Cerrar sesión',
-                                            style: TextStyle(color: Colors.red),
-                                          ),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.white,
-                                            foregroundColor: Colors.red,
-                                            elevation: 0,
-                                            side: const BorderSide(
-                                              color: Colors.red,
-                                            ),
-                                          ),
-                                          onPressed: () {
+                                        ScaleOnTap(
+                                          onTap: () {
                                             Navigator.of(ctx).pop();
                                             logout();
                                           },
+                                          child: ElevatedButton.icon(
+                                            icon: const Icon(
+                                              Icons.logout,
+                                              color: Colors.red,
+                                            ),
+                                            label: const Text(
+                                              'Cerrar sesión',
+                                              style: TextStyle(
+                                                color: Colors.red,
+                                              ),
+                                            ),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: const Color(
+                                                0xFFFFFFFF,
+                                              ),
+                                              foregroundColor: Colors.red,
+                                              elevation: 0,
+                                              side: const BorderSide(
+                                                color: Colors.red,
+                                              ),
+                                            ),
+                                            onPressed: () {
+                                              Navigator.of(ctx).pop();
+                                              logout();
+                                            },
+                                          ),
                                         ),
                                       ],
                                     ),

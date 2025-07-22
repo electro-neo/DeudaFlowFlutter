@@ -94,8 +94,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final clientIds = clients.map((c) => c.id).toList();
     final effectiveClientId =
         (selectedClientId != null && clientIds.contains(selectedClientId))
-            ? selectedClientId
-            : null;
+        ? selectedClientId
+        : null;
 
     debugPrint(
       '[TRANSACTIONS_SCREEN][build] selectedClientId: $selectedClientId, effectiveClientId: $effectiveClientId, selectedType: $selectedType, transactions: ${transactions.length}',
@@ -228,12 +228,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               behavior: const NoScrollbarBehavior(),
               child: SingleChildScrollView(
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    0,
-                    topPadding,
-                    0,
-                    8,
-                  ),
+                  padding: EdgeInsets.fromLTRB(0, topPadding, 0, 8),
                   child: content,
                 ),
               ),
@@ -327,49 +322,49 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 child: Consumer<TransactionFilterProvider>(
                   builder: (context, filterProvider, _) =>
                       DropdownButtonFormField<String>(
-                    value: selectedClientId,
-                    decoration: const InputDecoration(
-                      labelText: 'Filtrar por cliente',
-                      border: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(
-                        vertical: 8,
-                        horizontal: 8,
-                      ),
-                    ),
-                    items: [
-                      const DropdownMenuItem(
-                        value: null,
-                        child: Text('Todos'),
-                      ),
-                      ...clients.map(
-                        (c) => DropdownMenuItem(
-                          value: c.id,
-                          child: Text(c.name),
-                        ),
-                      ),
-                    ],
-                    selectedItemBuilder: (context) {
-                      return [
-                        const Text(
-                          'Todos',
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                        ...clients.map(
-                          (c) => Text(
-                            c.name,
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
+                        value: selectedClientId,
+                        decoration: const InputDecoration(
+                          labelText: 'Filtrar por cliente',
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(
+                            vertical: 8,
+                            horizontal: 8,
                           ),
                         ),
-                      ];
-                    },
-                    onChanged: (value) {
-                      filterProvider.setClientId(value);
-                    },
-                    isExpanded: true,
-                  ),
+                        items: [
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Text('Todos'),
+                          ),
+                          ...clients.map(
+                            (c) => DropdownMenuItem(
+                              value: c.id,
+                              child: Text(c.name),
+                            ),
+                          ),
+                        ],
+                        selectedItemBuilder: (context) {
+                          return [
+                            const Text(
+                              'Todos',
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                            ...clients.map(
+                              (c) => Text(
+                                c.name,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            ),
+                          ];
+                        },
+                        onChanged: (value) {
+                          filterProvider.setClientId(value);
+                        },
+                        isExpanded: true,
+                      ),
                 ),
               ),
             ),
@@ -381,28 +376,28 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 child: Consumer<TransactionFilterProvider>(
                   builder: (context, filterProvider, _) =>
                       DropdownButtonFormField<String>(
-                    value: selectedType,
-                    decoration: const InputDecoration(
-                      labelText: 'Tipo',
-                      border: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(
-                        vertical: 8,
-                        horizontal: 8,
+                        value: selectedType,
+                        decoration: const InputDecoration(
+                          labelText: 'Tipo',
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(
+                            vertical: 8,
+                            horizontal: 8,
+                          ),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: null, child: Text('Todos')),
+                          DropdownMenuItem(value: 'debt', child: Text('Deuda')),
+                          DropdownMenuItem(
+                            value: 'payment',
+                            child: Text('Abono'),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          filterProvider.setType(value);
+                        },
                       ),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: null, child: Text('Todos')),
-                      DropdownMenuItem(value: 'debt', child: Text('Deuda')),
-                      DropdownMenuItem(
-                        value: 'payment',
-                        child: Text('Abono'),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      filterProvider.setType(value);
-                    },
-                  ),
                 ),
               ),
             ),
@@ -413,9 +408,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 height: 52,
                 child: Center(
                   child: Padding(
-                    padding: const EdgeInsets.only(
-                      bottom: 12,
-                    ),
+                    padding: const EdgeInsets.only(bottom: 12),
                     child: IconButton(
                       icon: const Icon(Icons.date_range, color: Colors.black87),
                       padding: EdgeInsets.zero,
@@ -425,7 +418,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         final picked = await showDialog<DateTimeRange>(
                           context: context,
                           builder: (context) {
-                            DateTimeRange tempRange = _selectedRange ??
+                            DateTimeRange tempRange =
+                                _selectedRange ??
                                 DateTimeRange(
                                   start: DateTime.now().subtract(
                                     const Duration(days: 7),
@@ -490,7 +484,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
             return Padding(
               padding: const EdgeInsets.symmetric(
-                vertical: 1.0,
+                vertical:
+                    0.0, // Espacio externo entre stats/fecha y ListView ajustado
                 horizontal: 2.0,
               ),
               child: Container(
@@ -499,10 +494,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
-                      color:
-                          const Color.fromARGB(255, 227, 227, 227).withAlpha(
-                        (0.06 * 255).toInt(),
-                      ),
+                      color: const Color.fromARGB(
+                        255,
+                        227,
+                        227,
+                        227,
+                      ).withAlpha((0.06 * 255).toInt()),
                       blurRadius: 10,
                       offset: const Offset(0, 2),
                     ),
@@ -513,7 +510,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   ),
                 ),
                 padding: const EdgeInsets.symmetric(
-                  vertical: 8,
+                  vertical: 4, // Espacio interno entre stats y fecha ajustado
                   horizontal: 20,
                 ),
                 child: Column(
@@ -626,7 +623,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                               '${_selectedRange!.start.year}-${_selectedRange!.start.month.toString().padLeft(2, '0')}-${_selectedRange!.start.day.toString().padLeft(2, '0')} - '
                               '${_selectedRange!.end.year}-${_selectedRange!.end.month.toString().padLeft(2, '0')}-${_selectedRange!.end.day.toString().padLeft(2, '0')}',
                               style: const TextStyle(
-                                  fontSize: 13, color: Colors.black54),
+                                fontSize: 13,
+                                color: Colors.black54,
+                              ),
                             ),
                             IconButton(
                               icon: const Icon(Icons.clear, size: 18),
@@ -642,16 +641,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             );
           },
         ),
-        // --- FIN DEL BLOQUE CORREGIDO ---
-        
-        // NOTA: El antiguo bloque "if (_selectedRange != null)" se elimina de aquí.
 
+        // --- FIN DEL BLOQUE CORREGIDO ---
+
+        // NOTA: El antiguo bloque "if (_selectedRange != null)" se elimina de aquí.
         transactions.isEmpty
             ? Center(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 8,
-                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Text(
                     'No hay transacciones para mostrar',
                     style: TextStyle(fontSize: 16, color: Colors.grey),
@@ -662,8 +659,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: transactions.length,
-                separatorBuilder: (_, __) =>
-                    const SizedBox(height: 6),
+                separatorBuilder: (_, __) => const SizedBox(height: 6),
                 itemBuilder: (context, i) {
                   final t = transactions[i];
                   final client = clients.firstWhere(
@@ -770,21 +766,16 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     },
                     child: Container(
                       decoration: BoxDecoration(
-                        color: const Color.fromARGB(
-                          255,
-                          255,
-                          255,
-                          255,
-                        ),
-                        borderRadius: BorderRadius.circular(
-                          16,
-                        ),
+                        color: const Color.fromARGB(255, 255, 255, 255),
+                        borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color.fromARGB(255, 11, 11, 11)
-                                .withAlpha(
-                              (0.25 * 255).toInt(),
-                            ),
+                            color: const Color.fromARGB(
+                              255,
+                              11,
+                              11,
+                              11,
+                            ).withAlpha((0.25 * 255).toInt()),
                             blurRadius: 4,
                             offset: const Offset(0, 2),
                           ),
@@ -950,9 +941,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                                   size: 10,
                                                   color: Colors.orange,
                                                 ),
-                                                SizedBox(
-                                                  width: 2,
-                                                ),
+                                                SizedBox(width: 2),
                                                 Text(
                                                   'Pendiente por sincronizar',
                                                   style: TextStyle(
@@ -996,9 +985,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                                   size: 10,
                                                   color: Colors.green,
                                                 ),
-                                                SizedBox(
-                                                  width: 2,
-                                                ),
+                                                SizedBox(width: 2),
                                                 Text(
                                                   'Sincronizado',
                                                   style: TextStyle(

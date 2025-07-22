@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '_animated_tap_to_start.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -68,14 +69,14 @@ class _WelcomeScreenState extends State<WelcomeScreen>
             child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(
+                children: [
+                  const Icon(
                     Icons.account_balance_wallet_rounded,
                     size: 80,
                     color: Colors.white,
                   ),
-                  SizedBox(height: 32),
-                  Text(
+                  const SizedBox(height: 32),
+                  const Text(
                     'Bienvenido',
                     style: TextStyle(
                       fontSize: 36,
@@ -90,12 +91,14 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                       ],
                     ),
                   ),
-                  SizedBox(height: 16),
-                  Text(
+                  const SizedBox(height: 16),
+                  const Text(
                     'Comienza a gestionar tus deudas y clientes aquí.',
                     style: TextStyle(fontSize: 20, color: Colors.white70),
                     textAlign: TextAlign.center,
                   ),
+                  const SizedBox(height: 16),
+                  AnimatedTapToStart(),
                 ],
               ),
             ),

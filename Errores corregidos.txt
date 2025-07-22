@@ -41,3 +41,7 @@ Resultado: Ahora los filtros de la pantalla de movimientos están 100% sincroniz
      8. Se probó el login nuevamente y el flujo funcionó correctamente: se obtuvo el idToken, se autenticó con Supabase y se navegó al dashboard.
    - Resultado: El login con Google en Android funciona correctamente, el flujo OAuth es válido y la experiencia de usuario es fluida.
 
+9. Mejora: Navegación y animación centralizada en dashboard y login.
+   - Solución: Se centralizó la animación de escala en los botones y statcards usando el widget ScaleOnTap, mejorando la experiencia visual en login y dashboard. Se corrigió la navegación entre tabs para que los statcards del dashboard cambien correctamente la pestaña usando una función local en MainScaffold, evitando dependencias globales y asegurando sincronización total entre UI y provider.
+   - Resultado: La navegación entre tabs desde los statcards es instantánea y consistente, la animación de botones es fluida y la estructura del código es más mantenible. Se eliminaron imports no usados y se verificó que no haya errores de compilación.
+

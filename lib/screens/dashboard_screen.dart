@@ -18,7 +18,8 @@ import '../services/supabase_service.dart';
 // Para kIsWeb
 class DashboardScreen extends StatefulWidget {
   final String userId;
-  const DashboardScreen({super.key, required this.userId});
+  final void Function(int)? onTab;
+  const DashboardScreen({super.key, required this.userId, this.onTab});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -443,7 +444,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         child: Consumer<ClientProvider>(
                           builder: (context, clientProvider, _) =>
-                              DashboardStats(),
+                              DashboardStats(onTab: widget.onTab),
                         ),
                       ),
                       Padding(
@@ -534,13 +535,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                               colors: [
                                                 Color.lerp(
                                                   Colors.white,
-                                                  const Color.fromARGB(255, 250, 250, 250),
+                                                  const Color.fromARGB(
+                                                    255,
+                                                    250,
+                                                    250,
+                                                    250,
+                                                  ),
                                                   i /
                                                       (recent.length - 1 == 0
                                                           ? 1
                                                           : recent.length - 1),
                                                 )!,
-                                                const Color.fromARGB(255, 255, 255, 255),
+                                                const Color.fromARGB(
+                                                  255,
+                                                  255,
+                                                  255,
+                                                  255,
+                                                ),
                                                 const Color(0xFFD1E8FF),
                                               ],
                                             ),

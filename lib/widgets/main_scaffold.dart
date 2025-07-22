@@ -161,7 +161,11 @@ class _MainScaffoldState extends State<MainScaffold> {
   Widget build(BuildContext context) {
     final tabIndex = _currentIndex;
     final screens = [
-      DashboardScreen(userId: widget.userId),
+      DashboardScreen(
+        userId: widget.userId,
+        // PASO CLAVE: Pasar la función _onTab al DashboardStats
+        onTab: _onTab,
+      ),
       ClientsScreen(
         key: _clientsScreenKey,
         userId: widget.userId,

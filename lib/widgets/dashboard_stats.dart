@@ -3,14 +3,15 @@ import 'scale_on_tap.dart';
 import 'package:provider/provider.dart'; // Importa Provider para manejo de estado global
 import '../providers/client_provider.dart'; // Proveedor de clientes
 import '../providers/transaction_provider.dart'; // Proveedor de transacciones
-import '../providers/tab_provider.dart'; // Proveedor para la navegación de pestañas
+// import '../providers/tab_provider.dart'; // Proveedor para la navegación de pestañas
 import '../providers/transaction_filter_provider.dart'; // Proveedor para filtrar transacciones
 import '../providers/currency_provider.dart'; // Proveedor de moneda y tasa
 import '../utils/currency_utils.dart'; // Utilidades para formatear moneda
 
 // Widget que muestra los statscard del dashboard
 class DashboardStats extends StatelessWidget {
-  const DashboardStats({super.key});
+  final void Function(int)? onTab;
+  const DashboardStats({super.key, this.onTab});
   //
   @override
   Widget build(BuildContext context) {
@@ -74,10 +75,7 @@ class DashboardStats extends StatelessWidget {
     ); // Muestra el saldo neto
     // Navegación igual que el botón de la barra inferior usando Provider
     void goToClientsTab() {
-      Provider.of<TabProvider>(
-        context,
-        listen: false,
-      ).setTab(1); // Cambia a la pestaña de clientes
+      if (onTab != null) onTab!(1);
     }
 
     void goToDeudaTab() {
@@ -85,10 +83,7 @@ class DashboardStats extends StatelessWidget {
         context,
         listen: false,
       ).setType('debt'); // Filtra por deudas
-      Provider.of<TabProvider>(
-        context,
-        listen: false,
-      ).setTab(2); // Cambia a la pestaña de transacciones
+      if (onTab != null) onTab!(2);
     }
 
     void goToAbonoTab() {
@@ -96,10 +91,7 @@ class DashboardStats extends StatelessWidget {
         context,
         listen: false,
       ).setType('payment'); // Filtra por abonos
-      Provider.of<TabProvider>(
-        context,
-        listen: false,
-      ).setTab(2); // Cambia a la pestaña de transacciones
+      if (onTab != null) onTab!(2);
     }
 
     //

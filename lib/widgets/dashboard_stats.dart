@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart'; // Importa los widgets principales de Flutter
+import 'scale_on_tap.dart';
 import 'package:provider/provider.dart'; // Importa Provider para manejo de estado global
 import '../providers/client_provider.dart'; // Proveedor de clientes
 import '../providers/transaction_provider.dart'; // Proveedor de transacciones
@@ -414,9 +415,8 @@ class _StatCard extends StatelessWidget {
       side: BorderSide(color: borderColor, width: 2.2), // Borde más grueso
     );
     if (isButton) {
-      return InkWell(
-        borderRadius: BorderRadius.circular(24),
-        onTap: onTap,
+      return ScaleOnTap(
+        onTap: onTap ?? () {},
         child: Card(
           elevation: 8,
           shape: cardShape,

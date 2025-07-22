@@ -42,26 +42,17 @@ class _ScaleOnTapState extends State<ScaleOnTap>
     super.dispose();
   }
 
-  void _onTapDown(TapDownDetails details) {
-    _controller.reverse();
-  }
-
-  void _onTapUp(TapUpDetails details) {
-    _controller.forward();
+  void _onTap() async {
+    await _controller.reverse();
     widget.onTap();
-  }
-
-  void _onTapCancel() {
-    _controller.forward();
+    await Future.delayed(widget.duration);
+    if (mounted) _controller.forward();
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: _onTapDown,
-      onTapUp: _onTapUp,
-      onTapCancel: _onTapCancel,
-      onTap: widget.onTap,
+      onTap: _onTap,
       child: AnimatedBuilder(
         animation: _animation,
         builder: (context, child) {

@@ -21,6 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
   // ...existing code...
 
   // Animación simple para los botones: escala al presionar
+  double _loginBtnScale = 1.0;
   double _offlineBtnScale = 1.0;
   double _guestBtnScale = 1.0;
   double _googleBtnScale = 1.0;
@@ -443,34 +444,63 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         SizedBox(
                           width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _loading ? null : _login,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF7C3AED),
-                              minimumSize: const Size(0, 42),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              elevation: 2,
-                            ),
-                            child: _loading
-                                ? const SizedBox(
-                                    width: 22,
-                                    height: 22,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Text(
-                                    'Entrar',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                          child: GestureDetector(
+                            onTapDown: (_) =>
+                                setState(() => _loginBtnScale = 0.93),
+                            onTapUp: (_) =>
+                                setState(() => _loginBtnScale = 1.0),
+                            onTapCancel: () =>
+                                setState(() => _loginBtnScale = 1.0),
+                            onTap: _loading
+                                ? null
+                                : () {
+                                    setState(() => _loginBtnScale = 1.0);
+                                    _login();
+                                  },
+                            child: AnimatedScale(
+                              scale: _loginBtnScale,
+                              duration: const Duration(milliseconds: 120),
+                              curve: Curves.easeOut,
+                              child: OutlinedButton.icon(
+                                onPressed:
+                                    null, // Solo GestureDetector ejecuta la acción
+                                icon: const Icon(
+                                  Icons.login,
+                                  size: 18,
+                                  color: Colors.white,
+                                ),
+                                label: _loading
+                                    ? const SizedBox(
+                                        width: 22,
+                                        height: 22,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Text(
+                                        'Entrar',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(
+                                    color: Colors.white70,
+                                    width: 1.2,
                                   ),
+                                  minimumSize: const Size(0, 38),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  backgroundColor: Colors.transparent,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 10),
@@ -520,13 +550,19 @@ class _LoginScreenState extends State<LoginScreen> {
                                 setState(() => _offlineBtnScale = 1.0),
                             onTapCancel: () =>
                                 setState(() => _offlineBtnScale = 1.0),
-                            onTap: _loading ? null : _loginOffline,
+                            onTap: _loading
+                                ? null
+                                : () {
+                                    setState(() => _offlineBtnScale = 1.0);
+                                    _loginOffline();
+                                  },
                             child: AnimatedScale(
                               scale: _offlineBtnScale,
                               duration: const Duration(milliseconds: 120),
                               curve: Curves.easeOut,
                               child: OutlinedButton.icon(
-                                onPressed: _loading ? null : _loginOffline,
+                                onPressed:
+                                    null, // Desactivado, solo GestureDetector ejecuta la acción
                                 icon: const Icon(
                                   Icons.wifi_off,
                                   size: 18,
@@ -566,13 +602,19 @@ class _LoginScreenState extends State<LoginScreen> {
                                 setState(() => _guestBtnScale = 1.0),
                             onTapCancel: () =>
                                 setState(() => _guestBtnScale = 1.0),
-                            onTap: _loading ? null : _loginAsGuest,
+                            onTap: _loading
+                                ? null
+                                : () {
+                                    setState(() => _guestBtnScale = 1.0);
+                                    _loginAsGuest();
+                                  },
                             child: AnimatedScale(
                               scale: _guestBtnScale,
                               duration: const Duration(milliseconds: 120),
                               curve: Curves.easeOut,
                               child: OutlinedButton.icon(
-                                onPressed: _loading ? null : _loginAsGuest,
+                                onPressed:
+                                    null, // Desactivado, solo GestureDetector ejecuta la acción
                                 icon: const Icon(
                                   Icons.person_outline,
                                   size: 18,
@@ -612,13 +654,19 @@ class _LoginScreenState extends State<LoginScreen> {
                                 setState(() => _googleBtnScale = 1.0),
                             onTapCancel: () =>
                                 setState(() => _googleBtnScale = 1.0),
-                            onTap: _loading ? null : _loginWithGoogle,
+                            onTap: _loading
+                                ? null
+                                : () {
+                                    setState(() => _googleBtnScale = 1.0);
+                                    _loginWithGoogle();
+                                  },
                             child: AnimatedScale(
                               scale: _googleBtnScale,
                               duration: const Duration(milliseconds: 120),
                               curve: Curves.easeOut,
                               child: OutlinedButton.icon(
-                                onPressed: _loading ? null : _loginWithGoogle,
+                                onPressed:
+                                    null, // Desactivado, solo GestureDetector ejecuta la acción
                                 icon: const FaIcon(
                                   FontAwesomeIcons.google,
                                   color: Colors.white,

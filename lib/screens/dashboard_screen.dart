@@ -498,7 +498,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     ),
                                     minOpacity: 0.25,
                                     itemSpacing: 10.0,
-                                    children: recent.map((tx) {
+                                    children: recent.asMap().entries.map((
+                                      entry,
+                                    ) {
+                                      final i = entry.key;
+                                      final tx = entry.value;
                                       final client = clients.firstWhere(
                                         (c) => c.id == tx.clientId,
                                         orElse: () => Client(
@@ -510,11 +514,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       final clientName = client.name.isNotEmpty
                                           ? client.name
                                           : 'Desconocido';
-                                      // El siguiente uso de context es seguro porque:
-                                      // 1. El widget padre (DashboardScreen) está montado y no hay async gap aquí.
-                                      // 2. Este context es el de la clase State, no de un builder externo.
-                                      // Por lo tanto, el warning puede ser ignorado.
-                                      // ignore: use_build_context_synchronously
                                       final symbol = CurrencyUtils.symbol(
                                         context,
                                       );
@@ -525,87 +524,105 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       final amountText = tx.type == 'debt'
                                           ? '-$symbol$formatted'
                                           : '+$symbol$formatted';
-                                      return Container(
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withAlpha(
-                                            (0.85 * 255).toInt(),
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            16,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withAlpha(
-                                                (0.04 * 255).toInt(),
-                                              ),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                        child: ListTile(
-                                          contentPadding:
-                                              const EdgeInsets.symmetric(
-                                                horizontal: 16,
-                                                vertical: 8,
-                                              ),
-                                          leading: Container(
-                                            width: 44,
-                                            height: 44,
-                                            decoration: BoxDecoration(
-                                              color: tx.type == 'debt'
-                                                  ? const Color(0xFFFFE5E5)
-                                                  : const Color(0xFFE5FFE8),
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                            child: Icon(
-                                              tx.type == 'debt'
-                                                  ? Icons.arrow_downward_rounded
-                                                  : Icons.arrow_upward_rounded,
-                                              color: tx.type == 'debt'
-                                                  ? const Color(0xFFD32F2F)
-                                                  : const Color(0xFF388E3C),
-                                              size: 28,
-                                            ),
-                                          ),
-                                          title: Text(
-                                            tx.description,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 16,
-                                              color: Colors.deepPurple,
-                                              shadows: [
-                                                Shadow(
-                                                  color: Colors.white,
-                                                  offset: Offset(0, 0),
-                                                  blurRadius: 6,
-                                                ),
+                                      // El degradado se ajusta según la posición: el primer card es más blanco
+                                      return Builder(
+                                        builder: (context) => Container(
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                              colors: [
+                                                Color.lerp(
+                                                  Colors.white,
+                                                  const Color.fromARGB(255, 250, 250, 250),
+                                                  i /
+                                                      (recent.length - 1 == 0
+                                                          ? 1
+                                                          : recent.length - 1),
+                                                )!,
+                                                const Color.fromARGB(255, 255, 255, 255),
+                                                const Color(0xFFD1E8FF),
                                               ],
                                             ),
-                                          ),
-                                          subtitle: Text(
-                                            'Cliente: $clientName',
-                                            style: const TextStyle(
-                                              fontSize: 13,
-                                              color: Color(0xFF7B7B7B),
+                                            borderRadius: BorderRadius.circular(
+                                              16,
                                             ),
-                                          ),
-                                          trailing: Text(
-                                            amountText,
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16,
-                                              color: tx.type == 'debt'
-                                                  ? const Color(0xFFD32F2F)
-                                                  : const Color(0xFF388E3C),
-                                              shadows: const [
-                                                Shadow(
-                                                  color: Colors.white,
-                                                  offset: Offset(0, 0),
-                                                  blurRadius: 6,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withAlpha(
+                                                  (0.04 * 255).toInt(),
                                                 ),
-                                              ],
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
+                                          ),
+                                          child: ListTile(
+                                            contentPadding:
+                                                const EdgeInsets.symmetric(
+                                                  horizontal: 16,
+                                                  vertical: 8,
+                                                ),
+                                            leading: Container(
+                                              width: 44,
+                                              height: 44,
+                                              decoration: BoxDecoration(
+                                                color: tx.type == 'debt'
+                                                    ? const Color(0xFFFFE5E5)
+                                                    : const Color(0xFFE5FFE8),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              child: Icon(
+                                                tx.type == 'debt'
+                                                    ? Icons
+                                                          .arrow_downward_rounded
+                                                    : Icons
+                                                          .arrow_upward_rounded,
+                                                color: tx.type == 'debt'
+                                                    ? const Color(0xFFD32F2F)
+                                                    : const Color(0xFF388E3C),
+                                                size: 28,
+                                              ),
+                                            ),
+                                            title: Text(
+                                              tx.description,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 16,
+                                                color: Colors.deepPurple,
+                                                shadows: [
+                                                  Shadow(
+                                                    color: Colors.white,
+                                                    offset: Offset(0, 0),
+                                                    blurRadius: 6,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            subtitle: Text(
+                                              'Cliente: $clientName',
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                color: Color(0xFF7B7B7B),
+                                              ),
+                                            ),
+                                            trailing: Text(
+                                              amountText,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16,
+                                                color: tx.type == 'debt'
+                                                    ? const Color(0xFFD32F2F)
+                                                    : const Color(0xFF388E3C),
+                                                shadows: const [
+                                                  Shadow(
+                                                    color: Colors.white,
+                                                    offset: Offset(0, 0),
+                                                    blurRadius: 6,
+                                                  ),
+                                                ],
+                                              ),
                                             ),
                                           ),
                                         ),

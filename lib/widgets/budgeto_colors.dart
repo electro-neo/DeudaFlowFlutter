@@ -66,3 +66,12 @@ const kDarkGreenNavIconC = Color.fromARGB(255, 25, 0, 93);
 /// Usado en: add_global_transaction_modal.dart, client_form.dart, transaction_form.dart
 /// Propósito: fondo visual para selector de tipo de transacción (deuda/pago)
 const kSliderContainerBg = Color.fromARGB(33, 33, 150, 243);
+
+/// Color para mensajes de error
+const kErrorColor = Color.fromARGB(255, 255, 35, 35);
+
+/// Sombra para mensajes de error
+const kErrorShadow = [
+  Shadow(color: Color.fromARGB(170, 248, 246, 246), offset: Offset(0, 0), blurRadius: 25),
+  Shadow(color: Color.fromARGB(255, 249, 249, 249), offset: Offset(0, 0), blurRadius: 25),
+];

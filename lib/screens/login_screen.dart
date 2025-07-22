@@ -8,6 +8,7 @@ import '../providers/client_provider.dart';
 import '../providers/transaction_provider.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
+import '../widgets/budgeto_colors.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -168,7 +169,10 @@ class _LoginScreenState extends State<LoginScreen> {
           });
         } else {
           setState(() {
-            _error = e.message;
+            _error =
+                e.message.toLowerCase().contains('invalid login credentials')
+                ? 'Credenciales incorrectas. Verifica tu email y contraseña.'
+                : e.message;
           });
         }
       }
@@ -429,21 +433,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: Text(
                               _error!,
                               style: const TextStyle(
-                                color: Colors.red,
+                                color: kErrorColor,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 15,
-                                shadows: [
-                                  Shadow(
-                                    color: Colors.white,
-                                    offset: Offset(0, 0),
-                                    blurRadius: 6,
-                                  ),
-                                  Shadow(
-                                    color: Colors.white,
-                                    offset: Offset(0, 0),
-                                    blurRadius: 12,
-                                  ),
-                                ],
+                                shadows: kErrorShadow,
                               ),
                               textAlign: TextAlign.center,
                             ),

@@ -14,8 +14,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _emailController = TextEditingController();
   bool _loading = false;
   String? _error;
+  DateTime? _lastResetAttempt;
 
   Future<void> _sendReset() async {
+    // Limitar frecuencia: mínimo 30 segundos entre solicitudes
+    final now = DateTime.now();
+    if (_lastResetAttempt != null &&
+        now.difference(_lastResetAttempt!).inSeconds < 59) {
+      setState(() {
+        _error =
+            'Por favor espera unos segundos antes de solicitar otro correo de recuperacion.';
+      });
+      return;
+    }
+    _lastResetAttempt = now;
     setState(() {
       _loading = true;
       _error = null;

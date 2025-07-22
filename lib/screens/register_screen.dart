@@ -15,8 +15,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   bool _loading = false;
   String? _error;
+  DateTime? _lastRegisterAttempt;
 
   Future<void> _register() async {
+    // Limitar frecuencia de registro: mínimo 30 segundos entre intentos
+    final now = DateTime.now();
+    if (_lastRegisterAttempt != null &&
+        now.difference(_lastRegisterAttempt!).inSeconds < 59) {
+      setState(() {
+        _error =
+            'Por favor espera unos segundos antes de intentar registrar otra cuenta.';
+      });
+      return;
+    }
+    _lastRegisterAttempt = now;
     setState(() {
       _loading = true;
       _error = null;

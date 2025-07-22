@@ -278,6 +278,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       isOffline = !syncProvider.isOnline;
     }
 
+    // --- Ajuste manual de padding para ListView ---
+    // Permite al usuario ajustar el espacio superior/inferior del ListView
+    double listViewTopPadding = 10.0; // Ajusta este valor manualmente
+    double listViewBottomPadding =
+        75.0; // Ajusta este valor para que el último item sea visible
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -481,13 +487,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             final showAbono = selectedType == null || selectedType == 'payment';
             final showDeuda = selectedType == null || selectedType == 'debt';
             if (!showAbono && !showDeuda) return const SizedBox.shrink();
-
-            return Padding(
-              padding: const EdgeInsets.symmetric(
-                vertical:
-                    0.0, // Espacio externo entre stats/fecha y ListView ajustado
-                horizontal: 2.0,
-              ),
+            // Espacio externo entre stats/fecha y ListView ajustado
+            return Container(
+              // Elimina el borde de depuración
+              decoration: BoxDecoration(),
               child: Container(
                 decoration: BoxDecoration(
                   color: const Color.fromARGB(255, 255, 255, 255),
@@ -641,10 +644,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             );
           },
         ),
-
-        // --- FIN DEL BLOQUE CORREGIDO ---
-
-        // NOTA: El antiguo bloque "if (_selectedRange != null)" se elimina de aquí.
         transactions.isEmpty
             ? Center(
                 child: Padding(
@@ -655,361 +654,379 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   ),
                 ),
               )
-            : ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: transactions.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 6),
-                itemBuilder: (context, i) {
-                  final t = transactions[i];
-                  final client = clients.firstWhere(
-                    (c) => c.id == t.clientId,
-                    orElse: () => Client(id: '', name: '', balance: 0),
-                  );
-                  return Dismissible(
-                    key: ValueKey(t.id),
-                    direction: DismissDirection.endToStart,
-                    background: Container(
-                      alignment: Alignment.centerRight,
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      decoration: BoxDecoration(
-                        color: Colors.red.withAlpha((0.12 * 255).toInt()),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Icon(
-                        Icons.delete,
-                        color: Colors.red,
-                        size: 32,
-                      ),
-                    ),
-                    confirmDismiss: (direction) async {
-                      // ignore: use_build_context_synchronously
-                      return await showDialog<bool>(
-                            context: context,
-                            builder: (dialogContext) => AlertDialog(
-                              title: const Text('Eliminar transacción'),
-                              content: const Text(
-                                '¿Estás seguro de eliminar esta transacción?',
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () =>
-                                      Navigator.of(dialogContext).pop(false),
-                                  child: const Text('Cancelar'),
-                                ),
-                                ElevatedButton(
-                                  onPressed: () =>
-                                      Navigator.of(dialogContext).pop(true),
-                                  child: const Text('Eliminar'),
-                                ),
-                              ],
-                            ),
-                          ) ??
-                          false;
-                    },
-                    onDismissed: (direction) async {
-                      final txProvider = Provider.of<TransactionProvider>(
-                        context,
-                        listen: false,
-                      );
-                      final cp = Provider.of<ClientProvider>(
-                        context,
-                        listen: false,
-                      );
-                      final transactionIdToDelete = t.id;
-                      final transactionDescription = t.description;
-                      txProvider.removeTransactionLocally(
-                        transactionIdToDelete,
-                      );
-                      // ignore: use_build_context_synchronously
-                      if (!mounted) return;
-                      // ignore: use_build_context_synchronously
-                      final messenger = ScaffoldMessenger.maybeOf(context);
-                      messenger?.showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Transacción "$transactionDescription" eliminada. Pendiente de sincronizar.',
-                          ),
-                          backgroundColor: Colors.orange,
-                          duration: const Duration(seconds: 2),
+            : Container(
+                // Elimina el borde de depuración
+                decoration: BoxDecoration(),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: EdgeInsets.only(
+                    top: listViewTopPadding,
+                    bottom: listViewBottomPadding,
+                  ), // Ajuste manual
+                  itemCount: transactions.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 6),
+                  itemBuilder: (context, i) {
+                    final t = transactions[i];
+                    final client = clients.firstWhere(
+                      (c) => c.id == t.clientId,
+                      orElse: () => Client(id: '', name: '', balance: 0),
+                    );
+                    return Dismissible(
+                      key: ValueKey(t.id),
+                      direction: DismissDirection.endToStart,
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withAlpha((0.12 * 255).toInt()),
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                      );
-
-                      try {
-                        await txProvider.markTransactionForDeletionAndSync(
-                          transactionIdToDelete,
-                          widget.userId,
-                        );
-                        if (!mounted) return;
-                        await txProvider.cleanLocalPendingDeletedTransactions();
-                        if (!mounted) return;
-                        await cp.loadClients(widget.userId);
-                        if (!mounted) return;
-                        await cp.refreshClientsFromHive();
-                      } catch (e, stack) {
-                        debugPrint(
-                          'Error al marcar/sincronizar eliminación: $transactionIdToDelete -> \\${e.toString()}',
-                        );
-                        debugPrint('Stacktrace: \n$stack');
-                        if (mounted) {
-                          // ignore: use_build_context_synchronously
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Error al sincronizar eliminación: [\\${e.toString()}]',
-                              ),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      }
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 255, 255, 255),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color.fromARGB(
-                              255,
-                              11,
-                              11,
-                              11,
-                            ).withAlpha((0.25 * 255).toInt()),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 3,
+                        child: const Icon(
+                          Icons.delete,
+                          color: Colors.red,
+                          size: 32,
                         ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            CircleAvatar(
-                              backgroundColor: t.type == 'debt'
-                                  ? const Color(0xFFFFE5E5)
-                                  : const Color(0xFFE5FFE8),
-                              radius: 22,
-                              child: Icon(
-                                t.type == 'debt'
-                                    ? Icons.arrow_downward
-                                    : Icons.arrow_upward,
-                                color: t.type == 'debt'
-                                    ? Colors.red
-                                    : Colors.green,
-                                size: 24,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          t.description,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      const Spacer(),
-                                      Text(
-                                        format(t.amount),
-                                        style: TextStyle(
-                                          color: t.type == 'payment'
-                                              ? Colors.green
-                                              : Colors.red,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 18,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                        textAlign: TextAlign.right,
-                                      ),
-                                    ],
+                      ),
+                      confirmDismiss: (direction) async {
+                        // ...existing code...
+                        return await showDialog<bool>(
+                              context: context,
+                              builder: (dialogContext) => AlertDialog(
+                                title: const Text('Eliminar transacción'),
+                                content: const Text(
+                                  '¿Estás seguro de eliminar esta transacción?',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(dialogContext).pop(false),
+                                    child: const Text('Cancelar'),
                                   ),
-                                  const SizedBox(height: 2),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          'Cliente: ${client.name}',
-                                          style: const TextStyle(
-                                            fontSize: 13.5,
-                                            color: Colors.black54,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                          maxLines: 1,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      SizedBox(
-                                        width: 90,
-                                        child: Text(
-                                          '${t.date.year}-${t.date.month.toString().padLeft(2, '0')}-${t.date.day.toString().padLeft(2, '0')}',
-                                          style: const TextStyle(
-                                            fontSize: 12.5,
-                                            color: Colors.black45,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                          maxLines: 1,
-                                          textAlign: TextAlign.right,
-                                        ),
-                                      ),
-                                    ],
+                                  ElevatedButton(
+                                    onPressed: () =>
+                                        Navigator.of(dialogContext).pop(true),
+                                    child: const Text('Eliminar'),
                                   ),
-                                  if (clientPendingDelete && isOffline)
-                                    Padding(
-                                      padding: const EdgeInsets.only(
-                                        top: 2,
-                                        bottom: 1,
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          const Spacer(),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 7,
-                                              vertical: 2,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.red.withAlpha(
-                                                (0.09 * 255).toInt(),
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                            ),
-                                            child: const Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Icon(
-                                                  Icons.delete_forever,
-                                                  size: 12,
-                                                  color: Colors.red,
-                                                ),
-                                                SizedBox(width: 2),
-                                                Text(
-                                                  'Pendiente por eliminar',
-                                                  style: TextStyle(
-                                                    fontSize: 9,
-                                                    color: Colors.red,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  else if (t.synced == false)
-                                    Padding(
-                                      padding: const EdgeInsets.only(
-                                        top: 2,
-                                        bottom: 1,
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          const Spacer(),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 7,
-                                              vertical: 2,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.orange.withAlpha(
-                                                (0.09 * 255).toInt(),
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                            ),
-                                            child: const Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Icon(
-                                                  Icons.sync,
-                                                  size: 10,
-                                                  color: Colors.orange,
-                                                ),
-                                                SizedBox(width: 2),
-                                                Text(
-                                                  'Pendiente por sincronizar',
-                                                  style: TextStyle(
-                                                    fontSize: 9,
-                                                    color: Colors.orange,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  else if (t.synced == true)
-                                    Padding(
-                                      padding: const EdgeInsets.only(
-                                        top: 2,
-                                        bottom: 1,
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          const Spacer(),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 7,
-                                              vertical: 2,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.green.withAlpha(
-                                                (0.09 * 255).toInt(),
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                            ),
-                                            child: const Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Icon(
-                                                  Icons.cloud_done,
-                                                  size: 10,
-                                                  color: Colors.green,
-                                                ),
-                                                SizedBox(width: 2),
-                                                Text(
-                                                  'Sincronizado',
-                                                  style: TextStyle(
-                                                    fontSize: 9,
-                                                    color: Colors.green,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
                                 ],
                               ),
+                            ) ??
+                            false;
+                      },
+                      onDismissed: (direction) async {
+                        // ...existing code...
+                        final txProvider = Provider.of<TransactionProvider>(
+                          context,
+                          listen: false,
+                        );
+                        final cp = Provider.of<ClientProvider>(
+                          context,
+                          listen: false,
+                        );
+                        final transactionIdToDelete = t.id;
+                        final transactionDescription = t.description;
+                        txProvider.removeTransactionLocally(
+                          transactionIdToDelete,
+                        );
+                        // ignore: use_build_context_synchronously
+                        if (!mounted) return;
+                        // ignore: use_build_context_synchronously
+                        final messenger = ScaffoldMessenger.maybeOf(context);
+                        messenger?.showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Transacción "$transactionDescription" eliminada. Pendiente de sincronizar.',
+                            ),
+                            backgroundColor: Colors.orange,
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+
+                        try {
+                          await txProvider.markTransactionForDeletionAndSync(
+                            transactionIdToDelete,
+                            widget.userId,
+                          );
+                          if (!mounted) return;
+                          await txProvider
+                              .cleanLocalPendingDeletedTransactions();
+                          if (!mounted) return;
+                          await cp.loadClients(widget.userId);
+                          if (!mounted) return;
+                          await cp.refreshClientsFromHive();
+                        } catch (e, stack) {
+                          debugPrint(
+                            'Error al marcar/sincronizar eliminación: $transactionIdToDelete -> \\${e.toString()}',
+                          );
+                          debugPrint('Stacktrace: \n$stack');
+                          if (mounted) {
+                            // ignore: use_build_context_synchronously
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Error al sincronizar eliminación: [\\${e.toString()}]',
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(255, 255, 255, 255),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color.fromARGB(
+                                255,
+                                11,
+                                11,
+                                11,
+                              ).withAlpha((0.25 * 255).toInt()),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
                             ),
                           ],
                         ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 10, // Valor original/restaurado
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              // ...existing code...
+                              CircleAvatar(
+                                backgroundColor: t.type == 'debt'
+                                    ? const Color(0xFFFFE5E5)
+                                    : const Color(0xFFE5FFE8),
+                                radius: 22,
+                                child: Icon(
+                                  t.type == 'debt'
+                                      ? Icons.arrow_downward
+                                      : Icons.arrow_upward,
+                                  color: t.type == 'debt'
+                                      ? Colors.red
+                                      : Colors.green,
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            t.description,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        Text(
+                                          format(t.amount),
+                                          style: TextStyle(
+                                            color: t.type == 'payment'
+                                                ? Colors.green
+                                                : Colors.red,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 18,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                          textAlign: TextAlign.right,
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            'Cliente: ${client.name}',
+                                            style: const TextStyle(
+                                              fontSize: 13.5,
+                                              color: Colors.black54,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                            maxLines: 1,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        SizedBox(
+                                          width: 90,
+                                          child: Text(
+                                            '${t.date.year}-${t.date.month.toString().padLeft(2, '0')}-${t.date.day.toString().padLeft(2, '0')}',
+                                            style: const TextStyle(
+                                              fontSize: 12.5,
+                                              color: Colors.black45,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                            maxLines: 1,
+                                            textAlign: TextAlign.right,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    // Estado de sincronización y eliminación
+                                    if (clientPendingDelete && isOffline)
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                          top: 2,
+                                          bottom: 1,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const Spacer(),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 7,
+                                                    vertical: 2,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.red.withAlpha(
+                                                  (0.09 * 255).toInt(),
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                              ),
+                                              child: const Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    Icons.delete_forever,
+                                                    size: 12,
+                                                    color: Colors.red,
+                                                  ),
+                                                  SizedBox(width: 2),
+                                                  Text(
+                                                    'Pendiente por eliminar',
+                                                    style: TextStyle(
+                                                      fontSize: 9,
+                                                      color: Colors.red,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    else if (t.synced == false)
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                          top: 2,
+                                          bottom: 1,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const Spacer(),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 7,
+                                                    vertical: 2,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.orange.withAlpha(
+                                                  (0.09 * 255).toInt(),
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                              ),
+                                              child: const Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    Icons.sync,
+                                                    size: 10,
+                                                    color: Colors.orange,
+                                                  ),
+                                                  SizedBox(width: 2),
+                                                  Text(
+                                                    'Pendiente por sincronizar',
+                                                    style: TextStyle(
+                                                      fontSize: 9,
+                                                      color: Colors.orange,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    else if (t.synced == true)
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                          top: 2,
+                                          bottom: 1,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const Spacer(),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 7,
+                                                    vertical: 2,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.green.withAlpha(
+                                                  (0.09 * 255).toInt(),
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                              ),
+                                              child: const Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    Icons.cloud_done,
+                                                    size: 10,
+                                                    color: Colors.green,
+                                                  ),
+                                                  SizedBox(width: 2),
+                                                  Text(
+                                                    'Sincronizado',
+                                                    style: TextStyle(
+                                                      fontSize: 9,
+                                                      color: Colors.green,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                  );
-                },
-              ),
+                    );
+                  },
+                ),
+              ), // End of ListView Container
       ],
     );
   }

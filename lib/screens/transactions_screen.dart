@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_date_pickers/flutter_date_pickers.dart' as dp;
 import 'package:provider/provider.dart';
 import 'package:hive/hive.dart';
 
@@ -39,11 +40,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   bool _loading = true;
-  // Elimina el flag para que el filtro de tipo siempre se aplique desde el provider
-
-  // Eliminado: late TransactionFilterProvider _filterProvider;
-  // Eliminado: late VoidCallback _filterListener;
-
   final FocusNode _searchFocusNode = FocusNode();
   DateTimeRange? _selectedRange;
   String _searchQuery = '';
@@ -58,7 +54,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   @override
   void initState() {
     super.initState();
-    // Si necesitas lógica de inicialización, agrégala aquí, pero sin usar _selectedClientId
     _loadTransactions();
   }
 
@@ -89,21 +84,18 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     }
 
     final clients = clientProvider.clients;
-    // Filtra transacciones para no mostrar las marcadas como pendingDelete
     var transactions = txProvider.transactions
         .where((t) => t.pendingDelete != true)
         .toList();
 
-    // Usar SIEMPRE el valor del provider para los filtros visuales
     final selectedClientId = filterProvider.clientId;
     final selectedType = filterProvider.type;
 
-    // Validar que el cliente seleccionado exista en la lista
     final clientIds = clients.map((c) => c.id).toList();
     final effectiveClientId =
         (selectedClientId != null && clientIds.contains(selectedClientId))
-        ? selectedClientId
-        : null;
+            ? selectedClientId
+            : null;
 
     debugPrint(
       '[TRANSACTIONS_SCREEN][build] selectedClientId: $selectedClientId, effectiveClientId: $effectiveClientId, selectedType: $selectedType, transactions: ${transactions.length}',
@@ -138,7 +130,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       }).toList();
     }
 
-    // --- CORRECCIÓN DE LAYOUT: SafeArea y padding adaptable ---
     final mediaQuery = MediaQuery.of(context);
     final isMobile = mediaQuery.size.width < 600;
     final double topPadding = isMobile ? 24.0 : 70.0;
@@ -176,9 +167,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     ),
                   ],
                 ),
-                padding: const EdgeInsets.symmetric(
-                  vertical: 18,
-                  horizontal: 10,
+                padding: const EdgeInsets.only(
+                  top: 24,
+                  bottom: 8,
+                  left: 10,
+                  right: 10,
                 ),
                 child: _buildTransactionColumn(
                   format,
@@ -206,7 +199,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 18,
-                  vertical: 24,
+                  vertical: 28,
                 ),
                 child: _buildTransactionColumn(
                   format,
@@ -222,8 +215,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       );
     }
 
-    // Para que el contenido se vea debajo del notch y el fondo degradado global, NO usar SafeArea aquí.
-    // El GestureDetector se mantiene para poder cerrar el teclado al tocar fuera.
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {
@@ -237,8 +228,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               behavior: const NoScrollbarBehavior(),
               child: SingleChildScrollView(
                 child: Padding(
-                  // El padding superior sigue siendo importante para separar del header
-                  padding: EdgeInsets.fromLTRB(0, topPadding, 0, 24),
+                  padding: EdgeInsets.fromLTRB(
+                    0,
+                    topPadding,
+                    0,
+                    8,
+                  ),
                   child: content,
                 ),
               ),
@@ -246,7 +241,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
-  // Layout desacoplado, solo para transacciones
   Widget _buildTransactionColumn(
     String Function(num) format,
     List<Client> clients,
@@ -254,20 +248,17 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     String? selectedClientId,
     String? selectedType,
   ) {
-    // --- NUEVO: Detectar si el cliente está pendiente por eliminar y si estamos offline ---
     final clientProvider = Provider.of<ClientProvider>(context, listen: false);
     final syncProvider = Provider.of<SyncProvider?>(context, listen: false);
     bool isOffline = false;
     bool clientPendingDelete = false;
-    // Eliminado: String? selectedClientId = _selectedClientId;
+
     if (selectedClientId != null && selectedClientId.isNotEmpty) {
-      // Buscar el cliente en Hive si no está en la lista visible
       final client = clientProvider.clients.firstWhere(
         (c) => c.id == selectedClientId,
         orElse: () => Client(id: '', name: '', balance: 0),
       );
       if (client.id.isEmpty) {
-        // Buscar en Hive directamente
         try {
           final box = Hive.box('clients');
           final hiveClient = box.get(selectedClientId);
@@ -276,7 +267,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           }
         } catch (_) {}
       } else {
-        // Lógica adicional: si el cliente tiene UUID y está marcado para eliminar offline
         try {
           final box = Hive.box('clients');
           final hiveClient = box.get(selectedClientId);
@@ -289,7 +279,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         } catch (_) {}
       }
     }
-    // Detectar offline
     if (syncProvider != null) {
       isOffline = !syncProvider.isOnline;
     }
@@ -308,7 +297,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           ),
         ),
         const SizedBox(height: 18),
-        // Buscador
         Container(
           decoration: BoxDecoration(
             color: const Color(0xFFF3F5F7),
@@ -329,7 +317,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           ),
         ),
         const SizedBox(height: 18),
-        // Filtros horizontales
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -340,49 +327,49 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 child: Consumer<TransactionFilterProvider>(
                   builder: (context, filterProvider, _) =>
                       DropdownButtonFormField<String>(
-                        value: selectedClientId,
-                        decoration: const InputDecoration(
-                          labelText: 'Filtrar por cliente',
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(
-                            vertical: 8,
-                            horizontal: 8,
+                    value: selectedClientId,
+                    decoration: const InputDecoration(
+                      labelText: 'Filtrar por cliente',
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 8,
+                      ),
+                    ),
+                    items: [
+                      const DropdownMenuItem(
+                        value: null,
+                        child: Text('Todos'),
+                      ),
+                      ...clients.map(
+                        (c) => DropdownMenuItem(
+                          value: c.id,
+                          child: Text(c.name),
+                        ),
+                      ),
+                    ],
+                    selectedItemBuilder: (context) {
+                      return [
+                        const Text(
+                          'Todos',
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                        ...clients.map(
+                          (c) => Text(
+                            c.name,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
                           ),
                         ),
-                        items: [
-                          const DropdownMenuItem(
-                            value: null,
-                            child: Text('Todos'),
-                          ),
-                          ...clients.map(
-                            (c) => DropdownMenuItem(
-                              value: c.id,
-                              child: Text(c.name),
-                            ),
-                          ),
-                        ],
-                        selectedItemBuilder: (context) {
-                          return [
-                            const Text(
-                              'Todos',
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
-                            ...clients.map(
-                              (c) => Text(
-                                c.name,
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                            ),
-                          ];
-                        },
-                        onChanged: (value) {
-                          filterProvider.setClientId(value);
-                        },
-                        isExpanded: true,
-                      ),
+                      ];
+                    },
+                    onChanged: (value) {
+                      filterProvider.setClientId(value);
+                    },
+                    isExpanded: true,
+                  ),
                 ),
               ),
             ),
@@ -394,28 +381,28 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 child: Consumer<TransactionFilterProvider>(
                   builder: (context, filterProvider, _) =>
                       DropdownButtonFormField<String>(
-                        value: selectedType,
-                        decoration: const InputDecoration(
-                          labelText: 'Tipo',
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(
-                            vertical: 8,
-                            horizontal: 8,
-                          ),
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: null, child: Text('Todos')),
-                          DropdownMenuItem(value: 'debt', child: Text('Deuda')),
-                          DropdownMenuItem(
-                            value: 'payment',
-                            child: Text('Abono'),
-                          ),
-                        ],
-                        onChanged: (value) {
-                          filterProvider.setType(value);
-                        },
+                    value: selectedType,
+                    decoration: const InputDecoration(
+                      labelText: 'Tipo',
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 8,
                       ),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: null, child: Text('Todos')),
+                      DropdownMenuItem(value: 'debt', child: Text('Deuda')),
+                      DropdownMenuItem(
+                        value: 'payment',
+                        child: Text('Abono'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      filterProvider.setType(value);
+                    },
+                  ),
                 ),
               ),
             ),
@@ -425,11 +412,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               child: SizedBox(
                 height: 52,
                 child: Center(
-                  // Puedes ajustar el padding aquí para subir o bajar el icono
                   child: Padding(
-                    padding: EdgeInsets.only(
+                    padding: const EdgeInsets.only(
                       bottom: 12,
-                    ), // <-- Ajusta este valor (ej. 2, 4, 6)
+                    ),
                     child: IconButton(
                       icon: const Icon(Icons.date_range, color: Colors.black87),
                       padding: EdgeInsets.zero,
@@ -439,8 +425,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         final picked = await showDialog<DateTimeRange>(
                           context: context,
                           builder: (context) {
-                            DateTimeRange tempRange =
-                                _selectedRange ??
+                            DateTimeRange tempRange = _selectedRange ??
                                 DateTimeRange(
                                   start: DateTime.now().subtract(
                                     const Duration(days: 7),
@@ -451,7 +436,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                               title: const Text('Selecciona un rango'),
                               content: SizedBox(
                                 width: 320,
-                                height: 260, // Más bajo
+                                height: 260,
                                 child: CalendarDateRangePicker(
                                   initialRange: tempRange,
                                   onChanged: (range) {
@@ -486,7 +471,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           ],
         ),
 
-        // Stats de Abono / Deuda mejorado con iconos y recuadro
+        // --- INICIO DEL BLOQUE CORREGIDO ---
+        // Este Builder ahora contiene tanto las estadísticas como el rango de fechas.
         Builder(
           builder: (context) {
             double totalAbono = 0;
@@ -500,24 +486,23 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             }
             final showAbono = selectedType == null || selectedType == 'payment';
             final showDeuda = selectedType == null || selectedType == 'debt';
-            if (!showAbono && !showDeuda) return SizedBox.shrink();
+            if (!showAbono && !showDeuda) return const SizedBox.shrink();
+
             return Padding(
               padding: const EdgeInsets.symmetric(
-                vertical: 1.0, //espacio vertical entre stats y listview
+                vertical: 1.0,
                 horizontal: 2.0,
-              ), //color de los statscard abono/deuda
+              ),
               child: Container(
                 decoration: BoxDecoration(
                   color: const Color.fromARGB(255, 255, 255, 255),
                   borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color.fromARGB(
-                        255,
-                        227,
-                        227,
-                        227,
-                      ).withValues(alpha: 0.06 * 255),
+                      color:
+                          const Color.fromARGB(255, 227, 227, 227).withAlpha(
+                        (0.06 * 255).toInt(),
+                      ),
                       blurRadius: 10,
                       offset: const Offset(0, 2),
                     ),
@@ -528,98 +513,125 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   ),
                 ),
                 padding: const EdgeInsets.symmetric(
-                  vertical: 0,
+                  vertical: 8,
                   horizontal: 20,
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (showAbono)
-                      Expanded(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                    // Fila original de estadísticas
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (showAbono)
+                          Expanded(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Container(
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.green[100],
-                                  ),
-                                  padding: const EdgeInsets.all(8),
-                                  child: Icon(
-                                    Icons.arrow_upward,
-                                    color: Colors.green[700],
-                                    size: 22,
-                                  ),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Colors.green[100],
+                                      ),
+                                      padding: const EdgeInsets.all(8),
+                                      child: Icon(
+                                        Icons.arrow_upward,
+                                        color: Colors.green[700],
+                                        size: 22,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Abono',
+                                      style: TextStyle(
+                                        color: Colors.green[700],
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 8),
+                                const SizedBox(height: 2),
                                 Text(
-                                  'Abono',
+                                  format(totalAbono),
                                   style: TextStyle(
                                     color: Colors.green[700],
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 16,
+                                    fontSize: 18,
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              format(totalAbono),
-                              style: TextStyle(
-                                color: Colors.green[700],
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    if (showAbono && showDeuda) const SizedBox(width: 18),
-                    if (showDeuda)
-                      Expanded(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                          ),
+                        if (showAbono && showDeuda) const SizedBox(width: 18),
+                        if (showDeuda)
+                          Expanded(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Container(
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.red[100],
-                                  ),
-                                  padding: const EdgeInsets.all(8),
-                                  child: Icon(
-                                    Icons.arrow_downward,
-                                    color: Colors.red[700],
-                                    size: 22,
-                                  ),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Colors.red[100],
+                                      ),
+                                      padding: const EdgeInsets.all(8),
+                                      child: Icon(
+                                        Icons.arrow_downward,
+                                        color: Colors.red[700],
+                                        size: 22,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Deuda',
+                                      style: TextStyle(
+                                        color: Colors.red[700],
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 8),
+                                const SizedBox(height: 2),
                                 Text(
-                                  'Deuda',
+                                  format(totalDeuda),
                                   style: TextStyle(
                                     color: Colors.red[700],
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 16,
+                                    fontSize: 18,
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 2),
+                          ),
+                      ],
+                    ),
+                    // Widget de fecha movido aquí dentro
+                    if (_selectedRange != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
                             Text(
-                              format(totalDeuda),
-                              style: TextStyle(
-                                color: Colors.red[700],
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
+                              '${_selectedRange!.start.year}-${_selectedRange!.start.month.toString().padLeft(2, '0')}-${_selectedRange!.start.day.toString().padLeft(2, '0')} - '
+                              '${_selectedRange!.end.year}-${_selectedRange!.end.month.toString().padLeft(2, '0')}-${_selectedRange!.end.day.toString().padLeft(2, '0')}',
+                              style: const TextStyle(
+                                  fontSize: 13, color: Colors.black54),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () =>
+                                  setState(() => _selectedRange = null),
                             ),
                           ],
                         ),
@@ -630,29 +642,16 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             );
           },
         ),
-        if (_selectedRange != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 4, left: 2),
-            child: Row(
-              children: [
-                Text(
-                  '${_selectedRange!.start.year}-${_selectedRange!.start.month.toString().padLeft(2, '0')}-${_selectedRange!.start.day.toString().padLeft(2, '0')} - '
-                  '${_selectedRange!.end.year}-${_selectedRange!.end.month.toString().padLeft(2, '0')}-${_selectedRange!.end.day.toString().padLeft(2, '0')}',
-                  style: const TextStyle(fontSize: 13, color: Colors.black54),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.clear, size: 18),
-                  onPressed: () => setState(() => _selectedRange = null),
-                ),
-              ],
-            ),
-          ),
-        const SizedBox(height: 1), // Espacio entre stats deuda/abono y listview
-        // Listado de transacciones
+        // --- FIN DEL BLOQUE CORREGIDO ---
+        
+        // NOTA: El antiguo bloque "if (_selectedRange != null)" se elimina de aquí.
+
         transactions.isEmpty
             ? Center(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 40),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8,
+                  ),
                   child: Text(
                     'No hay transacciones para mostrar',
                     style: TextStyle(fontSize: 16, color: Colors.grey),
@@ -661,18 +660,16 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               )
             : ListView.separated(
                 shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
+                physics: const NeverScrollableScrollPhysics(),
                 itemCount: transactions.length,
                 separatorBuilder: (_, __) =>
-                    SizedBox(height: 6), // Espacio entre transacciones
+                    const SizedBox(height: 6),
                 itemBuilder: (context, i) {
                   final t = transactions[i];
                   final client = clients.firstWhere(
                     (c) => c.id == t.clientId,
                     orElse: () => Client(id: '', name: '', balance: 0),
                   );
-
-                  // Si NO está pendiente, usa Dismissible normal
                   return Dismissible(
                     key: ValueKey(t.id),
                     direction: DismissDirection.endToStart,
@@ -690,10 +687,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       ),
                     ),
                     confirmDismiss: (direction) async {
-                      // El siguiente uso de context es seguro porque:
-                      // 1. El context usado aquí es el de la State, y el showDialog se ejecuta solo si el widget está montado.
-                      // 2. El context del builder es propio del AlertDialog y no cruza async gaps.
-                      // Por lo tanto, el warning puede ser ignorado.
                       // ignore: use_build_context_synchronously
                       return await showDialog<bool>(
                             context: context,
@@ -729,24 +722,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       );
                       final transactionIdToDelete = t.id;
                       final transactionDescription = t.description;
-
-                      debugPrint('--- SWIPE DELETE ---');
-                      debugPrint('ID transacción: $transactionIdToDelete');
-                      debugPrint('Descripción: $transactionDescription');
-                      debugPrint(
-                        '¿UUID? (id.length == 36): ${transactionIdToDelete.length == 36}',
-                      );
-                      debugPrint(
-                        'Estado online: ${(await txProvider.isOnline())}',
-                      );
                       txProvider.removeTransactionLocally(
                         transactionIdToDelete,
                       );
-
-                      // El siguiente uso de context es seguro porque:
-                      // 1. Se verifica 'if (!mounted) return;' antes de usar context tras el async gap.
-                      // 2. Este context es el de la clase State, no de un builder externo.
-                      // Por lo tanto, el warning puede ser ignorado.
                       // ignore: use_build_context_synchronously
                       if (!mounted) return;
                       // ignore: use_build_context_synchronously
@@ -762,45 +740,21 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       );
 
                       try {
-                        debugPrint(
-                          '--- INICIO FLUJO ELIMINACIÓN TRANSACCIÓN ---',
-                        );
-                        debugPrint(
-                          '1. Llamando a markTransactionForDeletionAndSync para $transactionIdToDelete',
-                        );
                         await txProvider.markTransactionForDeletionAndSync(
                           transactionIdToDelete,
                           widget.userId,
                         );
                         if (!mounted) return;
-                        debugPrint(
-                          '2. Llamando a cleanLocalPendingDeletedTransactions',
-                        );
                         await txProvider.cleanLocalPendingDeletedTransactions();
                         if (!mounted) return;
-                        debugPrint(
-                          '3. Refrescando clientes (loadClients y refreshClientsFromHive)',
-                        );
                         await cp.loadClients(widget.userId);
                         if (!mounted) return;
-                        debugPrint('4. Llamando a refreshClientsFromHive');
                         await cp.refreshClientsFromHive();
-                        if (!mounted) return;
-                        debugPrint(
-                          '5. Transacción marcada para eliminar y sincronizar: $transactionIdToDelete',
-                        );
-                        debugPrint('--- FIN FLUJO ELIMINACIÓN TRANSACCIÓN ---');
                       } catch (e, stack) {
-                        debugPrint(
-                          '--- ERROR EN FLUJO ELIMINACIÓN TRANSACCIÓN ---',
-                        );
                         debugPrint(
                           'Error al marcar/sincronizar eliminación: $transactionIdToDelete -> \\${e.toString()}',
                         );
                         debugPrint('Stacktrace: \n$stack');
-                        debugPrint(
-                          '--- FIN ERROR FLUJO ELIMINACIÓN TRANSACCIÓN ---',
-                        );
                         if (mounted) {
                           // ignore: use_build_context_synchronously
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -821,34 +775,33 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           255,
                           255,
                           255,
-                        ), // Fondo blanco
+                        ),
                         borderRadius: BorderRadius.circular(
                           16,
-                        ), // Bordes redondeados
+                        ),
                         boxShadow: [
                           BoxShadow(
                             color: const Color.fromARGB(255, 11, 11, 11)
                                 .withAlpha(
-                                  (0.25 * 255).toInt(),
-                                ), // Sombra muy suave
-                            blurRadius: 4, // Difuminado de la sombra
-                            offset: Offset(0, 2), // Desplazamiento de la sombra
+                              (0.25 * 255).toInt(),
+                            ),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
                           ),
                         ],
                       ),
                       child: Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 10, // Espaciado horizontal interno
-                          vertical: 3, // Espaciado vertical interno
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 3,
                         ),
-                        // Fila principal con los datos de la transacción
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             CircleAvatar(
                               backgroundColor: t.type == 'debt'
-                                  ? Color(0xFFFFE5E5)
-                                  : Color(0xFFE5FFE8),
+                                  ? const Color(0xFFFFE5E5)
+                                  : const Color(0xFFE5FFE8),
                               radius: 22,
                               child: Icon(
                                 t.type == 'debt'
@@ -860,7 +813,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                 size: 24,
                               ),
                             ),
-                            SizedBox(width: 10),
+                            const SizedBox(width: 10),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -872,14 +825,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                       Expanded(
                                         child: Text(
                                           t.description,
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 16,
                                           ),
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
-                                      Spacer(),
+                                      const Spacer(),
                                       Text(
                                         format(t.amount),
                                         style: TextStyle(
@@ -894,13 +847,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                       ),
                                     ],
                                   ),
-                                  SizedBox(height: 2),
+                                  const SizedBox(height: 2),
                                   Row(
                                     children: [
                                       Expanded(
                                         child: Text(
                                           'Cliente: ${client.name}',
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                             fontSize: 13.5,
                                             color: Colors.black54,
                                           ),
@@ -908,12 +861,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                           maxLines: 1,
                                         ),
                                       ),
-                                      SizedBox(width: 8),
+                                      const SizedBox(width: 8),
                                       SizedBox(
                                         width: 90,
                                         child: Text(
                                           '${t.date.year}-${t.date.month.toString().padLeft(2, '0')}-${t.date.day.toString().padLeft(2, '0')}',
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                             fontSize: 12.5,
                                             color: Colors.black45,
                                           ),
@@ -924,7 +877,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                       ),
                                     ],
                                   ),
-                                  // --- NUEVO: Estado especial para transacciones de cliente pendiente por eliminar en offline ---
                                   if (clientPendingDelete && isOffline)
                                     Padding(
                                       padding: const EdgeInsets.only(
@@ -946,7 +898,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                               borderRadius:
                                                   BorderRadius.circular(10),
                                             ),
-                                            child: Row(
+                                            child: const Row(
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
                                                 Icon(
@@ -959,7 +911,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                                   'Pendiente por eliminar',
                                                   style: TextStyle(
                                                     fontSize: 9,
-                                                    color: Colors.red[800],
+                                                    color: Colors.red,
                                                     fontWeight: FontWeight.w600,
                                                   ),
                                                 ),
@@ -990,23 +942,22 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                               borderRadius:
                                                   BorderRadius.circular(10),
                                             ),
-                                            child: Row(
+                                            child: const Row(
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
                                                 Icon(
                                                   Icons.sync,
-                                                  size: 10, // Icono más pequeño
+                                                  size: 10,
                                                   color: Colors.orange,
                                                 ),
                                                 SizedBox(
                                                   width: 2,
-                                                ), // Menor separación
+                                                ),
                                                 Text(
-                                                  'Pendiente por sincronizar', // Mensaje más corto
+                                                  'Pendiente por sincronizar',
                                                   style: TextStyle(
-                                                    fontSize:
-                                                        9, // Texto más pequeño
-                                                    color: Colors.orange[800],
+                                                    fontSize: 9,
+                                                    color: Colors.orange,
                                                     fontWeight: FontWeight.w600,
                                                   ),
                                                 ),
@@ -1037,23 +988,22 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                               borderRadius:
                                                   BorderRadius.circular(10),
                                             ),
-                                            child: Row(
+                                            child: const Row(
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
                                                 Icon(
                                                   Icons.cloud_done,
-                                                  size: 10, // Icono más pequeño
+                                                  size: 10,
                                                   color: Colors.green,
                                                 ),
                                                 SizedBox(
                                                   width: 2,
-                                                ), // Menor separación
+                                                ),
                                                 Text(
-                                                  'Sincronizado', // Mensaje más corto
+                                                  'Sincronizado',
                                                   style: TextStyle(
-                                                    fontSize:
-                                                        9, // Texto más pequeño
-                                                    color: Colors.green[800],
+                                                    fontSize: 9,
+                                                    color: Colors.green,
                                                     fontWeight: FontWeight.w600,
                                                   ),
                                                 ),
@@ -1069,8 +1019,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           ],
                         ),
                       ),
-                    ), // Cierre del Container principal // cierre del itemBuilder
-                  ); // cierre de Dismissible
+                    ),
+                  );
                 },
               ),
       ],
@@ -1078,7 +1028,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 }
 
-/// Widget simple para seleccionar un rango de fechas en un calendario pequeño
 class CalendarDateRangePicker extends StatefulWidget {
   final DateTimeRange initialRange;
   final ValueChanged<DateTimeRange> onChanged;
@@ -1104,35 +1053,39 @@ class _CalendarDateRangePickerState extends State<CalendarDateRangePicker> {
     _end = widget.initialRange.end;
   }
 
-  void _onDaySelected(DateTime day) {
-    setState(() {
-      if (day.isBefore(_start) || day.isAfter(_end)) {
-        _start = day;
-        _end = day;
-      } else if ((day.difference(_start)).abs() <
-          (day.difference(_end)).abs()) {
-        _start = day;
-      } else {
-        _end = day;
-      }
-      if (_end.isBefore(_start)) {
-        final temp = _start;
-        _start = _end;
-        _end = temp;
-      }
-      widget.onChanged(DateTimeRange(start: _start, end: _end));
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    return CalendarDatePicker(
-      initialDate: _start,
+    return dp.RangePicker(
+      selectedPeriod: dp.DatePeriod(_start, _end),
+      onChanged: (dp.DatePeriod period) {
+        setState(() {
+          _start = period.start;
+          _end = period.end;
+        });
+        widget.onChanged(DateTimeRange(start: _start, end: _end));
+      },
       firstDate: DateTime(2020),
       lastDate: DateTime.now().add(const Duration(days: 365)),
-      currentDate: DateTime.now(),
-      onDateChanged: _onDaySelected,
-      selectableDayPredicate: (_) => true,
+      datePickerStyles: dp.DatePickerRangeStyles(
+        selectedPeriodLastDecoration: BoxDecoration(
+          color: Colors.deepPurple[200],
+          borderRadius: const BorderRadius.only(
+            topRight: Radius.circular(10.0),
+            bottomRight: Radius.circular(10.0),
+          ),
+        ),
+        selectedPeriodStartDecoration: BoxDecoration(
+          color: Colors.deepPurple[200],
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(10.0),
+            bottomLeft: Radius.circular(10.0),
+          ),
+        ),
+        selectedPeriodMiddleDecoration: BoxDecoration(
+          color: Colors.deepPurple[100],
+          shape: BoxShape.rectangle,
+        ),
+      ),
     );
   }
 }

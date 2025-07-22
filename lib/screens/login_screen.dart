@@ -19,6 +19,11 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   // ...existing code...
 
+  // Animación simple para los botones: escala al presionar
+  double _offlineBtnScale = 1.0;
+  double _guestBtnScale = 1.0;
+  double _googleBtnScale = 1.0;
+
   Future<void> _loginOffline() async {
     setState(() {
       _loading = true;
@@ -515,59 +520,45 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 8),
                         SizedBox(
                           width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: _loading ? null : _loginOffline,
-                            icon: const Icon(
-                              Icons.wifi_off,
-                              size: 18,
-                              color: Colors.white,
-                            ),
-                            label: const Text(
-                              'Ingresar sin conexión',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.white,
-                              ),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(
-                                color: Colors.white70,
-                                width: 1.2,
-                              ),
-                              minimumSize: const Size(0, 38),
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: _loading ? null : _loginAsGuest,
-                            icon: const Icon(
-                              Icons.person_outline,
-                              size: 18,
-                              color: Colors.white,
-                            ),
-                            label: const Text(
-                              'Probar como invitado',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.white,
-                              ),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(
-                                color: Colors.white70,
-                                width: 1.2,
-                              ),
-                              minimumSize: const Size(0, 38),
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                          child: GestureDetector(
+                            onTapDown: (_) =>
+                                setState(() => _offlineBtnScale = 0.93),
+                            onTapUp: (_) =>
+                                setState(() => _offlineBtnScale = 1.0),
+                            onTapCancel: () =>
+                                setState(() => _offlineBtnScale = 1.0),
+                            onTap: _loading ? null : _loginOffline,
+                            child: AnimatedScale(
+                              scale: _offlineBtnScale,
+                              duration: const Duration(milliseconds: 120),
+                              curve: Curves.easeOut,
+                              child: OutlinedButton.icon(
+                                onPressed: _loading ? null : _loginOffline,
+                                icon: const Icon(
+                                  Icons.wifi_off,
+                                  size: 18,
+                                  color: Colors.white,
+                                ),
+                                label: const Text(
+                                  'Ingresar sin conexión',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(
+                                    color: Colors.white70,
+                                    width: 1.2,
+                                  ),
+                                  minimumSize: const Size(0, 38),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -575,31 +566,93 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 6),
                         SizedBox(
                           width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: _loading ? null : _loginWithGoogle,
-                            icon: const FaIcon(
-                              FontAwesomeIcons.google,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                            label: const Text(
-                              'Entrar con Google',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.white,
+                          child: GestureDetector(
+                            onTapDown: (_) =>
+                                setState(() => _guestBtnScale = 0.93),
+                            onTapUp: (_) =>
+                                setState(() => _guestBtnScale = 1.0),
+                            onTapCancel: () =>
+                                setState(() => _guestBtnScale = 1.0),
+                            onTap: _loading ? null : _loginAsGuest,
+                            child: AnimatedScale(
+                              scale: _guestBtnScale,
+                              duration: const Duration(milliseconds: 120),
+                              curve: Curves.easeOut,
+                              child: OutlinedButton.icon(
+                                onPressed: _loading ? null : _loginAsGuest,
+                                icon: const Icon(
+                                  Icons.person_outline,
+                                  size: 18,
+                                  color: Colors.white,
+                                ),
+                                label: const Text(
+                                  'Probar como invitado',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(
+                                    color: Colors.white70,
+                                    width: 1.2,
+                                  ),
+                                  minimumSize: const Size(0, 38),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
                               ),
                             ),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(
-                                color: Colors.white70,
-                                width: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        SizedBox(
+                          width: double.infinity,
+                          child: GestureDetector(
+                            onTapDown: (_) =>
+                                setState(() => _googleBtnScale = 0.93),
+                            onTapUp: (_) =>
+                                setState(() => _googleBtnScale = 1.0),
+                            onTapCancel: () =>
+                                setState(() => _googleBtnScale = 1.0),
+                            onTap: _loading ? null : _loginWithGoogle,
+                            child: AnimatedScale(
+                              scale: _googleBtnScale,
+                              duration: const Duration(milliseconds: 120),
+                              curve: Curves.easeOut,
+                              child: OutlinedButton.icon(
+                                onPressed: _loading ? null : _loginWithGoogle,
+                                icon: const FaIcon(
+                                  FontAwesomeIcons.google,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                                label: const Text(
+                                  'Entrar con Google',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(
+                                    color: Colors.white70,
+                                    width: 1.2,
+                                  ),
+                                  minimumSize: const Size(0, 38),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  backgroundColor: Colors.transparent,
+                                ),
                               ),
-                              minimumSize: const Size(0, 38),
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              backgroundColor: Colors.transparent,
                             ),
                           ),
                         ),

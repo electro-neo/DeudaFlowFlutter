@@ -11,7 +11,12 @@ import '../utils/currency_utils.dart'; // Utilidades para formatear moneda
 // Widget que muestra los statscard del dashboard
 class DashboardStats extends StatelessWidget {
   final void Function(int)? onTab;
-  const DashboardStats({super.key, this.onTab});
+  final Duration scaleTapDuration;
+  const DashboardStats({
+    super.key,
+    this.onTab,
+    this.scaleTapDuration = const Duration(milliseconds: 120),
+  });
   //
   @override
   Widget build(BuildContext context) {
@@ -78,20 +83,26 @@ class DashboardStats extends StatelessWidget {
       if (onTab != null) onTab!(1);
     }
 
-    void goToDeudaTab() {
+    void goToDeudaTab() async {
+      if (onTab != null) {
+        onTab!(2);
+        await Future.delayed(scaleTapDuration);
+      }
       Provider.of<TransactionFilterProvider>(
         context,
         listen: false,
       ).setType('debt'); // Filtra por deudas
-      if (onTab != null) onTab!(2);
     }
 
-    void goToAbonoTab() {
+    void goToAbonoTab() async {
+      if (onTab != null) {
+        onTab!(2);
+        await Future.delayed(scaleTapDuration);
+      }
       Provider.of<TransactionFilterProvider>(
         context,
         listen: false,
       ).setType('payment'); // Filtra por abonos
-      if (onTab != null) onTab!(2);
     }
 
     //

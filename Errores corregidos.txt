@@ -45,3 +45,7 @@ Resultado: Ahora los filtros de la pantalla de movimientos están 100% sincroniz
    - Solución: Se centralizó la animación de escala en los botones y statcards usando el widget ScaleOnTap, mejorando la experiencia visual en login y dashboard. Se corrigió la navegación entre tabs para que los statcards del dashboard cambien correctamente la pestaña usando una función local en MainScaffold, evitando dependencias globales y asegurando sincronización total entre UI y provider.
    - Resultado: La navegación entre tabs desde los statcards es instantánea y consistente, la animación de botones es fluida y la estructura del código es más mantenible. Se eliminaron imports no usados y se verificó que no haya errores de compilación.
 
+10. Mejora: Animación de escala visible antes de navegar entre pantallas.
+   - Solución: Se modificó el widget ScaleOnTap para que aplique un pequeño delay antes de ejecutar la acción de tap, permitiendo que la animación de escala se vea completa antes de cambiar de pantalla o tab. Esto mejora la experiencia visual en los statcards y botones animados.
+   - Resultado: El usuario percibe claramente la animación de escala en los botones/statcards antes de la navegación, logrando una interacción más fluida y profesional en toda la app.
+

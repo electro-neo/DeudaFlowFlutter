@@ -19,7 +19,13 @@ import '../services/supabase_service.dart';
 class DashboardScreen extends StatefulWidget {
   final String userId;
   final void Function(int)? onTab;
-  const DashboardScreen({super.key, required this.userId, this.onTab});
+  final Duration scaleTapDuration;
+  const DashboardScreen({
+    super.key,
+    required this.userId,
+    this.onTab,
+    this.scaleTapDuration = const Duration(milliseconds: 120),
+  });
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -444,7 +450,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         child: Consumer<ClientProvider>(
                           builder: (context, clientProvider, _) =>
-                              DashboardStats(onTab: widget.onTab),
+                              DashboardStats(
+                                onTab: widget.onTab,
+                                scaleTapDuration: widget.scaleTapDuration,
+                              ),
                         ),
                       ),
                       Padding(

@@ -11,7 +11,7 @@ class ScaleOnTap extends StatefulWidget {
     required this.child,
     required this.onTap,
     this.scale = 0.95,
-    this.duration = const Duration(milliseconds: 120),
+    this.duration = const Duration(milliseconds: 150),
   }) : super(key: key);
 
   @override
@@ -44,8 +44,8 @@ class _ScaleOnTapState extends State<ScaleOnTap>
 
   void _onTap() async {
     await _controller.reverse();
-    widget.onTap();
     await Future.delayed(widget.duration);
+    widget.onTap();
     if (mounted) _controller.forward();
   }
 

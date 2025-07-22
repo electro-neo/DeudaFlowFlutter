@@ -74,6 +74,9 @@ class MainScaffold extends StatefulWidget {
 }
 
 class _MainScaffoldState extends State<MainScaffold> {
+  // Centraliza la duración de la animación para todos los botones animados
+  final Duration scaleTapDuration = const Duration(milliseconds: 120);
+
   final GlobalKey<ClientsScreenState> _clientsScreenKey =
       GlobalKey<ClientsScreenState>();
   final GlobalKey _transactionsScreenKey = GlobalKey();
@@ -163,8 +166,9 @@ class _MainScaffoldState extends State<MainScaffold> {
     final screens = [
       DashboardScreen(
         userId: widget.userId,
-        // PASO CLAVE: Pasar la función _onTab al DashboardStats
+        // PASO CLAVE: Pasar la función _onTab al DashboardStats y la duración de la animación centralizada
         onTab: _onTab,
+        scaleTapDuration: scaleTapDuration,
       ),
       ClientsScreen(
         key: _clientsScreenKey,
@@ -358,6 +362,7 @@ class _MainScaffoldState extends State<MainScaffold> {
                                         ),
                                         const SizedBox(height: 16),
                                         ScaleOnTap(
+                                          duration: scaleTapDuration,
                                           onTap: () {
                                             showModalBottomSheet(
                                               context: ctx,
@@ -413,6 +418,7 @@ class _MainScaffoldState extends State<MainScaffold> {
                                         ),
                                         const SizedBox(height: 8),
                                         ScaleOnTap(
+                                          duration: scaleTapDuration,
                                           onTap: () {
                                             Navigator.of(ctx).pop();
                                             logout();

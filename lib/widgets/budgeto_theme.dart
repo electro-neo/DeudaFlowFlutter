@@ -8,9 +8,9 @@ class BudgetoTheme {
     scaffoldBackgroundColor: Colors.white,
     // ColorScheme principal (usa kGreenColor como color primario)
     colorScheme: const ColorScheme.light(
-      primary: Color.fromARGB(255, 74, 1, 126),
+      primary: Color.fromARGB(255, 84, 10, 136),
     ), // kGreenColor: color principal/acento
-    primaryColor: const Color.fromARGB(255, 65, 0, 150), // kGreenColor: color principal/acento
+    primaryColor: const Color.fromARGB(255, 66, 6, 144), // kGreenColor: color principal/acento
     cardColor: kCardColor, // kCardColor: fondo de tarjetas
     textTheme: const TextTheme(
       bodyLarge: TextStyle(color: kFontBlackC), // kFontBlackC: texto principal

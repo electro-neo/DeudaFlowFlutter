@@ -349,7 +349,7 @@ class ClientsScreenState extends State<ClientsScreen>
                 Client(
                   id: client.id,
                   name: newClient.name,
-                  email: newClient.email,
+                  address: newClient.address,
                   phone: newClient.phone,
                   balance: client.balance,
                 ),

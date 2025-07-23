@@ -246,18 +246,19 @@ class ClientCard extends StatelessWidget {
                               fontSize: 16,
                             ),
                           ),
-                          if (client.email != null && client.email!.isNotEmpty)
+                          if (client.address != null &&
+                              client.address!.isNotEmpty)
                             Row(
                               children: [
                                 const Icon(
-                                  Icons.email,
+                                  Icons.home,
                                   size: 14,
                                   color: Colors.black45,
                                 ),
                                 const SizedBox(width: 4),
                                 Flexible(
                                   child: Text(
-                                    client.email!,
+                                    client.address!,
                                     style: const TextStyle(
                                       fontSize: 13,
                                       color: Colors.black54,

@@ -138,7 +138,7 @@ class ClientProvider extends ChangeNotifier {
       final client = Client(
         id: c.id,
         name: c.name,
-        email: c.email,
+        address: c.address,
         phone: c.phone,
         balance: c.balance,
         localId: c.localId,
@@ -154,7 +154,7 @@ class ClientProvider extends ChangeNotifier {
               final updated = ClientHive(
                 id: newId,
                 name: old.name,
-                email: old.email,
+                address: old.address,
                 phone: old.phone,
                 balance: old.balance,
                 synced: true,
@@ -228,7 +228,7 @@ class ClientProvider extends ChangeNotifier {
           (c) => Client(
             id: c.id,
             name: c.name,
-            email: c.email,
+            address: c.address,
             phone: c.phone,
             balance: c.balance,
           ),
@@ -280,7 +280,7 @@ class ClientProvider extends ChangeNotifier {
               ClientHive(
                 id: c.id,
                 name: c.name,
-                email: c.email,
+                address: c.address,
                 phone: c.phone,
                 balance: c.balance,
                 synced: true,
@@ -304,7 +304,7 @@ class ClientProvider extends ChangeNotifier {
               (c) => Client(
                 id: c.id,
                 name: c.name,
-                email: c.email,
+                address: c.address,
                 phone: c.phone,
                 balance: c.balance, // Este valor será recalculado localmente
               ),
@@ -327,7 +327,7 @@ class ClientProvider extends ChangeNotifier {
               (c) => Client(
                 id: c.id,
                 name: c.name,
-                email: c.email,
+                address: c.address,
                 phone: c.phone,
                 balance: c.balance,
               ),
@@ -342,7 +342,7 @@ class ClientProvider extends ChangeNotifier {
             (c) => Client(
               id: c.id,
               name: c.name,
-              email: c.email,
+              address: c.address,
               phone: c.phone,
               balance: c.balance,
             ),
@@ -369,7 +369,7 @@ class ClientProvider extends ChangeNotifier {
     final clientHive = ClientHive(
       id: client.id,
       name: client.name,
-      email: client.email,
+      address: client.address,
       phone: client.phone,
       balance: client.balance,
       synced: false,
@@ -387,7 +387,7 @@ class ClientProvider extends ChangeNotifier {
       final updated = box.values.firstWhere(
         (c) =>
             c.name == client.name &&
-            c.email == client.email &&
+            c.address == client.address &&
             c.phone == client.phone &&
             c.balance == client.balance,
         orElse: () => box.get(client.id)!,
@@ -422,7 +422,7 @@ class ClientProvider extends ChangeNotifier {
     if (c != null) {
       c
         ..name = client.name
-        ..email = client.email
+        ..address = client.address
         ..phone = client.phone
         ..balance = client.balance
         ..synced = false;

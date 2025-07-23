@@ -217,7 +217,7 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
                     c.name.toLowerCase().contains(
                       textEditingValue.text.toLowerCase(),
                     ) ||
-                    (c.email?.toLowerCase().contains(
+                    (c.address?.toLowerCase().contains(
                           textEditingValue.text.toLowerCase(),
                         ) ??
                         false) ||
@@ -267,11 +267,11 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(c.name),
-                                if (c.email != null)
+                                if (c.address != null)
                                   Padding(
                                     padding: const EdgeInsets.only(top: 1.5),
                                     child: Text(
-                                      c.email!,
+                                      c.address!,
                                       style: Theme.of(
                                         context,
                                       ).textTheme.bodySmall,

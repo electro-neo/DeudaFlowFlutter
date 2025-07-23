@@ -25,7 +25,7 @@ Future<void> saveClientOffline(Map<String, dynamic> client) async {
   final clientHive = ClientHive(
     id: client['id'],
     name: client['name'],
-    email: client['email'],
+    address: client['address'],
     phone: client['phone'],
     balance: (client['balance'] as num?)?.toDouble() ?? 0.0,
     synced: client['synced'] ?? false,
@@ -43,7 +43,7 @@ List<Map<String, dynamic>> getClientsOffline() {
         (c) => {
           'id': c.id,
           'name': c.name,
-          'email': c.email,
+          'address': c.address,
           'phone': c.phone,
           'balance': c.balance,
           'synced': c.synced,

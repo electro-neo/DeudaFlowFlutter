@@ -19,7 +19,7 @@ class ClientHiveAdapter extends TypeAdapter<ClientHive> {
     return ClientHive(
       id: fields[0] as String,
       name: fields[1] as String,
-      email: fields[2] as String?,
+      address: fields[2] as String?,
       phone: fields[3] as String?,
       balance: fields[4] as double,
       synced: fields[5] as bool,
@@ -37,7 +37,7 @@ class ClientHiveAdapter extends TypeAdapter<ClientHive> {
       ..writeByte(1)
       ..write(obj.name)
       ..writeByte(2)
-      ..write(obj.email)
+      ..write(obj.address)
       ..writeByte(3)
       ..write(obj.phone)
       ..writeByte(4)

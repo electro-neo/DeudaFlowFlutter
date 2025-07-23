@@ -27,7 +27,7 @@ class _ClientFormState extends State<ClientForm> {
   bool _showInitialBalanceFields = false;
   String? _initialType; // No seleccionado por defecto
   late final TextEditingController _nameController;
-  late final TextEditingController _emailController;
+  late final TextEditingController _addressController;
   late final TextEditingController _phoneController;
   late final TextEditingController _balanceController;
   bool _isSaving = false;
@@ -36,7 +36,7 @@ class _ClientFormState extends State<ClientForm> {
     super.initState();
     final c = widget.initialClient;
     _nameController = TextEditingController(text: c?.name ?? '');
-    _emailController = TextEditingController(text: c?.email ?? '');
+    _addressController = TextEditingController(text: c?.address ?? '');
     _phoneController = TextEditingController(text: c?.phone ?? '');
     _balanceController = TextEditingController(
       text: c != null ? c.balance.toString() : '',
@@ -113,7 +113,7 @@ class _ClientFormState extends State<ClientForm> {
     final client = ClientHive(
       id: newId,
       name: _nameController.text.trim(),
-      email: _emailController.text.trim(),
+      address: _addressController.text.trim(),
       phone: phoneText,
       balance: type == 'debt' ? -balance : balance,
       synced: widget.initialClient?.synced ?? false,
@@ -229,10 +229,10 @@ class _ClientFormState extends State<ClientForm> {
                   ),
                   const SizedBox(height: 14),
                   TextField(
-                    controller: _emailController,
+                    controller: _addressController,
                     decoration: InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: const Icon(Icons.email_outlined),
+                      labelText: 'Dirección',
+                      prefixIcon: const Icon(Icons.home_outlined),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -252,7 +252,7 @@ class _ClientFormState extends State<ClientForm> {
                         horizontal: 12,
                       ),
                     ),
-                    keyboardType: TextInputType.emailAddress,
+                    keyboardType: TextInputType.text,
                   ),
                   const SizedBox(height: 14),
                   TextField(

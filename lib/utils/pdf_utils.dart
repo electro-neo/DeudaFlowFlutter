@@ -165,9 +165,9 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                           ),
                           pw.TextSpan(
                             text:
-                                (client.email != null &&
-                                    client.email.toString().trim().isNotEmpty)
-                                ? client.email.toString()
+                                (client.address != null &&
+                                    client.address.toString().trim().isNotEmpty)
+                                ? client.address.toString()
                                 : 'Sin Información',
                             style: pw.TextStyle(fontSize: 10),
                           ),

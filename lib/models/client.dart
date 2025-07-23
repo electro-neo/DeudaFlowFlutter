@@ -1,7 +1,7 @@
 class Client {
   final String id;
   final String name;
-  final String? email;
+  final String? address;
   final String? phone;
   final double balance;
   final String? localId;
@@ -9,7 +9,7 @@ class Client {
   const Client({
     required this.id,
     required this.name,
-    this.email,
+    this.address,
     this.phone,
     required this.balance,
     this.localId,
@@ -18,7 +18,7 @@ class Client {
   factory Client.fromMap(Map<String, dynamic> map) => Client(
     id: map['id'].toString(),
     name: map['name']?.toString() ?? '',
-    email: map['email']?.toString(),
+    address: map['address']?.toString(),
     phone: map['phone']?.toString(),
     balance: (map['balance'] as num?)?.toDouble() ?? 0.0,
     localId: map['local_id']?.toString(),
@@ -28,7 +28,7 @@ class Client {
   factory Client.fromHive(dynamic hive) => Client(
     id: hive.id,
     name: hive.name,
-    email: hive.email,
+    address: hive.address,
     phone: hive.phone,
     balance: hive.balance,
     localId: hive.localId,
@@ -37,7 +37,7 @@ class Client {
   Map<String, dynamic> toMap() => {
     'id': id,
     'name': name,
-    'email': email,
+    'address': address,
     'phone': phone,
     'balance': balance,
     'local_id': localId,

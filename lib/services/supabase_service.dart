@@ -36,7 +36,7 @@ class SupabaseService {
     // Solo incluir 'id' si es un UUID válido (36 caracteres)
     final Map<String, dynamic> data = {
       'name': client.name,
-      'email': client.email,
+      'address': client.address,
       'phone': client.phone,
       'balance': client.balance,
       'user_id': userId,
@@ -65,7 +65,7 @@ class SupabaseService {
         .from('clients')
         .update({
           'name': client.name,
-          'email': client.email,
+          'address': client.address,
           'phone': client.phone,
           'balance': client.balance,
           'updated_at': now,

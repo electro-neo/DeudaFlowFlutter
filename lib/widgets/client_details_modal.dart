@@ -83,20 +83,20 @@ class ClientDetailsModal extends StatelessWidget {
             ),
             Row(
               children: [
-                const Icon(Icons.email, size: 16, color: Colors.black45),
+                const Icon(Icons.home, size: 16, color: Colors.black45),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Email: ',
+                        'Dirección: ',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       Expanded(
                         child: SelectableText(
-                          (client.email != null && client.email!.isNotEmpty)
-                              ? client.email!
+                          (client.address != null && client.address!.isNotEmpty)
+                              ? client.address!
                               : 'Sin información',
                           style: const TextStyle(fontSize: 16),
                           enableInteractiveSelection: true,

@@ -391,7 +391,7 @@ class TransactionProvider extends ChangeNotifier {
         final clientModel = Client(
           id: client.id,
           name: client.name,
-          email: client.email,
+          address: client.address,
           phone: client.phone,
           balance: client.balance,
           localId: client.localId,

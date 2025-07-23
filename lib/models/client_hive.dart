@@ -9,7 +9,7 @@ class ClientHive extends HiveObject {
   @HiveField(1)
   String name;
   @HiveField(2)
-  String? email;
+  String? address;
   @HiveField(3)
   String? phone;
   @HiveField(4)
@@ -24,7 +24,7 @@ class ClientHive extends HiveObject {
   ClientHive({
     required this.id,
     required this.name,
-    this.email,
+    this.address,
     this.phone,
     required this.balance,
     this.synced = false,
@@ -52,7 +52,7 @@ class ClientHive extends HiveObject {
     final client = ClientHive(
       id: idValue.toString(),
       name: nameValue.toString(),
-      email: map['email']?.toString(),
+      address: map['address']?.toString(),
       phone: map['phone']?.toString(),
       balance: (map['balance'] is num)
           ? (map['balance'] as num).toDouble()
@@ -80,7 +80,7 @@ class ClientHive extends HiveObject {
   Map<String, dynamic> toMap() => {
     'id': id,
     'name': name,
-    'email': email,
+    'address': address,
     'phone': phone,
     'balance': balance,
     'synced': synced,

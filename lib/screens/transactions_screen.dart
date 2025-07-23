@@ -370,6 +370,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           filterProvider.setClientId(value);
                         },
                         isExpanded: true,
+                        // --- Hacer el dropdown scrollable si hay muchos clientes ---
+                        menuMaxHeight:
+                            250, // Ajusta la altura máxima del menú desplegable
                       ),
                 ),
               ),

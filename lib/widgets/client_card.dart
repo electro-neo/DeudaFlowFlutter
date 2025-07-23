@@ -160,13 +160,13 @@ class ClientCard extends StatelessWidget {
                           ),
                           if (syncText != null)
                             Padding(
-                              padding: const EdgeInsets.only(top: 4),
+                              padding: const EdgeInsets.only(top: 2),
                               child: Align(
                                 alignment: Alignment.centerRight,
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 2,
+                                    horizontal: 5,
+                                    vertical: 1,
                                   ),
                                   decoration: BoxDecoration(
                                     color: syncColor != null
@@ -180,7 +180,7 @@ class ClientCard extends StatelessWidget {
                                                 0xff,
                                           )
                                         : null,
-                                    borderRadius: BorderRadius.circular(10),
+                                    borderRadius: BorderRadius.circular(7),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
@@ -188,16 +188,16 @@ class ClientCard extends StatelessWidget {
                                     children: [
                                       Icon(
                                         syncIcon,
-                                        size: 13,
+                                        size: 10,
                                         color: syncColor,
                                       ),
-                                      SizedBox(width: 3),
+                                      SizedBox(width: 2),
                                       Text(
                                         syncText,
                                         style: TextStyle(
-                                          fontSize: 9.5,
+                                          fontSize: 8,
                                           color: syncColor,
-                                          fontWeight: FontWeight.w600,
+                                          fontWeight: FontWeight.w500,
                                         ),
                                         textAlign: TextAlign.right,
                                       ),

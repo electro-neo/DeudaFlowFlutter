@@ -14,56 +14,56 @@ import 'add_global_transaction_modal.dart';
 import 'faq_help_sheet.dart';
 
 // Banner de debug para mostrar un número aleatorio que cambia en cada hot reload
-class DebugBanner extends StatefulWidget {
-  const DebugBanner({super.key});
-  @override
-  State<DebugBanner> createState() => _DebugBannerState();
-}
+// class DebugBanner extends StatefulWidget {
+//   const DebugBanner({super.key});
+//   @override
+//   State<DebugBanner> createState() => _DebugBannerState();
+// }
 
-class _DebugBannerState extends State<DebugBanner> {
-  int _randomNumber = 0;
+// class _DebugBannerState extends State<DebugBanner> {
+//   int _randomNumber = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    _generateRandom();
-  }
+//   @override
+//   void initState() {
+//     super.initState();
+//     _generateRandom();
+//   }
 
-  void _generateRandom() {
-    _randomNumber = DateTime.now().millisecondsSinceEpoch.remainder(100000);
-  }
+//   void _generateRandom() {
+//     _randomNumber = DateTime.now().millisecondsSinceEpoch.remainder(100000);
+//   }
 
-  @override
-  void didUpdateWidget(covariant DebugBanner oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _generateRandom();
-  }
+//   @override
+//   void didUpdateWidget(covariant DebugBanner oldWidget) {
+//     super.didUpdateWidget(oldWidget);
+//     _generateRandom();
+//   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      color: Colors.purple.withValues(
-        red: ((Colors.purple.r * 255.0).round() & 0xff).toDouble(),
-        green: ((Colors.purple.g * 255.0).round() & 0xff).toDouble(),
-        blue: ((Colors.purple.b * 255.0).round() & 0xff).toDouble(),
-        alpha: 0.8 * 255,
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Center(
-        child: Text(
-          'DEBUG: $_randomNumber',
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-            letterSpacing: 2,
-          ),
-        ),
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Container(
+//       width: double.infinity,
+//       color: Colors.purple.withValues(
+//         red: ((Colors.purple.r * 255.0).round() & 0xff).toDouble(),
+//         green: ((Colors.purple.g * 255.0).round() & 0xff).toDouble(),
+//         blue: ((Colors.purple.b * 255.0).round() & 0xff).toDouble(),
+//         alpha: 0.8 * 255,
+//       ),
+//       padding: const EdgeInsets.symmetric(vertical: 4),
+//       child: Center(
+//         child: Text(
+//           'DEBUG: $_randomNumber',
+//           style: const TextStyle(
+//             color: Colors.white,
+//             fontWeight: FontWeight.bold,
+//             fontSize: 14,
+//             letterSpacing: 2,
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
 
 class MainScaffold extends StatefulWidget {
   final String userId;
@@ -198,7 +198,7 @@ class _MainScaffoldState extends State<MainScaffold> {
 
     return Column(
       children: [
-        const DebugBanner(),
+        // const DebugBanner(),
         Expanded(
           child: Stack(
             children: [

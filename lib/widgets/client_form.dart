@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
+import '../screens/welcome_screen.dart' as welcome_screen;
+import 'package:permission_handler/permission_handler.dart';
 import '../widgets/budgeto_colors.dart';
 import 'package:flutter/services.dart';
 import '../models/client_hive.dart';
 import '../widgets/scale_on_tap.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class ClientForm extends StatefulWidget {
   final Future<ClientHive> Function(ClientHive) onSave;
@@ -23,6 +27,112 @@ class ClientForm extends StatefulWidget {
 }
 
 class _ClientFormState extends State<ClientForm> {
+  Future<Contact?> _selectContactModal(BuildContext context) async {
+    List<Contact> contacts = welcome_screen.globalContacts;
+    bool loading = contacts.isEmpty;
+    String search = '';
+    Contact? selectedContact;
+    int currentPage = 0; // <-- Ahora persiste entre setModalState
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            if (loading) {
+              return SizedBox(
+                height: 350,
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+            List<Contact> filtered = contacts
+                .where(
+                  (c) =>
+                      c.displayName.toLowerCase().contains(
+                        search.toLowerCase(),
+                      ) ||
+                      (c.phones.isNotEmpty &&
+                          c.phones.first.number.contains(search)),
+                )
+                .toList();
+            int pageSize = 50;
+            int pageCount = (filtered.length / pageSize).ceil();
+            return SizedBox(
+              height: MediaQuery.of(context).size.height * 0.7,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: TextField(
+                      decoration: InputDecoration(
+                        labelText: 'Buscar contacto',
+                        prefixIcon: Icon(Icons.search),
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (val) {
+                        setModalState(() => search = val);
+                      },
+                    ),
+                  ),
+                  Expanded(
+                    child: filtered.isEmpty
+                        ? Center(child: Text('No se encontraron contactos'))
+                        : ListView.builder(
+                            itemCount: (filtered.length > pageSize
+                                ? pageSize
+                                : filtered.length - currentPage * pageSize >
+                                      pageSize
+                                ? pageSize
+                                : filtered.length - currentPage * pageSize),
+                            itemBuilder: (ctx, i) {
+                              final c = filtered[i + currentPage * pageSize];
+                              final phone = c.phones.isNotEmpty
+                                  ? c.phones.first.number
+                                  : '';
+                              return ListTile(
+                                title: Text(c.displayName),
+                                subtitle: Text(phone),
+                                onTap: () {
+                                  selectedContact = c;
+                                  Navigator.of(ctx).pop();
+                                },
+                              );
+                            },
+                          ),
+                  ),
+                  if (pageCount > 1)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.arrow_back),
+                            onPressed: currentPage > 0
+                                ? () => setModalState(() => currentPage--)
+                                : null,
+                          ),
+                          Text('Página ${currentPage + 1} de $pageCount'),
+                          IconButton(
+                            icon: Icon(Icons.arrow_forward),
+                            onPressed: currentPage < pageCount - 1
+                                ? () => setModalState(() => currentPage++)
+                                : null,
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+    return selectedContact;
+  }
+
   // Controla si se muestran los campos de saldo inicial
   bool _showInitialBalanceFields = false;
   String? _initialType; // No seleccionado por defecto
@@ -260,6 +370,133 @@ class _ClientFormState extends State<ClientForm> {
                     decoration: InputDecoration(
                       labelText: 'Teléfono',
                       prefixIcon: const Icon(Icons.phone_outlined),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.contacts_outlined),
+                        tooltip: 'Seleccionar desde contactos',
+                        onPressed: () async {
+                          final status = await Permission.contacts.status;
+                          if (status.isGranted ||
+                              (await Permission.contacts.request()).isGranted) {
+                            final selected = await _selectContactModal(context);
+                            if (selected != null &&
+                                selected.phones.isNotEmpty) {
+                              _phoneController.text =
+                                  selected.phones.first.number;
+                              debugPrint(
+                                '[CONTACTS] Teléfono seleccionado: ${selected.phones.first.number}',
+                              );
+                            } else {
+                              debugPrint(
+                                '[CONTACTS] No se seleccionó contacto o no tiene teléfono',
+                              );
+                            }
+                          } else if (status.isDenied || status.isRestricted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Row(
+                                  children: [
+                                    const Expanded(
+                                      child: Text(
+                                        'Permiso de contactos denegado o bloqueado.',
+                                        maxLines: 2,
+                                      ),
+                                    ),
+                                    TextButton(
+                                      child: const Text(
+                                        'Ajustes',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      onPressed: () async {
+                                        await openAppSettings();
+                                      },
+                                    ),
+                                    TextButton(
+                                      child: const Text(
+                                        'Ayuda',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      onPressed: () {
+                                        showDialog(
+                                          context: context,
+                                          builder: (ctx) => AlertDialog(
+                                            title: const Text(
+                                              '¿Por qué no funciona el permiso?',
+                                            ),
+                                            content: const Text(
+                                              'Si el permiso de contactos sigue sin funcionar, puede deberse a restricciones del sistema, control parental, o configuraciones de privacidad.\n\nIntenta reiniciar el dispositivo, revisar los permisos en Ajustes, o consultar la documentación de tu sistema operativo. Si el problema persiste, contacta soporte técnico.',
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                child: const Text('Cerrar'),
+                                                onPressed: () =>
+                                                    Navigator.of(ctx).pop(),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                backgroundColor: Colors.red[700],
+                                duration: const Duration(seconds: 6),
+                              ),
+                            );
+                          } else if (status.isPermanentlyDenied) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Row(
+                                  children: [
+                                    const Expanded(
+                                      child: Text(
+                                        'Permiso de contactos denegado o bloqueado. Debes habilitarlo en Ajustes.',
+                                        maxLines: 2,
+                                      ),
+                                    ),
+                                    TextButton(
+                                      child: const Text(
+                                        'Ajustes',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      onPressed: () async {
+                                        await openAppSettings();
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                backgroundColor: Colors.red[700],
+                                duration: const Duration(seconds: 6),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Row(
+                                  children: [
+                                    const Expanded(
+                                      child: Text(
+                                        'No se pudo obtener el permiso de contactos.',
+                                        maxLines: 2,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                backgroundColor: Colors.red[700],
+                                duration: const Duration(seconds: 6),
+                              ),
+                            );
+                          }
+                        },
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),

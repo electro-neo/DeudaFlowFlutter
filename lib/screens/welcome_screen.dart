@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import '_animated_tap_to_start.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:permission_handler/permission_handler.dart';
+
+// Variable global para almacenar los contactos
+List<Contact> globalContacts = [];
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -17,6 +22,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   @override
   void initState() {
     super.initState();
+    _initContacts();
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -29,6 +35,18 @@ class _WelcomeScreenState extends State<WelcomeScreen>
             Navigator.of(context).pushReplacementNamed('/login');
           }
         });
+  }
+
+  Future<void> _initContacts() async {
+    final status = await Permission.contacts.status;
+    if (status.isGranted || (await Permission.contacts.request()).isGranted) {
+      globalContacts = await FlutterContacts.getContacts(withProperties: true);
+      debugPrint(
+        '[CONTACTS] Contactos cargados al iniciar: ${globalContacts.length}',
+      );
+    } else {
+      debugPrint('[CONTACTS] Permiso de contactos no concedido al iniciar');
+    }
   }
 
   @override

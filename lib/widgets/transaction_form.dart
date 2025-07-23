@@ -32,6 +32,10 @@ class _TransactionFormState extends State<TransactionForm> {
   String? _error;
   bool _loading = false;
 
+  final List<Client> clients = [];
+  // TODO: Reemplaza esto por la obtención real de clientes desde Provider o base de datos
+  // Ejemplo: final clients = Provider.of<ClientProvider>(context).clients;
+
   @override
   void initState() {
     super.initState();
@@ -182,7 +186,7 @@ class _TransactionFormState extends State<TransactionForm> {
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8.0),
                       child: Text(
-                        'Agregar Transacción para ${_selectedClient?.name ?? ''}',
+                        'Agregar Transacción para',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
@@ -190,6 +194,84 @@ class _TransactionFormState extends State<TransactionForm> {
                         ),
                       ),
                     ),
+                    // Si hay cliente seleccionado, solo mostrar el nombre, si no mostrar el selector
+                    (_selectedClient != null)
+                        ? Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 12,
+                              horizontal: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: colorScheme.primary,
+                                width: 1.2,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.person,
+                                  color: Colors.grey,
+                                  size: 28,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    _selectedClient!.name,
+                                    style: const TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            child: DropdownButtonFormField<String>(
+                              value: _selectedClient?.id,
+                              decoration: InputDecoration(
+                                labelText: 'Buscar o seleccionar cliente',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                isDense: true,
+                              ),
+                              items: clients.map((client) {
+                                return DropdownMenuItem<String>(
+                                  value: client.id,
+                                  child: Container(
+                                    height:
+                                        48, // Ajusta la altura aquí según el tamaño de fuente
+                                    alignment: Alignment.centerLeft,
+                                    width: double.infinity,
+                                    child: Text(
+                                      client.name,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                      ), // Cambia el tamaño aquí
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (id) {
+                                setState(() {
+                                  _selectedClient = clients.firstWhere(
+                                    (c) => c.id == id,
+                                  );
+                                });
+                              },
+                              isExpanded: true,
+                              menuMaxHeight:
+                                  250, // Hace el dropdown scrollable si hay muchos clientes
+                            ),
+                          ),
                     // El campo de cliente se elimina aquí porque el cliente ya se selecciona desde el ClientCard
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,

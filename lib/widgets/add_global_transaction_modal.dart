@@ -201,7 +201,7 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
         Padding(
           padding: const EdgeInsets.only(bottom: 16.0),
           child: Text(
-            'Agregar Transacción para ${_selectedClient?.name ?? ''}',
+            'Agregar Transacción para',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
@@ -235,13 +235,23 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
             displayStringForOption: (Client c) => c.name,
             fieldViewBuilder:
                 (context, controller, focusNode, onFieldSubmitted) {
-                  return TextField(
-                    controller: controller,
-                    focusNode: focusNode,
-                    decoration: const InputDecoration(
-                      labelText: 'Buscar o seleccionar cliente',
-                      border: OutlineInputBorder(),
-                      isDense: true,
+                  return Container(
+                    height: 40, // Igual que los ítems del menú
+                    child: TextField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      style: const TextStyle(
+                        fontSize: 16,
+                      ), // Igual que los ítems
+                      decoration: const InputDecoration(
+                        labelText: 'Buscar o seleccionar cliente',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(
+                          vertical: 12,
+                          horizontal: 12,
+                        ),
+                      ),
                     ),
                   );
                 },
@@ -263,23 +273,30 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
                         final Client c = options.elementAt(index);
                         return InkWell(
                           onTap: () => onSelected(c),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 4,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Container(
+                            height: 33, // Menos alto, menos espacio entre ítems
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            alignment: Alignment.centerLeft,
+                            child: Row(
                               children: [
-                                Text(c.name),
+                                Expanded(
+                                  child: Text(
+                                    c.name,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                    ), // Ajusta el tamaño aquí
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
                                 if (c.address != null)
                                   Padding(
-                                    padding: const EdgeInsets.only(top: 1.5),
+                                    padding: const EdgeInsets.only(left: 8),
                                     child: Text(
                                       c.address!,
                                       style: Theme.of(
                                         context,
                                       ).textTheme.bodySmall,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                               ],

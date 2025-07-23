@@ -7,12 +7,12 @@ class ScaleOnTap extends StatefulWidget {
   final Duration duration;
 
   const ScaleOnTap({
-    Key? key,
+    super.key,
     required this.child,
     required this.onTap,
     this.scale = 0.95,
     this.duration = const Duration(milliseconds: 150),
-  }) : super(key: key);
+  });
 
   @override
   State<ScaleOnTap> createState() => _ScaleOnTapState();

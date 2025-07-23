@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class AnimatedTapToStart extends StatefulWidget {
+  const AnimatedTapToStart({super.key});
+
   @override
   State<AnimatedTapToStart> createState() => _AnimatedTapToStartState();
 }

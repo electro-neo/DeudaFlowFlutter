@@ -291,39 +291,114 @@ class _MainScaffoldState extends State<MainScaffold> {
                                       children: [
                                         const SizedBox(height: 16),
                                         Consumer<CurrencyProvider>(
-                                          builder:
-                                              (context, currencyProvider, _) {
-                                                return Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [
-                                                    const Icon(
-                                                      Icons
-                                                          .attach_money_rounded,
-                                                    ),
-                                                    Switch(
-                                                      value:
-                                                          currencyProvider
-                                                              .currency ==
-                                                          'USD',
-                                                      onChanged: (val) {
-                                                        if (val) {
-                                                          currencyProvider
-                                                              .setCurrency(
-                                                                'USD',
+                                          builder: (context, currencyProvider, _) {
+                                            return Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                const Icon(
+                                                  Icons.attach_money_rounded,
+                                                ),
+                                                Switch(
+                                                  value:
+                                                      currencyProvider
+                                                          .currency ==
+                                                      'USD',
+                                                  onChanged: (val) {
+                                                    if (val) {
+                                                      currencyProvider
+                                                          .setCurrency('USD');
+                                                      Future.delayed(
+                                                        const Duration(
+                                                          milliseconds: 200,
+                                                        ),
+                                                        () {
+                                                          showDialog(
+                                                            context: context,
+                                                            builder: (ctx2) {
+                                                              final rate =
+                                                                  currencyProvider
+                                                                      .rate;
+                                                              final controller =
+                                                                  TextEditingController(
+                                                                    text: rate
+                                                                        .toString(),
+                                                                  );
+                                                              return AlertDialog(
+                                                                shape: RoundedRectangleBorder(
+                                                                  borderRadius:
+                                                                      BorderRadius.circular(
+                                                                        16,
+                                                                      ),
+                                                                ),
+                                                                title: const Text(
+                                                                  'Registrar Tasa USD',
+                                                                ),
+                                                                content: TextField(
+                                                                  controller:
+                                                                      controller,
+                                                                  decoration: const InputDecoration(
+                                                                    labelText:
+                                                                        'Tasa USD',
+                                                                    border:
+                                                                        OutlineInputBorder(),
+                                                                    isDense:
+                                                                        true,
+                                                                  ),
+                                                                  keyboardType:
+                                                                      TextInputType.numberWithOptions(
+                                                                        decimal:
+                                                                            true,
+                                                                      ),
+                                                                ),
+                                                                actions: [
+                                                                  TextButton(
+                                                                    onPressed: () =>
+                                                                        Navigator.of(
+                                                                          ctx2,
+                                                                        ).pop(),
+                                                                    child: const Text(
+                                                                      'Cancelar',
+                                                                    ),
+                                                                  ),
+                                                                  ElevatedButton(
+                                                                    onPressed: () {
+                                                                      final rate =
+                                                                          double.tryParse(
+                                                                            controller.text.replaceAll(
+                                                                              ',',
+                                                                              '.',
+                                                                            ),
+                                                                          ) ??
+                                                                          1.0;
+                                                                      currencyProvider
+                                                                          .setRate(
+                                                                            rate,
+                                                                          );
+                                                                      Navigator.of(
+                                                                        ctx2,
+                                                                      ).pop();
+                                                                    },
+                                                                    child: const Text(
+                                                                      'Registrar',
+                                                                    ),
+                                                                  ),
+                                                                ],
                                                               );
-                                                        } else {
-                                                          currencyProvider
-                                                              .setCurrency(
-                                                                'VES',
-                                                              );
-                                                        }
-                                                      },
-                                                    ),
-                                                    const Text('USD'),
-                                                  ],
-                                                );
-                                              },
+                                                            },
+                                                          );
+                                                        },
+                                                      );
+                                                    } else {
+                                                      currencyProvider
+                                                          .setCurrency('VES');
+                                                    }
+                                                  },
+                                                ),
+                                                const Text('USD'),
+                                              ],
+                                            );
+                                          },
                                         ),
                                         const SizedBox(height: 16),
                                         Padding(

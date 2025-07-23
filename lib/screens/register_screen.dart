@@ -14,7 +14,6 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _phoneController = TextEditingController();
   bool _loading = false;
   String? _error;
   DateTime? _lastRegisterAttempt;
@@ -145,23 +144,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           keyboardType: TextInputType.emailAddress,
                         ),
                         const SizedBox(height: 12),
-                        TextField(
-                          controller: _phoneController,
-                          decoration: const InputDecoration(
-                            labelText: 'Teléfono',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.phone, size: 20),
-                            filled: true,
-                            fillColor: Colors.white,
-                          ),
-                          keyboardType: TextInputType.phone,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                              RegExp(r'[0-9+ ]'),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
+                        // ...eliminado campo de teléfono en registro de usuario...
                         TextField(
                           controller: _passwordController,
                           decoration: const InputDecoration(

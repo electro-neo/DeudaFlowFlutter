@@ -279,8 +279,12 @@ class _ClientFormState extends State<ClientForm> {
                         horizontal: 12,
                       ),
                     ),
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    keyboardType: TextInputType.phone,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'[0-9a-zA-Z+\-() ]'),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 14),
                   if (!(widget.initialClient != null && widget.readOnlyBalance))

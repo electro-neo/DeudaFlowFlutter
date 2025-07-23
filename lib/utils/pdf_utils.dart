@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/client.dart';
 import '../models/transaction.dart';
+import 'package:pdf/pdf.dart';
 
 // --- Utilidad para conversión y formateo de moneda en PDF ---
 double convertAmount(num value, bool convert, double? rate) {
@@ -210,9 +211,14 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
           }
           if (txs.isNotEmpty) {
             widgets.add(
-              pw.TableHelper.fromTextArray(
+              pw.Table.fromTextArray(
                 headers: ['Fecha', 'Descripción', 'Tipo', 'Monto'],
-                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                headerStyle: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.white,
+                ),
+                headerDecoration: pw.BoxDecoration(color: PdfColors.blue),
+                cellStyle: pw.TextStyle(fontSize: 10),
                 data: txs
                     .map(
                       (tx) => [
@@ -356,8 +362,14 @@ Future<void> exportAndShareClientReceiptPDF(
           ),
           pw.Text('ID: ${client.id}'),
           pw.SizedBox(height: 10),
-          pw.TableHelper.fromTextArray(
+          pw.Table.fromTextArray(
             headers: ['Fecha', 'Descripción', 'Tipo', 'Monto'],
+            headerStyle: pw.TextStyle(
+              fontWeight: pw.FontWeight.bold,
+              color: PdfColors.white,
+            ),
+            headerDecoration: pw.BoxDecoration(color: PdfColors.blue),
+            cellStyle: pw.TextStyle(fontSize: 10),
             data: transactions
                 .map(
                   (tx) => [

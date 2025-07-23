@@ -132,7 +132,8 @@ class _CyclicAnimatedFadeListState extends State<CyclicAnimatedFadeList>
       needsUpdate = true;
     } else {
       for (int i = 0; i < newChildren.length; i++) {
-        if (newChildren[i].key != _items[i].key || newChildren[i] != _items[i]) {
+        if (newChildren[i].key != _items[i].key ||
+            newChildren[i] != _items[i]) {
           needsUpdate = true;
           break;
         }
@@ -140,6 +141,9 @@ class _CyclicAnimatedFadeListState extends State<CyclicAnimatedFadeList>
     }
     if (needsUpdate) {
       _items = List<Widget>.from(newChildren);
+      // Reinicia el ciclo si los hijos cambian
+      _timer?.cancel();
+      _startCycle();
     }
     // Restart timer if interval changed
     if (widget.interval != oldWidget.interval) {

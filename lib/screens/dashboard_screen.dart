@@ -457,7 +457,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 100), // Aumenta el padding inferior
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [

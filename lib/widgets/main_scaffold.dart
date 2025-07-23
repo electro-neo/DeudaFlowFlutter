@@ -401,6 +401,8 @@ class _MainScaffoldState extends State<MainScaffold> {
                                           },
                                         ),
                                         const SizedBox(height: 16),
+                                        // Toggle de tema oculto temporalmente. Descomenta para habilitar:
+                                        /*
                                         Padding(
                                           padding: const EdgeInsets.symmetric(
                                             vertical: 8,
@@ -435,6 +437,7 @@ class _MainScaffoldState extends State<MainScaffold> {
                                                 ),
                                           ),
                                         ),
+                                        */
                                         const SizedBox(height: 16),
                                         ScaleOnTap(
                                           duration: scaleTapDuration,

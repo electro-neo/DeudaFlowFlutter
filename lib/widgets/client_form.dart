@@ -279,19 +279,19 @@ class _ClientFormState extends State<ClientForm> {
     return Center(
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxWidth: isMobile ? 380 : 400,
-          minWidth: isMobile ? 320 : 340,
+          maxWidth: isMobile ? 400 : 440,
+          minWidth: isMobile ? 340 : 380,
         ),
         child: Padding(
           padding: EdgeInsets.symmetric(
-            vertical: isMobile ? 4.0 : 8.0,
-            horizontal: isMobile ? 0.0 : 2.0,
+            vertical: isMobile ? 1.0 : 1.0,
+            horizontal: isMobile ? 0.0 : 0.0,
           ),
           child: Material(
             color: Colors.white,
             borderRadius: BorderRadius.circular(18),
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,

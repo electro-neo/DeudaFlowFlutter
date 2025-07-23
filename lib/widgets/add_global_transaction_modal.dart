@@ -9,7 +9,12 @@ import '../providers/transaction_provider.dart';
 
 class AddGlobalTransactionModal extends StatelessWidget {
   final String userId;
-  const AddGlobalTransactionModal({super.key, required this.userId});
+  final Widget? child;
+  const AddGlobalTransactionModal({
+    super.key,
+    required this.userId,
+    this.child,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +32,7 @@ class AddGlobalTransactionModal extends StatelessWidget {
               padding: EdgeInsets.zero,
               child: Padding(
                 padding: const EdgeInsets.all(20),
-                child: _GlobalTransactionForm(userId: userId),
+                child: child ?? _GlobalTransactionForm(userId: userId),
               ),
             ),
           );

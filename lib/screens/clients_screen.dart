@@ -18,6 +18,7 @@ import '../widgets/transaction_form.dart';
 // import 'transactions_screen.dart';
 import '../utils/no_scrollbar_behavior.dart';
 import '../providers/tab_provider.dart';
+import '../widgets/add_global_transaction_modal.dart';
 
 class ClientsScreen extends StatefulWidget {
   final String userId;
@@ -293,11 +294,9 @@ class ClientsScreenState extends State<ClientsScreen>
     showDialog(
       context: context,
       barrierDismissible: true,
-      barrierColor: Colors.black.withValues(alpha: 0.25),
-      builder: (dialogContext) => Dialog(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      barrierColor: Colors.black.withAlpha((0.25 * 255).toInt()),
+      builder: (dialogContext) => AddGlobalTransactionModal(
+        userId: widget.userId,
         child: ClientForm(
           initialClient: client,
           userId: widget.userId,

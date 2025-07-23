@@ -12,6 +12,7 @@ import '../providers/currency_provider.dart';
 import '../providers/transaction_filter_provider.dart';
 import 'add_global_transaction_modal.dart';
 import 'faq_help_sheet.dart';
+import 'client_form.dart';
 
 // Banner de debug para mostrar un número aleatorio que cambia en cada hot reload
 // class DebugBanner extends StatefulWidget {
@@ -74,6 +75,22 @@ class MainScaffold extends StatefulWidget {
 }
 
 class _MainScaffoldState extends State<MainScaffold> {
+  void _showClientForm() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AddGlobalTransactionModal(
+        userId: widget.userId,
+        child: ClientForm(
+          onSave: (client) async {
+            Navigator.of(ctx).pop();
+            return client;
+          },
+          userId: widget.userId,
+        ),
+      ),
+    );
+  }
+
   // Centraliza la duración de la animación para todos los botones animados
   final Duration scaleTapDuration = const Duration(milliseconds: 120);
 
@@ -186,8 +203,55 @@ class _MainScaffoldState extends State<MainScaffold> {
             onPressed: () {
               showDialog(
                 context: context,
-                builder: (ctx) =>
-                    AddGlobalTransactionModal(userId: widget.userId),
+                builder: (ctx) => AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  title: const Text('¿Qué deseas registrar?'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.person_add_alt_1),
+                        label: const Text('Cliente'),
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 44),
+                          backgroundColor: Colors.indigo,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.of(ctx).pop();
+                          _showClientForm();
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.add_card),
+                        label: const Text('Transacción'),
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 44),
+                          backgroundColor: Colors.deepPurple,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.of(ctx).pop();
+                          showDialog(
+                            context: context,
+                            builder: (ctx2) => AddGlobalTransactionModal(
+                              userId: widget.userId,
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
               );
             },
             backgroundColor: const Color.fromARGB(255, 145, 88, 236),

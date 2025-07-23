@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/toast_helper.dart';
 import '../widgets/budgeto_colors.dart';
+import 'package:flutter/services.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -13,6 +14,7 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _phoneController = TextEditingController();
   bool _loading = false;
   String? _error;
   DateTime? _lastRegisterAttempt;
@@ -141,6 +143,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             fillColor: Colors.white,
                           ),
                           keyboardType: TextInputType.emailAddress,
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _phoneController,
+                          decoration: const InputDecoration(
+                            labelText: 'Teléfono',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.phone, size: 20),
+                            filled: true,
+                            fillColor: Colors.white,
+                          ),
+                          keyboardType: TextInputType.phone,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'[0-9+ ]'),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 12),
                         TextField(

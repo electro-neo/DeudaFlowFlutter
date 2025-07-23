@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/budgeto_colors.dart';
 import 'package:flutter/services.dart';
 import '../models/client_hive.dart';
+import '../widgets/scale_on_tap.dart';
 
 class ClientForm extends StatefulWidget {
   final Future<ClientHive> Function(ClientHive) onSave;
@@ -22,6 +23,8 @@ class ClientForm extends StatefulWidget {
 }
 
 class _ClientFormState extends State<ClientForm> {
+  // Controla si se muestran los campos de saldo inicial
+  bool _showInitialBalanceFields = false;
   String? _initialType; // No seleccionado por defecto
   late final TextEditingController _nameController;
   late final TextEditingController _emailController;
@@ -58,13 +61,6 @@ class _ClientFormState extends State<ClientForm> {
       });
       return;
     }
-    if (widget.initialClient == null && _initialType == null) {
-      setState(() {
-        _error = 'Debes seleccionar Deuda o Abono';
-        _isSaving = false;
-      });
-      return;
-    }
     final phoneText = _phoneController.text.trim();
     if (phoneText.isEmpty) {
       setState(() {
@@ -73,21 +69,38 @@ class _ClientFormState extends State<ClientForm> {
       });
       return;
     }
-    final balanceText = _balanceController.text.trim();
-    if (balanceText.isEmpty) {
-      setState(() {
-        _error = 'El saldo es obligatorio';
-        _isSaving = false;
-      });
-      return;
-    }
-    final balance = double.tryParse(balanceText);
-    if (balance == null) {
-      setState(() {
-        _error = 'Saldo inválido. Solo números y punto decimal.';
-        _isSaving = false;
-      });
-      return;
+
+    double balance = 0.0;
+    String? type = _initialType;
+    // Si el usuario presionó "Agregar Saldo Inicial", validar los campos
+    if (_showInitialBalanceFields) {
+      if (type == null) {
+        setState(() {
+          _error = 'Debes seleccionar Deuda o Abono';
+          _isSaving = false;
+        });
+        return;
+      }
+      final balanceText = _balanceController.text.trim();
+      if (balanceText.isEmpty) {
+        setState(() {
+          _error = 'El saldo es obligatorio';
+          _isSaving = false;
+        });
+        return;
+      }
+      balance = double.tryParse(balanceText) ?? 0.0;
+      if (balance == 0.0 && balanceText != '0' && balanceText != '0.0') {
+        setState(() {
+          _error = 'Saldo inválido. Solo números y punto decimal.';
+          _isSaving = false;
+        });
+        return;
+      }
+    } else {
+      // Si no se presionó el botón, balance 0 y tipo null
+      balance = 0.0;
+      type = null;
     }
     setState(() {
       _error = null;
@@ -102,7 +115,7 @@ class _ClientFormState extends State<ClientForm> {
       name: _nameController.text.trim(),
       email: _emailController.text.trim(),
       phone: phoneText,
-      balance: _initialType == 'debt' ? -balance : balance,
+      balance: type == 'debt' ? -balance : balance,
       synced: widget.initialClient?.synced ?? false,
       pendingDelete: widget.initialClient?.pendingDelete ?? false,
     );
@@ -271,88 +284,119 @@ class _ClientFormState extends State<ClientForm> {
                   ),
                   const SizedBox(height: 14),
                   if (!(widget.initialClient != null && widget.readOnlyBalance))
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 5.0),
-                      child: Center(
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          decoration: BoxDecoration(
-                            // Fondo unificado desde budgeto_colors.dart
-                            color: kSliderContainerBg,
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(
-                              color: colorScheme.primary,
-                              width: 1.5,
+                    if (!_showInitialBalanceFields &&
+                        widget.initialClient == null)
+                      // Botón para mostrar los campos de saldo inicial
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10.0),
+                        child: Center(
+                          child: ScaleOnTap(
+                            onTap: () => setState(
+                              () => _showInitialBalanceFields = true,
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: colorScheme.primary.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(
+                                  color: colorScheme.primary,
+                                  width: 1.2,
+                                ),
+                              ),
+                              child: Text(
+                                'Agregar Saldo Inicial',
+                                style: TextStyle(
+                                  color: colorScheme.primary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
                             ),
                           ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 5,
-                            vertical: 1,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Botón deslizable para "Deuda"
-                              _ToggleTypeButton(
-                                selected: _initialType == 'debt',
-                                icon: Icons.trending_down,
-                                label: 'Deuda',
-                                color: Colors.red,
-                                onTap: () =>
-                                    setState(() => _initialType = 'debt'),
+                        ),
+                      )
+                    else ...[
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 5.0),
+                        child: Center(
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            decoration: BoxDecoration(
+                              color: kSliderContainerBg,
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                color: colorScheme.primary,
+                                width: 1.5,
                               ),
-                              // Espacio extra entre los dos selectores
-                              SizedBox(
-                                width: 45,
-                              ), // Puedes ajustar el ancho aquí
-                              // Botón deslizable para "Abono"
-                              _ToggleTypeButton(
-                                selected: _initialType == 'payment',
-                                icon: Icons.trending_up,
-                                label: 'Abono',
-                                color: Colors.green,
-                                onTap: () =>
-                                    setState(() => _initialType = 'payment'),
-                              ),
-                            ],
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 5,
+                              vertical: 1,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _ToggleTypeButton(
+                                  selected: _initialType == 'debt',
+                                  icon: Icons.trending_down,
+                                  label: 'Deuda',
+                                  color: Colors.red,
+                                  onTap: () =>
+                                      setState(() => _initialType = 'debt'),
+                                ),
+                                SizedBox(width: 45),
+                                _ToggleTypeButton(
+                                  selected: _initialType == 'payment',
+                                  icon: Icons.trending_up,
+                                  label: 'Abono',
+                                  color: Colors.green,
+                                  onTap: () =>
+                                      setState(() => _initialType = 'payment'),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  TextField(
-                    controller: _balanceController,
-                    decoration: InputDecoration(
-                      labelText: 'Monto',
-                      prefixIcon: const Icon(Icons.attach_money_outlined),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                      TextField(
+                        controller: _balanceController,
+                        decoration: InputDecoration(
+                          labelText: 'Monto',
+                          prefixIcon: const Icon(Icons.attach_money_outlined),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: const Color(
+                            0xFF7C3AED,
+                          ).withValues(alpha: 0.10 * 255),
+                          hoverColor: const Color(
+                            0xFF7C3AED,
+                          ).withValues(alpha: 0.13 * 255),
+                          focusColor: const Color(
+                            0xFF7C3AED,
+                          ).withValues(alpha: 0.16 * 255),
+                          floatingLabelBehavior: FloatingLabelBehavior.auto,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 16,
+                            horizontal: 12,
+                          ),
+                        ),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                        ],
+                        enabled:
+                            !(widget.initialClient != null &&
+                                widget.readOnlyBalance),
                       ),
-                      filled: true,
-                      fillColor: const Color(
-                        0xFF7C3AED,
-                      ).withValues(alpha: 0.10 * 255),
-                      hoverColor: const Color(
-                        0xFF7C3AED,
-                      ).withValues(alpha: 0.13 * 255),
-                      focusColor: const Color(
-                        0xFF7C3AED,
-                      ).withValues(alpha: 0.16 * 255),
-                      floatingLabelBehavior: FloatingLabelBehavior.auto,
-                      contentPadding: const EdgeInsets.symmetric(
-                        vertical: 16,
-                        horizontal: 12,
-                      ),
-                    ),
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
                     ],
-                    enabled:
-                        !(widget.initialClient != null &&
-                            widget.readOnlyBalance),
-                  ),
                   if (_error != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 12.0, bottom: 4.0),

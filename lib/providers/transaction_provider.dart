@@ -243,10 +243,11 @@ class TransactionProvider extends ChangeNotifier {
       t.pendingDelete = t.pendingDelete;
       t.save();
     }
+    List<Transaction> remoteTxs = [];
     if (online) {
       try {
         // Online: usa Supabase y sincroniza Hive
-        final remoteTxs = await _service.fetchTransactions(userId);
+        remoteTxs = await _service.fetchTransactions(userId);
         // --- RECONCILIACIÓN DE IDS: Si el local_id coincide con una transacción local pendiente, actualiza el id local por el UUID real de Supabase ---
         final localTxs = box.values.toList();
         for (final remote in remoteTxs) {
@@ -294,6 +295,8 @@ class TransactionProvider extends ChangeNotifier {
               synced: true,
               pendingDelete: false,
               userId: userId, // Asegura que el userId se guarde en Hive
+              currencyCode: t.currencyCode,
+              localId: t.localId,
             ),
           );
         }
@@ -315,8 +318,24 @@ class TransactionProvider extends ChangeNotifier {
       _transactions = box.values.map((t) => Transaction.fromHive(t)).toList();
       await _recalculateAllClientsBalances();
     }
+    // DEBUG: Mostrar tipos de monedas detectadas en Supabase y Hive
+    final hiveCurrencies = box.values
+        .map((t) => t.currencyCode.trim().toUpperCase())
+        .where((c) => c.isNotEmpty)
+        .toSet();
+    final supabaseCurrencies = remoteTxs
+        .map((t) => t.currencyCode.trim().toUpperCase())
+        .where((c) => c.isNotEmpty)
+        .toSet();
+    debugPrint(
+      '[MONEDAS][HIVE] Tipos detectados: ${hiveCurrencies.join(', ')}',
+    );
+    debugPrint(
+      '[MONEDAS][SUPABASE] Tipos detectados: ${supabaseCurrencies.join(', ')}',
+    );
     // Limpieza automática de transacciones huérfanas (siempre, online y offline)
     await cleanLocalOrphanTransactions();
+    // --- La actualización de monedas disponibles se realiza en el UI (main_scaffold.dart) ---
     notifyListeners();
   }
 

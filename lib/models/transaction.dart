@@ -66,7 +66,7 @@ class Transaction {
       amount: t.amount,
       description: t.description,
       date: t.date,
-      createdAt: t.createdAt ?? t.date,
+      createdAt: t.date, // Solo usa date, TransactionHive no tiene createdAt
       synced: t.synced,
       pendingDelete: t.pendingDelete,
       localId: t.localId,

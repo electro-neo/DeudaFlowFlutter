@@ -640,34 +640,60 @@ class _ClientFormState extends State<ClientForm> {
                           ),
                         ),
                       ),
-                      TextField(
-                        controller: _balanceController,
-                        decoration: InputDecoration(
-                          labelText: 'Monto',
-                          prefixIcon: const Icon(Icons.attach_money_outlined),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _balanceController,
+                              decoration: InputDecoration(
+                                labelText: 'Monto',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                prefixIcon: const Icon(
+                                  Icons.attach_money_outlined,
+                                ),
+                                filled: true,
+                                fillColor: const Color(
+                                  0xFF7C3AED,
+                                ).withValues(alpha: 0.10 * 255),
+                                hoverColor: const Color(
+                                  0xFF7C3AED,
+                                ).withValues(alpha: 0.13 * 255),
+                                focusColor: const Color(
+                                  0xFF7C3AED,
+                                ).withValues(alpha: 0.16 * 255),
+                                floatingLabelBehavior:
+                                    FloatingLabelBehavior.auto,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                  horizontal: 12,
+                                ),
+                              ),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              inputFormatters: [
+                                FilteringTextInputFormatter.allow(
+                                  RegExp(r'[0-9.]'),
+                                ),
+                              ],
+                              enabled:
+                                  !(widget.initialClient != null &&
+                                      widget.readOnlyBalance),
+                            ),
                           ),
-                          filled: true,
-                          fillColor: const Color(
-                            0xFF7C3AED,
-                          ).withValues(alpha: 0.10 * 255),
-                          hoverColor: const Color(
-                            0xFF7C3AED,
-                          ).withValues(alpha: 0.13 * 255),
-                          focusColor: const Color(
-                            0xFF7C3AED,
-                          ).withValues(alpha: 0.16 * 255),
-                          floatingLabelBehavior: FloatingLabelBehavior.auto,
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 16,
-                            horizontal: 12,
-                          ),
-                          suffixIcon: Padding(
-                            padding: const EdgeInsets.only(right: 8.0),
-                            child: DropdownButton<String>(
+                          const SizedBox(width: 8),
+                          SizedBox(
+                            width: 110,
+                            child: DropdownButtonFormField<String>(
                               value: _selectedCurrency,
-                              underline: SizedBox(),
+                              decoration: const InputDecoration(
+                                labelText: 'Moneda',
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                              ),
                               items: currencyList.map((currency) {
                                 return DropdownMenuItem<String>(
                                   value: currency,
@@ -679,19 +705,12 @@ class _ClientFormState extends State<ClientForm> {
                                   _selectedCurrency = value;
                                 });
                               },
-                              isDense: true,
+                              dropdownColor: Colors.white,
+                              menuMaxHeight:
+                                  180, // Limita la altura del menú desplegable
                             ),
                           ),
-                        ),
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        inputFormatters: [
-                          FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
                         ],
-                        enabled:
-                            !(widget.initialClient != null &&
-                                widget.readOnlyBalance),
                       ),
                     ],
                   if (_error != null)

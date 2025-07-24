@@ -55,4 +55,9 @@ Resultado: Ahora los filtros de la pantalla de movimientos están 100% sincroniz
      double listViewTopPadding = 10.0; // Ajusta este valor manualmente
      double listViewBottomPadding = 60.0; // Ajusta este valor manualmente para que el último item sea visible
    - Resultado: Ahora el espacio inferior de la lista se puede ajustar fácilmente, asegurando que el último card de transacción siempre quede visible y no sea tapado por los botones inferiores. El usuario puede modificar estos valores según la necesidad visual de la app.
-Fecha: 2025-07-19
+12. Error: Al crear una transacción global o inicial para un cliente, la app mostraba el error "NoSuchMethodError: Class 'TransactionHive' has no instance getter 'localId'" o "NoSuchMethodError: Class 'TransactionHive' has no instance getter 'createdAt'".
+   - Problema: El modelo TransactionHive no tenía los campos localId ni createdAt, pero el código intentaba acceder a ellos al convertir entre modelos, causando errores y bloqueando la creación/sincronización de transacciones.
+   - Solución: Se agregó el campo localId al modelo TransactionHive y se corrigió el método Transaction.fromHive para usar solo el campo date como createdAt. Ahora la conversión entre modelos es segura y no genera errores.
+   - Resultado: Ya se pueden crear transacciones iniciales y globales para clientes sin errores, y la sincronización con Hive y Supabase funciona correctamente. El flujo de creación y visualización de movimientos es estable y sin bugs relacionados a los modelos.
+Fecha: 2025-07-24
+

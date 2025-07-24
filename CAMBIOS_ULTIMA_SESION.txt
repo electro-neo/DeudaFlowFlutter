@@ -1,5 +1,18 @@
-Verifica la propiedad de la app (opcional)
+Actualización 24/07/2025:
 
+Refactor y corrección del flujo de gestión de monedas y tasas de cambio:
+El CurrencyProvider ahora actualiza su lista de monedas disponibles dinámicamente según las transacciones presentes en la base de datos.
+El diálogo de gestión de monedas muestra un campo y botón "Fijar" para cada moneda detectada (excepto USD), permitiendo establecer la tasa de cambio individualmente.
+Se corrigió el error de actualización de Provider durante el build usando un post-frame callback.
+Se eliminó la lógica rota que intentaba actualizar CurrencyProvider desde TransactionProvider.
+Mejoras de estilo y limpieza de código en la gestión de monedas y el diálogo.
+El sistema de monedas se actualiza automáticamente y de forma reactiva cuando cambian las transacciones.
+Corrección de tipado, uso de colores y eliminación de imports/comentarios innecesarios.
+Commit sugerido:
+
+"Refactor: Gestión dinámica y reactiva de monedas y tasas de cambio. Diálogo multi-moneda, fixes de Provider y build, limpieza de código."
+
+Verifica la propiedad de la app (opcional)
 Actualización 18/07/2025:
 
 - El fondo degradado global y el notch transparente ahora se aplican correctamente en todas las pantallas principales (Dashboard, Clientes y Transacciones), eliminando superposiciones y glitches visuales.

@@ -444,6 +444,9 @@ class _TransactionFormState extends State<TransactionForm> {
                                 _currencyCode = code ?? 'VES';
                               });
                             },
+                            dropdownColor: Colors.white,
+                            menuMaxHeight:
+                                180, // Limita la altura del menú desplegable
                           ),
                         ),
                       ],

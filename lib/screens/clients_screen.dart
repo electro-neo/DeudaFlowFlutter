@@ -290,7 +290,7 @@ class ClientsScreenState extends State<ClientsScreen>
     }
   }
 
-  void _showClientForm([ClientHive? client]) {
+  void showClientForm([ClientHive? client]) {
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -329,6 +329,7 @@ class ClientsScreenState extends State<ClientsScreen>
                   date: now,
                   createdAt: now,
                   synced: false, // Siempre pendiente por sincronizar
+                  currencyCode: newClient.currencyCode ?? 'VES',
                 );
                 await txProvider.addTransaction(tx, widget.userId, realId);
                 // Sincroniza en segundo plano tras agregar movimiento de saldo inicial
@@ -501,7 +502,7 @@ class ClientsScreenState extends State<ClientsScreen>
                                         ).colorScheme.primary,
                                         foregroundColor: Colors.white,
                                         elevation: 2,
-                                        onPressed: () => _showClientForm(),
+                                        onPressed: () => showClientForm(),
                                         tooltip: 'Registrar Cliente',
                                         child: const Icon(Icons.add),
                                       ),
@@ -953,7 +954,7 @@ class ClientsScreenState extends State<ClientsScreen>
                                                 client: client,
                                                 userId: widget.userId,
                                                 onEdit: () =>
-                                                    _showClientForm(client),
+                                                    showClientForm(client),
                                                 onDelete: () async {
                                                   final provider =
                                                       Provider.of<

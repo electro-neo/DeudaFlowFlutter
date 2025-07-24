@@ -126,10 +126,10 @@ class SupabaseService {
       'type': tx.type,
       'amount': tx.amount,
       'description': tx.description,
-      'date': tx.date
-          .toIso8601String(), // Usa la fecha seleccionada en el formulario
+      'date': tx.date.toIso8601String(),
       'created_at': now,
       'local_id': tx.id, // id local generado en Hive
+      'currency_code': tx.currencyCode, // <-- Agregado campo de moneda
     }, onConflict: 'local_id').select();
     if (response.isEmpty) {
       debugPrint(

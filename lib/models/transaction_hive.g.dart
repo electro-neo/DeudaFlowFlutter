@@ -26,13 +26,14 @@ class TransactionHiveAdapter extends TypeAdapter<TransactionHive> {
       synced: fields[5] as bool,
       pendingDelete: fields[7] as bool,
       userId: fields[8] as String?,
+      currencyCode: fields[9] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, TransactionHive obj) {
     writer
-      ..writeByte(9)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -50,7 +51,9 @@ class TransactionHiveAdapter extends TypeAdapter<TransactionHive> {
       ..writeByte(7)
       ..write(obj.pendingDelete)
       ..writeByte(8)
-      ..write(obj.userId);
+      ..write(obj.userId)
+      ..writeByte(9)
+      ..write(obj.currencyCode);
   }
 
   @override

@@ -21,6 +21,8 @@ class TransactionHive extends HiveObject {
   bool pendingDelete;
   @HiveField(8)
   String? userId;
+  @HiveField(9)
+  String currencyCode; // Código de moneda (ej: 'USD', 'VES', 'COP')
 
   TransactionHive({
     required this.id,
@@ -32,6 +34,7 @@ class TransactionHive extends HiveObject {
     this.synced = false,
     this.pendingDelete = false,
     this.userId,
+    this.currencyCode = 'VES', // Valor por defecto para datos antiguos
   });
 
   factory TransactionHive.fromMap(Map<String, dynamic> map) {
@@ -93,6 +96,7 @@ class TransactionHive extends HiveObject {
           ? map['pendingDelete'] as bool
           : (map['pendingDelete'] is int ? (map['pendingDelete'] == 1) : false),
       userId: map['userId']?.toString(),
+      currencyCode: map['currency_code']?.toString() ?? 'VES',
     );
   }
 
@@ -106,5 +110,6 @@ class TransactionHive extends HiveObject {
     'synced': synced,
     'pendingDelete': pendingDelete,
     'userId': userId,
+    'currency_code': currencyCode,
   };
 }

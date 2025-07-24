@@ -27,6 +27,7 @@ class _TransactionFormState extends State<TransactionForm> {
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
   String? _type; // No seleccionado por defecto
+  String _currencyCode = 'VES';
   DateTime _selectedDate = DateTime.now();
   Client? _selectedClient;
   String? _error;
@@ -70,6 +71,14 @@ class _TransactionFormState extends State<TransactionForm> {
         _loading = false;
       });
       logError('Debes seleccionar Deuda o Abono');
+      return;
+    }
+    if (_currencyCode.isEmpty) {
+      setState(() {
+        _error = 'Debes seleccionar una moneda';
+        _loading = false;
+      });
+      logError('Debes seleccionar una moneda');
       return;
     }
     final amount = double.tryParse(_amountController.text);
@@ -117,6 +126,7 @@ class _TransactionFormState extends State<TransactionForm> {
             date: _selectedDate,
             createdAt: now,
             localId: localId,
+            currencyCode: _currencyCode,
           ),
         );
       }
@@ -342,33 +352,101 @@ class _TransactionFormState extends State<TransactionForm> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    TextField(
-                      controller: _amountController,
-                      decoration: InputDecoration(
-                        labelText: 'Monto',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        prefixIcon: Padding(
-                          padding: const EdgeInsets.only(left: 8, right: 4),
-                          child: Text(
-                            symbol,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _amountController,
+                            decoration: InputDecoration(
+                              labelText: 'Monto',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              prefixIcon: Padding(
+                                padding: const EdgeInsets.only(
+                                  left: 8,
+                                  right: 4,
+                                ),
+                                child: Text(
+                                  symbol,
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              prefixIconConstraints: const BoxConstraints(
+                                minWidth: 0,
+                                minHeight: 0,
+                              ),
+                              isDense: true,
                             ),
+                            keyboardType: TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            textInputAction: TextInputAction.next,
                           ),
                         ),
-                        prefixIconConstraints: const BoxConstraints(
-                          minWidth: 0,
-                          minHeight: 0,
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 110,
+                          child: DropdownButtonFormField<String>(
+                            value: _currencyCode,
+                            decoration: const InputDecoration(
+                              labelText: 'Moneda',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            items:
+                                [
+                                      'USD',
+                                      'VES',
+                                      'COP',
+                                      'EUR',
+                                      'ARS',
+                                      'BRL',
+                                      'CLP',
+                                      'MXN',
+                                      'PEN',
+                                      'BOB',
+                                      'PYG',
+                                      'UYU',
+                                      'CRC',
+                                      'GTQ',
+                                      'HNL',
+                                      'NIO',
+                                      'DOP',
+                                      'CUC',
+                                      'CAD',
+                                      'GBP',
+                                      'JPY',
+                                      'CNY',
+                                      'KRW',
+                                      'INR',
+                                      'TRY',
+                                      'RUB',
+                                      'CHF',
+                                      'AUD',
+                                      'NZD',
+                                      'SGD',
+                                      'HKD',
+                                      'ZAR',
+                                    ]
+                                    .map(
+                                      (code) => DropdownMenuItem(
+                                        value: code,
+                                        child: Text(code),
+                                      ),
+                                    )
+                                    .toList(),
+                            onChanged: (code) {
+                              setState(() {
+                                _currencyCode = code ?? 'VES';
+                              });
+                            },
+                          ),
                         ),
-                        isDense: true,
-                      ),
-                      keyboardType: TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      textInputAction: TextInputAction.next,
+                      ],
                     ),
                     const SizedBox(height: 12),
                     GestureDetector(

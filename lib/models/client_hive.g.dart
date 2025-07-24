@@ -25,13 +25,14 @@ class ClientHiveAdapter extends TypeAdapter<ClientHive> {
       synced: fields[5] as bool,
       pendingDelete: fields[6] as bool,
       localId: fields[7] as String?,
+      currencyCode: fields[8] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, ClientHive obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -47,7 +48,9 @@ class ClientHiveAdapter extends TypeAdapter<ClientHive> {
       ..writeByte(6)
       ..write(obj.pendingDelete)
       ..writeByte(7)
-      ..write(obj.localId);
+      ..write(obj.localId)
+      ..writeByte(8)
+      ..write(obj.currencyCode);
   }
 
   @override

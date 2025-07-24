@@ -141,6 +141,35 @@ class _ClientFormState extends State<ClientForm> {
   late final TextEditingController _phoneController;
   late final TextEditingController _balanceController;
   bool _isSaving = false;
+
+  // Lista de monedas (prioridad: USD, VES, COP, EUR, luego otras)
+  final List<String> currencyList = [
+    'USD',
+    'VES',
+    'COP',
+    'EUR',
+    'ARS',
+    'BRL',
+    'CLP',
+    'MXN',
+    'PEN',
+    'UYU',
+    'GBP',
+    'CHF',
+    'RUB',
+    'TRY',
+    'JPY',
+    'CNY',
+    'KRW',
+    'INR',
+    'SGD',
+    'HKD',
+    'CAD',
+    'AUD',
+    'NZD',
+    'ZAR',
+  ];
+  String? _selectedCurrency = 'USD';
   @override
   void initState() {
     super.initState();
@@ -182,8 +211,15 @@ class _ClientFormState extends State<ClientForm> {
 
     double balance = 0.0;
     String? type = _initialType;
-    // Si el usuario presionó "Agregar Saldo Inicial", validar los campos
+    // Validar moneda seleccionada
     if (_showInitialBalanceFields) {
+      if (_selectedCurrency == null || _selectedCurrency!.isEmpty) {
+        setState(() {
+          _error = 'Debes seleccionar la moneda.';
+          _isSaving = false;
+        });
+        return;
+      }
       if (type == null) {
         setState(() {
           _error = 'Debes seleccionar Deuda o Abono';
@@ -228,6 +264,7 @@ class _ClientFormState extends State<ClientForm> {
       balance: type == 'debt' ? -balance : balance,
       synced: widget.initialClient?.synced ?? false,
       pendingDelete: widget.initialClient?.pendingDelete ?? false,
+      currencyCode: _selectedCurrency ?? 'USD',
     );
     try {
       await widget.onSave(client);
@@ -625,6 +662,25 @@ class _ClientFormState extends State<ClientForm> {
                           contentPadding: const EdgeInsets.symmetric(
                             vertical: 16,
                             horizontal: 12,
+                          ),
+                          suffixIcon: Padding(
+                            padding: const EdgeInsets.only(right: 8.0),
+                            child: DropdownButton<String>(
+                              value: _selectedCurrency,
+                              underline: SizedBox(),
+                              items: currencyList.map((currency) {
+                                return DropdownMenuItem<String>(
+                                  value: currency,
+                                  child: Text(currency),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedCurrency = value;
+                                });
+                              },
+                              isDense: true,
+                            ),
                           ),
                         ),
                         keyboardType: const TextInputType.numberWithOptions(

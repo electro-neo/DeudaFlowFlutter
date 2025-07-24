@@ -21,6 +21,9 @@ class ClientHive extends HiveObject {
   @HiveField(7)
   String? localId;
 
+  @HiveField(8)
+  String currencyCode; // Código de moneda (ej: 'USD', 'VES', 'COP')
+
   ClientHive({
     required this.id,
     required this.name,
@@ -30,6 +33,7 @@ class ClientHive extends HiveObject {
     this.synced = false,
     this.pendingDelete = false,
     this.localId,
+    this.currencyCode = 'VES', // Valor por defecto para datos antiguos
   });
 
   factory ClientHive.fromMap(Map<String, dynamic> map) {
@@ -70,6 +74,7 @@ class ClientHive extends HiveObject {
                       ? (map['pendingDelete'] == 1)
                       : false)),
       localId: map['local_id']?.toString(),
+      currencyCode: map['currency_code']?.toString() ?? 'VES',
     );
     debugPrint(
       '[CLIENT_HIVE][fromMap] Instancia creada: id=\x1B[36m${client.id}\x1B[0m, name=\x1B[36m${client.name}\x1B[0m, pendingDelete=${client.pendingDelete}, synced=${client.synced}',
@@ -86,5 +91,6 @@ class ClientHive extends HiveObject {
     'synced': synced,
     'pendingDelete': pendingDelete,
     'local_id': localId,
+    'currency_code': currencyCode,
   };
 }

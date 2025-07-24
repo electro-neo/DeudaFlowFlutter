@@ -13,6 +13,9 @@ import '../providers/transaction_filter_provider.dart';
 import 'add_global_transaction_modal.dart';
 import 'faq_help_sheet.dart';
 import 'client_form.dart';
+import '../providers/client_provider.dart';
+import '../providers/transaction_provider.dart';
+import '../models/transaction.dart';
 
 // Banner de debug para mostrar un número aleatorio que cambia en cada hot reload
 // class DebugBanner extends StatefulWidget {
@@ -75,20 +78,9 @@ class MainScaffold extends StatefulWidget {
 }
 
 class _MainScaffoldState extends State<MainScaffold> {
+  // El FAB ahora llama al método público de ClientsScreenState
   void _showClientForm() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AddGlobalTransactionModal(
-        userId: widget.userId,
-        child: ClientForm(
-          onSave: (client) async {
-            Navigator.of(ctx).pop();
-            return client;
-          },
-          userId: widget.userId,
-        ),
-      ),
-    );
+    _clientsScreenKey.currentState?.showClientForm();
   }
 
   // Centraliza la duración de la animación para todos los botones animados
@@ -224,7 +216,7 @@ class _MainScaffoldState extends State<MainScaffold> {
                         ),
                         onPressed: () {
                           Navigator.of(ctx).pop();
-                          _showClientForm();
+                          _showClientForm(); // Llama al método de ClientsScreen
                         },
                       ),
                       const SizedBox(height: 16),

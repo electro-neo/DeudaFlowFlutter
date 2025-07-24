@@ -402,17 +402,20 @@ class _MainScaffoldState extends State<MainScaffold> {
                                                       ),
                                                       child: Row(
                                                         children: [
-                                                          const Icon(
-                                                            Icons
-                                                                .attach_money_rounded,
+                                                          const Icon(Icons.attach_money_rounded,
                                                             size: 18,
                                                           ),
                                                           const SizedBox(
                                                             width: 6,
                                                           ),
                                                           Text(
-                                                            currencyProvider
-                                                                .currency,
+                                                            'Gestionar monedas',
+                                                            style:
+                                                                const TextStyle(
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w500,
+                                                                ),
                                                           ),
                                                         ],
                                                       ),
@@ -450,7 +453,7 @@ class _MainScaffoldState extends State<MainScaffold> {
                                                                         ),
                                                                   ),
                                                                   title: const Text(
-                                                                    'Gestionar tasas de monedas',
+                                                                    'Gestion de monedas',
                                                                   ),
                                                                   content: SizedBox(
                                                                     width: 340,

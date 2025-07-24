@@ -6,6 +6,7 @@ import '../models/client.dart';
 import '../models/transaction.dart';
 import '../providers/client_provider.dart';
 import '../providers/transaction_provider.dart';
+import '../providers/currency_provider.dart';
 
 class AddGlobalTransactionModal extends StatelessWidget {
   final String userId;
@@ -59,6 +60,8 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
   Client? _selectedClient;
   String? _error;
   bool _loading = false;
+  final _rateController = TextEditingController();
+  bool _rateFieldVisible = false;
 
   // Usar logger en vez de print para errores y advertencias
   Future<void> _save() async {
@@ -66,10 +69,7 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
       _error = null;
       _loading = true;
     });
-    // ignore: avoid_print
     void logError(String message) {
-      // Reemplaza por tu logger preferido si tienes uno global, por ejemplo: logger.e(message);
-      // Por ahora, usa debugPrint (no print) para evitar advertencias en producción
       debugPrint('[GlobalTransactionForm ERROR] $message');
     }
 
@@ -114,6 +114,154 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
       logError('Descripción obligatoria');
       return;
     }
+
+    // VALIDACIÓN DE TASA DE CAMBIO
+    final currencyProvider = Provider.of<CurrencyProvider>(
+      context,
+      listen: false,
+    );
+    if (_currencyCode.toUpperCase() != 'USD' &&
+        (currencyProvider.exchangeRates[_currencyCode.toUpperCase()] == null ||
+            currencyProvider.exchangeRates[_currencyCode.toUpperCase()] == 0)) {
+      setState(() {
+        _loading = false;
+      });
+      await showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text('Falta tasa de cambio'),
+          content: Text(
+            'Debes registrar la tasa de cambio para la moneda "$_currencyCode" antes de guardar la transacción.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                // Abre el diálogo de gestión de monedas
+                showDialog(
+                  context: context,
+                  builder: (ctx2) {
+                    final currencies = currencyProvider.availableCurrencies
+                        .where((c) => c != 'USD')
+                        .toList();
+                    final rates = {
+                      for (final c in currencies)
+                        c: TextEditingController(
+                          text:
+                              currencyProvider.exchangeRates[c]?.toString() ??
+                              '',
+                        ),
+                    };
+                    return StatefulBuilder(
+                      builder: (context, setState) {
+                        return AlertDialog(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          title: const Text('Gestionar tasas de monedas'),
+                          content: ConstrainedBox(
+                            constraints: const BoxConstraints(
+                              maxWidth: 340,
+                              maxHeight: 320,
+                            ),
+                            child: Scrollbar(
+                              thumbVisibility: true,
+                              child: ListView.builder(
+                                shrinkWrap: true,
+                                itemCount: currencies.length,
+                                itemBuilder: (context, idx) {
+                                  final c = currencies[idx];
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 8,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: TextField(
+                                            controller: rates[c],
+                                            decoration: InputDecoration(
+                                              labelText: 'Tasa $c a USD',
+                                              border:
+                                                  const OutlineInputBorder(),
+                                              isDense: true,
+                                              // Resalta el campo de la moneda faltante
+                                              fillColor:
+                                                  c ==
+                                                      _currencyCode
+                                                          .toUpperCase()
+                                                  ? Colors.yellow[100]
+                                                  : null,
+                                              filled:
+                                                  c ==
+                                                  _currencyCode.toUpperCase(),
+                                            ),
+                                            keyboardType:
+                                                const TextInputType.numberWithOptions(
+                                                  decimal: true,
+                                                ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.indigo,
+                                            foregroundColor: Colors.white,
+                                            minimumSize: const Size(60, 40),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                          ),
+                                          child: const Text('Fijar'),
+                                          onPressed: () {
+                                            final val = double.tryParse(
+                                              rates[c]!.text.replaceAll(
+                                                ',',
+                                                '.',
+                                              ),
+                                            );
+                                            if (val != null) {
+                                              currencyProvider
+                                                  .setRateForCurrency(c, val);
+                                              setState(() {});
+                                            }
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx2).pop(),
+                              child: const Text('Cerrar'),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+              child: const Text('Registrar tasa ahora'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     try {
       final now = DateTime.now();
       String randomLetters(int n) {
@@ -150,8 +298,6 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
         _selectedClient!.id,
       );
       // Refresca la lista de clientes y notifica a la UI para actualizar el statscard inmediatamente
-      // ignore: use_build_context_synchronously
-      // Se protege el uso de context tras el async gap con mounted
       if (!mounted) return;
       await Provider.of<ClientProvider>(
         context,
@@ -162,9 +308,7 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
           SnackBar(content: Text('Transacción guardada correctamente')),
         );
         Future.delayed(const Duration(milliseconds: 350), () {
-          // ignore: use_build_context_synchronously
           if (Navigator.of(context).canPop()) {
-            // ignore: use_build_context_synchronously
             Navigator.of(context).pop();
           }
         });
@@ -203,6 +347,15 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
     final clients = context.watch<ClientProvider>().clients;
     final colorScheme = Theme.of(context).colorScheme;
     final symbol = "";
+    final currencyProvider = Provider.of<CurrencyProvider>(context);
+    final rateMissing =
+        _currencyCode.toUpperCase() != 'USD' &&
+        (currencyProvider.exchangeRates[_currencyCode.toUpperCase()] == null ||
+            currencyProvider.exchangeRates[_currencyCode.toUpperCase()] == 0);
+    _rateFieldVisible = rateMissing;
+    final rateValid =
+        double.tryParse(_rateController.text.replaceAll(',', '.')) != null &&
+        double.parse(_rateController.text.replaceAll(',', '.')) > 0;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -466,6 +619,8 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
                 onChanged: (code) {
                   setState(() {
                     _currencyCode = code ?? 'VES';
+                    // Si cambia la moneda, limpiar el campo de tasa
+                    _rateController.text = '';
                   });
                 },
                 dropdownColor: Colors.white,
@@ -474,6 +629,24 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
             ),
           ],
         ),
+        if (_rateFieldVisible)
+          Padding(
+            padding: const EdgeInsets.only(top: 10.0, bottom: 4.0),
+            child: TextField(
+              controller: _rateController,
+              decoration: InputDecoration(
+                labelText: 'Tasa ${_currencyCode.toUpperCase()} a USD',
+                border: OutlineInputBorder(),
+                isDense: true,
+                prefixIcon: Icon(Icons.attach_money_rounded),
+                errorText: _rateController.text.isNotEmpty && !rateValid
+                    ? 'Ingrese una tasa válida (> 0)'
+                    : null,
+              ),
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              onChanged: (_) => setState(() {}),
+            ),
+          ),
         const SizedBox(height: 12),
         GestureDetector(
           onTap: _pickDate,
@@ -551,7 +724,18 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
                   ? 'Guardando...'
                   : (_type == 'debt' ? 'Guardar Deuda' : 'Guardar Abono'),
             ),
-            onPressed: _loading ? null : _save,
+            onPressed: _loading || (_rateFieldVisible && !rateValid)
+                ? null
+                : () async {
+                    // Si falta la tasa y el campo es válido, registrar la tasa antes de guardar
+                    if (_rateFieldVisible && rateValid) {
+                      currencyProvider.setRateForCurrency(
+                        _currencyCode.toUpperCase(),
+                        double.parse(_rateController.text.replaceAll(',', '.')),
+                      );
+                    }
+                    await _save();
+                  },
           ),
         ),
         const SizedBox(height: 10),

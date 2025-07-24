@@ -453,7 +453,7 @@ class _MainScaffoldState extends State<MainScaffold> {
                                                                         ),
                                                                   ),
                                                                   title: const Text(
-                                                                    'Gestion de monedas',
+                                                                    'Selecciona la tasa de cambio',
                                                                   ),
                                                                   content: SizedBox(
                                                                     width: 340,

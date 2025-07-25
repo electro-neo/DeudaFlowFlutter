@@ -402,7 +402,9 @@ class _MainScaffoldState extends State<MainScaffold> {
                                                       ),
                                                       child: Row(
                                                         children: [
-                                                          const Icon(Icons.attach_money_rounded,
+                                                          const Icon(
+                                                            Icons
+                                                                .attach_money_rounded,
                                                             size: 18,
                                                           ),
                                                           const SizedBox(
@@ -452,96 +454,199 @@ class _MainScaffoldState extends State<MainScaffold> {
                                                                           16,
                                                                         ),
                                                                   ),
-                                                                  title: const Text(
-                                                                    'Selecciona la tasa de cambio',
-                                                                  ),
-                                                                  content: SizedBox(
-                                                                    width: 340,
-                                                                    // Limita la altura máxima del diálogo
-                                                                    child: ConstrainedBox(
-                                                                      constraints: const BoxConstraints(
-                                                                        maxHeight:
-                                                                            320,
+                                                                  title: Row(
+                                                                    children: const [
+                                                                      Icon(
+                                                                        Icons
+                                                                            .attach_money_rounded,
+                                                                        color: Colors
+                                                                            .indigo,
                                                                       ),
-                                                                      child: Scrollbar(
-                                                                        thumbVisibility:
-                                                                            true,
-                                                                        child: ListView.builder(
-                                                                          shrinkWrap:
-                                                                              true,
-                                                                          itemCount:
-                                                                              currencies.length,
-                                                                          itemBuilder:
-                                                                              (
-                                                                                context,
-                                                                                idx,
-                                                                              ) {
-                                                                                final c = currencies[idx];
-                                                                                return Padding(
-                                                                                  padding: const EdgeInsets.symmetric(
-                                                                                    vertical: 8,
-                                                                                  ),
-                                                                                  child: Row(
-                                                                                    children: [
-                                                                                      Expanded(
-                                                                                        child: TextField(
-                                                                                          controller: rates[c],
-                                                                                          decoration: InputDecoration(
-                                                                                            labelText: 'Tasa $c a USD',
-                                                                                            border: const OutlineInputBorder(),
-                                                                                            isDense: true,
-                                                                                          ),
-                                                                                          keyboardType: const TextInputType.numberWithOptions(
-                                                                                            decimal: true,
-                                                                                          ),
-                                                                                        ),
-                                                                                      ),
-                                                                                      const SizedBox(
-                                                                                        width: 8,
-                                                                                      ),
-                                                                                      ElevatedButton(
-                                                                                        style: ElevatedButton.styleFrom(
-                                                                                          backgroundColor: Colors.indigo,
-                                                                                          foregroundColor: Colors.white,
-                                                                                          minimumSize: const Size(
-                                                                                            60,
-                                                                                            40,
-                                                                                          ),
-                                                                                          shape: RoundedRectangleBorder(
-                                                                                            borderRadius: BorderRadius.circular(
-                                                                                              8,
-                                                                                            ),
-                                                                                          ),
-                                                                                        ),
-                                                                                        child: const Text(
-                                                                                          'Fijar',
-                                                                                        ),
-                                                                                        onPressed: () {
-                                                                                          final val = double.tryParse(
-                                                                                            rates[c]!.text.replaceAll(
-                                                                                              ',',
-                                                                                              '.',
-                                                                                            ),
-                                                                                          );
-                                                                                          if (val !=
-                                                                                              null) {
-                                                                                            currencyProvider.setRateForCurrency(
-                                                                                              c,
-                                                                                              val,
-                                                                                            );
-                                                                                            setState(
-                                                                                              () {},
-                                                                                            );
-                                                                                          }
-                                                                                        },
-                                                                                      ),
-                                                                                    ],
-                                                                                  ),
-                                                                                );
-                                                                              },
+                                                                      SizedBox(
+                                                                        width:
+                                                                            8,
+                                                                      ),
+                                                                      Text(
+                                                                        'Gestión de monedas',
+                                                                        style: TextStyle(
+                                                                          fontWeight:
+                                                                              FontWeight.bold,
                                                                         ),
                                                                       ),
-                                                                    ),
+                                                                    ],
+                                                                  ),
+                                                                  content: Column(
+                                                                    mainAxisSize:
+                                                                        MainAxisSize
+                                                                            .min,
+                                                                    crossAxisAlignment:
+                                                                        CrossAxisAlignment
+                                                                            .start,
+                                                                    children: [
+                                                                      const Text(
+                                                                        'Puedes registrar hasta 2 monedas adicionales a USD. Aquí puedes fijar la tasa, cambiarla manualmente o eliminar monedas para agregar nuevas.',
+                                                                        style: TextStyle(
+                                                                          fontSize:
+                                                                              14,
+                                                                          color:
+                                                                              Colors.black87,
+                                                                        ),
+                                                                      ),
+                                                                      const SizedBox(
+                                                                        height:
+                                                                            10,
+                                                                      ),
+                                                                      SizedBox(
+                                                                        width:
+                                                                            340,
+                                                                        child: ConstrainedBox(
+                                                                          constraints: const BoxConstraints(
+                                                                            maxHeight:
+                                                                                320,
+                                                                          ),
+                                                                          child: Scrollbar(
+                                                                            thumbVisibility:
+                                                                                true,
+                                                                            child: ListView.builder(
+                                                                              shrinkWrap: true,
+                                                                              itemCount: currencies.length,
+                                                                              itemBuilder:
+                                                                                  (
+                                                                                    context,
+                                                                                    idx,
+                                                                                  ) {
+                                                                                    final c = currencies[idx];
+                                                                                    return Card(
+                                                                                      margin: const EdgeInsets.symmetric(
+                                                                                        vertical: 6,
+                                                                                      ),
+                                                                                      elevation: 1,
+                                                                                      child: Padding(
+                                                                                        padding: const EdgeInsets.symmetric(
+                                                                                          vertical: 8,
+                                                                                          horizontal: 8,
+                                                                                        ),
+                                                                                        child: Row(
+                                                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                                                          children: [
+                                                                                            CircleAvatar(
+                                                                                              backgroundColor: Colors.indigo.shade50,
+                                                                                              child: Text(
+                                                                                                c,
+                                                                                                style: const TextStyle(
+                                                                                                  fontWeight: FontWeight.bold,
+                                                                                                  color: Colors.indigo,
+                                                                                                ),
+                                                                                              ),
+                                                                                              radius: 18,
+                                                                                            ),
+                                                                                            const SizedBox(
+                                                                                              width: 10,
+                                                                                            ),
+                                                                                            Expanded(
+                                                                                              child: Column(
+                                                                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                                                                children: [
+                                                                                                  TextField(
+                                                                                                    controller: rates[c],
+                                                                                                    decoration: InputDecoration(
+                                                                                                      labelText: 'Tasa $c a USD',
+                                                                                                      border: const OutlineInputBorder(),
+                                                                                                      isDense: true,
+                                                                                                    ),
+                                                                                                    keyboardType: const TextInputType.numberWithOptions(
+                                                                                                      decimal: true,
+                                                                                                    ),
+                                                                                                  ),
+                                                                                                  const SizedBox(
+                                                                                                    height: 4,
+                                                                                                  ),
+                                                                                                  Row(
+                                                                                                    children: [
+                                                                                                      ElevatedButton.icon(
+                                                                                                        style: ElevatedButton.styleFrom(
+                                                                                                          backgroundColor: Colors.indigo,
+                                                                                                          foregroundColor: Colors.white,
+                                                                                                          minimumSize: const Size(
+                                                                                                            60,
+                                                                                                            40,
+                                                                                                          ),
+                                                                                                          shape: RoundedRectangleBorder(
+                                                                                                            borderRadius: BorderRadius.circular(
+                                                                                                              8,
+                                                                                                            ),
+                                                                                                          ),
+                                                                                                        ),
+                                                                                                        icon: const Icon(
+                                                                                                          Icons.save,
+                                                                                                          size: 18,
+                                                                                                        ),
+                                                                                                        label: const Text(
+                                                                                                          'Fijar',
+                                                                                                          style: TextStyle(
+                                                                                                            fontSize: 13,
+                                                                                                          ),
+                                                                                                        ),
+                                                                                                        onPressed: () {
+                                                                                                          final val = double.tryParse(
+                                                                                                            rates[c]!.text.replaceAll(
+                                                                                                              ',',
+                                                                                                              '.',
+                                                                                                            ),
+                                                                                                          );
+                                                                                                          if (val !=
+                                                                                                              null) {
+                                                                                                            currencyProvider.setRateForCurrency(
+                                                                                                              c,
+                                                                                                              val,
+                                                                                                            );
+                                                                                                            setState(
+                                                                                                              () {},
+                                                                                                            );
+                                                                                                          }
+                                                                                                        },
+                                                                                                      ),
+                                                                                                      const SizedBox(
+                                                                                                        width: 8,
+                                                                                                      ),
+                                                                                                      IconButton(
+                                                                                                        icon: const Icon(
+                                                                                                          Icons.delete,
+                                                                                                          color: Colors.red,
+                                                                                                        ),
+                                                                                                        tooltip: 'Eliminar moneda',
+                                                                                                        onPressed: () {
+                                                                                                          currencyProvider.setAvailableCurrencies(
+                                                                                                            [
+                                                                                                              ...currencies.where(
+                                                                                                                (
+                                                                                                                  x,
+                                                                                                                ) =>
+                                                                                                                    x !=
+                                                                                                                    c,
+                                                                                                              ),
+                                                                                                            ],
+                                                                                                          );
+                                                                                                          setState(
+                                                                                                            () {},
+                                                                                                          );
+                                                                                                        },
+                                                                                                      ),
+                                                                                                    ],
+                                                                                                  ),
+                                                                                                ],
+                                                                                              ),
+                                                                                            ),
+                                                                                          ],
+                                                                                        ),
+                                                                                      ),
+                                                                                    );
+                                                                                  },
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                      ),
+                                                                    ],
                                                                   ),
                                                                   actions: [
                                                                     TextButton(

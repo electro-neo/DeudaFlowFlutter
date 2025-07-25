@@ -25,10 +25,17 @@ class CurrencyProvider extends ChangeNotifier {
 
   // Update available currencies from a list (e.g., from transactions)
   void setAvailableCurrencies(List<String> currencies) {
-    _availableCurrencies = currencies.toSet().toList();
-    if (!_availableCurrencies.contains('USD')) {
-      _availableCurrencies.insert(0, 'USD');
+    // Siempre mantener USD como base
+    final filtered = currencies
+        .map((c) => c.toUpperCase())
+        .where((c) => c != 'USD')
+        .toSet()
+        .toList();
+    // Limitar a máximo 2 monedas adicionales
+    if (filtered.length > 2) {
+      filtered.removeRange(2, filtered.length);
     }
+    _availableCurrencies = ['USD', ...filtered];
     notifyListeners();
   }
 
@@ -40,7 +47,11 @@ class CurrencyProvider extends ChangeNotifier {
 
   // Set a single rate for a currency
   void setRateForCurrency(String currency, double rate) {
-    _exchangeRates[currency] = rate;
-    notifyListeners();
+    // Solo permitir registrar tasa para USD o las 2 monedas adicionales
+    final allowed = _availableCurrencies.take(3).toList();
+    if (allowed.contains(currency.toUpperCase())) {
+      _exchangeRates[currency.toUpperCase()] = rate;
+      notifyListeners();
+    }
   }
 }

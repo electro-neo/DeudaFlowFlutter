@@ -7,6 +7,391 @@ import '../utils/currency_utils.dart';
 import '../providers/currency_provider.dart';
 import 'client_details_modal.dart';
 
+// --- ExpandableClientCard y su estado deben estar al tope del archivo para evitar errores de anidación ---
+class ExpandableClientCard extends StatefulWidget {
+  final ClientHive client;
+  final String userId;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+  final VoidCallback? onAddTransaction;
+  final void Function(String clientId)? onViewMovements;
+  final VoidCallback? onReceipt;
+  final String? syncText;
+  final IconData? syncIcon;
+  final Color? syncColor;
+  const ExpandableClientCard({
+    super.key,
+    required this.client,
+    required this.userId,
+    this.onEdit,
+    this.onDelete,
+    this.onAddTransaction,
+    this.onViewMovements,
+    this.onReceipt,
+    this.syncText,
+    this.syncIcon,
+    this.syncColor,
+  });
+
+  @override
+  State<ExpandableClientCard> createState() => _ExpandableClientCardState();
+}
+
+class _ExpandableClientCardState extends State<ExpandableClientCard> {
+  bool _expanded = false;
+
+  void _toggleExpand() {
+    setState(() {
+      _expanded = !_expanded;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final client = widget.client;
+    final txProvider = Provider.of<TransactionProvider>(context, listen: false);
+    final hasTransactions = txProvider.transactions.any(
+      (tx) => tx.clientId == client.id,
+    );
+    final balance = hasTransactions ? client.balance : 0.0;
+    final isDeuda = balance < 0;
+    final balanceColor = isDeuda ? Colors.red : Colors.green;
+    final currencyProvider = Provider.of<CurrencyProvider>(
+      context,
+      listen: false,
+    );
+    final availableCurrencies = currencyProvider.availableCurrencies;
+    final exchangeRates = currencyProvider.exchangeRates;
+    final usdBalance = client.currencyCode == 'USD'
+        ? balance
+        : (balance / (exchangeRates[client.currencyCode] ?? 1));
+    final balances = <String, double>{};
+    balances['USD'] = usdBalance;
+    for (final code in availableCurrencies) {
+      if (code != 'USD') {
+        if (client.currencyCode == code) {
+          balances[code] = balance;
+        } else {
+          final rate = exchangeRates[code] ?? 1;
+          balances[code] = usdBalance * rate;
+        }
+      }
+    }
+    final firstLetter = client.name.isNotEmpty
+        ? client.name[0].toUpperCase()
+        : '?';
+    return Card(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.symmetric(vertical: 0, horizontal: 0),
+      child: Column(
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (_) => ClientDetailsModal(
+                  client: Client.fromHive(client),
+                  userId: widget.userId,
+                  onEdit: widget.onEdit,
+                  onDelete: widget.onDelete,
+                  onAddTransaction: widget.onAddTransaction,
+                  onViewMovements: widget.onViewMovements != null
+                      ? ((_) => widget.onViewMovements!(client.id))
+                      : null,
+                  onReceipt: widget.onReceipt,
+                ),
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: Colors.indigo.shade50,
+                    child: Text(
+                      firstLetter,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.indigo,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      client.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  if (widget.syncText != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: widget.syncColor?.withOpacity(0.13),
+                        borderRadius: BorderRadius.circular(7),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            widget.syncIcon,
+                            size: 13,
+                            color: widget.syncColor,
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            widget.syncText!,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: widget.syncColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  IconButton(
+                    icon: AnimatedRotation(
+                      turns: _expanded ? 0.5 : 0.0,
+                      duration: const Duration(milliseconds: 180),
+                      child: const Icon(Icons.expand_more),
+                    ),
+                    onPressed: _toggleExpand,
+                    tooltip: _expanded ? 'Ocultar balance' : 'Ver balance',
+                  ),
+                ],
+              ),
+            ),
+          ),
+          AnimatedCrossFade(
+            firstChild: const SizedBox.shrink(),
+            secondChild: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Datos cliente (izquierda)
+                  IntrinsicWidth(
+                    child: Container(
+                      margin: const EdgeInsets.only(
+                        left: 16,
+                        top: 8,
+                        bottom: 8,
+                        right: 8,
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.indigo.withOpacity(0.04),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(
+                                Icons.phone,
+                                size: 16,
+                                color: Colors.black45,
+                              ),
+                              const SizedBox(width: 6),
+                              const Text(
+                                'Teléfono:',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              left: 22.0,
+                              top: 2,
+                              bottom: 0,
+                            ),
+                            child: Text(
+                              (client.phone != null && client.phone!.isNotEmpty)
+                                  ? client.phone!
+                                  : 'Sin información',
+                              style: const TextStyle(fontSize: 14),
+                              softWrap: true,
+                              overflow: TextOverflow.visible,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(
+                                Icons.home,
+                                size: 16,
+                                color: Colors.black45,
+                              ),
+                              const SizedBox(width: 6),
+                              const Text(
+                                'Dirección:',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              left: 22.0,
+                              top: 2,
+                              bottom: 0,
+                            ),
+                            child: Text(
+                              (client.address != null &&
+                                      client.address!.isNotEmpty)
+                                  ? client.address!
+                                  : 'Sin información',
+                              style: const TextStyle(fontSize: 14),
+                              softWrap: true,
+                              overflow: TextOverflow.visible,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Balance (derecha, ancho fijo)
+                  SizedBox(
+                    width: 180,
+                    child: Container(
+                      margin: const EdgeInsets.only(
+                        right: 16,
+                        top: 8,
+                        bottom: 8,
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.indigo.withOpacity(0.06),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisSize: MainAxisSize.max,
+                          children: [
+                            Container(
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: Colors.indigo.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              padding: const EdgeInsets.only(
+                                right: 0,
+                                left: 0,
+                                top: 0,
+                                bottom: 6,
+                              ),
+                              child: Align(
+                                alignment: Alignment.centerRight,
+                                child: Text(
+                                  'Balance',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                    letterSpacing: 0.5,
+                                    color: Colors.indigo,
+                                  ),
+                                  textAlign: TextAlign.right,
+                                ),
+                              ),
+                            ),
+                            Table(
+                              columnWidths: const {
+                                0: IntrinsicColumnWidth(),
+                                1: FlexColumnWidth(),
+                              },
+                              defaultVerticalAlignment:
+                                  TableCellVerticalAlignment.middle,
+                              children: [
+                                ...balances.entries.map(
+                                  (e) => TableRow(
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 2,
+                                          right: 8,
+                                        ),
+                                        child: Align(
+                                          alignment: Alignment.centerRight,
+                                          child: Text(
+                                            e.key,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 13,
+                                              color: Colors.indigo,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 2,
+                                        ),
+                                        child: Align(
+                                          alignment: Alignment.centerRight,
+                                          child: Text(
+                                            CurrencyUtils.format(
+                                              context,
+                                              e.value,
+                                            ),
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 15,
+                                              color: e.value < 0
+                                                  ? Colors.red
+                                                  : Colors.green,
+                                            ),
+                                            textAlign: TextAlign.right,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            crossFadeState: _expanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 200),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// --- Fin de ExpandableClientCard ---
+
 class ClientCard extends StatelessWidget {
   final ClientHive client;
   final String userId;
@@ -70,289 +455,152 @@ class ClientCard extends StatelessWidget {
     final saldo = '$symbol$formatted';
 
     if (isMobile) {
-      // Nombre ocupa el espacio disponible, monto y estado alineados a la derecha, y abre modal con los datos y botones al tocar
-      return GestureDetector(
-        onTap: () {
-          showDialog(
-            context: context,
-            builder: (_) => ClientDetailsModal(
-              client: Client.fromHive(client),
-              userId: userId,
-              onEdit: onEdit,
-              onDelete: onDelete,
-              onAddTransaction: onAddTransaction,
-              onViewMovements: onViewMovements != null
-                  ? ((_) => onViewMovements!(client.id))
-                  : null,
-              onReceipt: onReceipt,
-            ),
-          );
-        },
-        child: Card(
-          color: const Color.fromARGB(
-            255,
-            255,
-            255,
-            255,
-          ), // Cambia aquí el color de fondo del cuadro
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: const EdgeInsets.symmetric(
-            vertical: 0,
-            horizontal: 0,
-          ), //aqui se fusiona container y card
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const CircleAvatar(child: Icon(Icons.person)),
-                const SizedBox(width: 8),
-                Container(
-                  constraints: BoxConstraints(maxWidth: 100),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 0),
-                    child: Text(
-                      client.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: Text(
-                              saldo,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: balanceColor,
-                              ),
-                              textAlign: TextAlign.right,
-                            ),
+      return ExpandableClientCard(
+        client: client,
+        userId: userId,
+        onEdit: onEdit,
+        onDelete: onDelete,
+        onAddTransaction: onAddTransaction,
+        onViewMovements: onViewMovements,
+        onReceipt: onReceipt,
+        syncText: syncText,
+        syncIcon: syncIcon,
+        syncColor: syncColor,
+      );
+    }
+    // WEB/ESCRITORIO: Card completa y menú hamburguesa
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const CircleAvatar(child: Icon(Icons.person)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          client.name,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
                           ),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: Text(
-                              statusText,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: balanceColor,
-                                fontWeight: FontWeight.w500,
+                        ),
+                        if (client.address != null &&
+                            client.address!.isNotEmpty)
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.home,
+                                size: 14,
+                                color: Colors.black45,
                               ),
-                              textAlign: TextAlign.right,
-                            ),
-                          ),
-                          if (syncText != null)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 2),
-                              child: Align(
-                                alignment: Alignment.centerRight,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 5,
-                                    vertical: 1,
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  client.address!,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.black54,
                                   ),
-                                  decoration: BoxDecoration(
-                                    color: syncColor != null
-                                        ? Color.fromARGB(
-                                            (0.10 * 255).round(),
-                                            (syncColor.r * 255.0).round() &
-                                                0xff,
-                                            (syncColor.g * 255.0).round() &
-                                                0xff,
-                                            (syncColor.b * 255.0).round() &
-                                                0xff,
-                                          )
-                                        : null,
-                                    borderRadius: BorderRadius.circular(7),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      Icon(
-                                        syncIcon,
-                                        size: 10,
-                                        color: syncColor,
-                                      ),
-                                      SizedBox(width: 2),
-                                      Text(
-                                        syncText,
-                                        style: TextStyle(
-                                          fontSize: 8,
-                                          color: syncColor,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                        textAlign: TextAlign.right,
-                                      ),
-                                    ],
-                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
+                            ],
+                          ),
+                        if (client.phone != null && client.phone!.isNotEmpty)
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.phone,
+                                size: 14,
+                                color: Colors.black45,
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  client.phone!,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.black54,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        if (syncText != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4.0),
+                            child: Row(
+                              children: [
+                                Icon(syncIcon, size: 13, color: syncColor),
+                                const SizedBox(width: 3),
+                                Text(
+                                  syncText!,
+                                  style: TextStyle(
+                                    fontSize: 9.5,
+                                    color: syncColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
-                        ],
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          saldo,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: balanceColor,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        statusText,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: balanceColor,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              _ClientCardActions(
+                onEdit: onEdit,
+                onDelete: onDelete,
+                onAddTransaction: onAddTransaction,
+                onViewMovements: onViewMovements != null
+                    ? (() => onViewMovements!(client.id))
+                    : null,
+                onReceipt: onReceipt,
+              ),
+            ],
           ),
         ),
-      );
-    } else {
-      // WEB/ESCRITORIO: Card completa y menú hamburguesa
-      return Container(
-        width: double.infinity,
-        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-        child: Card(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const CircleAvatar(child: Icon(Icons.person)),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            client.name,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          if (client.address != null &&
-                              client.address!.isNotEmpty)
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.home,
-                                  size: 14,
-                                  color: Colors.black45,
-                                ),
-                                const SizedBox(width: 4),
-                                Flexible(
-                                  child: Text(
-                                    client.address!,
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.black54,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          if (client.phone != null && client.phone!.isNotEmpty)
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.phone,
-                                  size: 14,
-                                  color: Colors.black45,
-                                ),
-                                const SizedBox(width: 4),
-                                Flexible(
-                                  child: Text(
-                                    client.phone!,
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.black54,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          if (syncText != null)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 4.0),
-                              child: Row(
-                                children: [
-                                  Icon(syncIcon, size: 13, color: syncColor),
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    syncText,
-                                    style: TextStyle(
-                                      fontSize: 9.5,
-                                      color: syncColor,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            saldo,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: balanceColor,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          statusText,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: balanceColor,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                _ClientCardActions(
-                  onEdit: onEdit,
-                  onDelete: onDelete,
-                  onAddTransaction: onAddTransaction,
-                  onViewMovements: onViewMovements != null
-                      ? (() => onViewMovements!(client.id))
-                      : null,
-                  onReceipt: onReceipt,
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
+      ),
+    );
   }
 }
 

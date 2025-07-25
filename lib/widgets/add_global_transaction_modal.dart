@@ -115,14 +115,18 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
       return;
     }
 
-    // VALIDACIÓN DE TASA DE CAMBIO
+    // VALIDACIÓN DE límite de monedas: si ya hay 2 monedas no-USD y se intenta guardar con una nueva, mostrar alerta
     final currencyProvider = Provider.of<CurrencyProvider>(
       context,
       listen: false,
     );
-    if (_currencyCode.toUpperCase() != 'USD' &&
-        (currencyProvider.exchangeRates[_currencyCode.toUpperCase()] == null ||
-            currencyProvider.exchangeRates[_currencyCode.toUpperCase()] == 0)) {
+    final nonUsdCurrencies = currencyProvider.availableCurrencies
+        .where((c) => c != 'USD')
+        .toList();
+    final isNewNonUsd =
+        _currencyCode.toUpperCase() != 'USD' &&
+        !nonUsdCurrencies.contains(_currencyCode.toUpperCase());
+    if (isNewNonUsd && nonUsdCurrencies.length >= 2) {
       setState(() {
         _loading = false;
       });
@@ -132,129 +136,24 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: const Text('Falta tasa de cambio'),
-          content: Text(
-            'Debes registrar la tasa de cambio para la moneda "$_currencyCode" antes de guardar la transacción.',
+          title: Row(
+            children: const [
+              Icon(Icons.attach_money_rounded, color: Colors.indigo),
+              SizedBox(width: 8),
+              Text(
+                'Límite de monedas alcanzado',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: const Text(
+            'Solo puedes tener 2 monedas adicionales a USD. Elimina una moneda existente en la gestión de monedas para poder registrar una nueva.',
+            style: TextStyle(fontSize: 15),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-                // Abre el diálogo de gestión de monedas
-                showDialog(
-                  context: context,
-                  builder: (ctx2) {
-                    final currencies = currencyProvider.availableCurrencies
-                        .where((c) => c != 'USD')
-                        .toList();
-                    final rates = {
-                      for (final c in currencies)
-                        c: TextEditingController(
-                          text:
-                              currencyProvider.exchangeRates[c]?.toString() ??
-                              '',
-                        ),
-                    };
-                    return StatefulBuilder(
-                      builder: (context, setState) {
-                        return AlertDialog(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          title: const Text('Gestionar tasas de monedas'),
-                          content: ConstrainedBox(
-                            constraints: const BoxConstraints(
-                              maxWidth: 340,
-                              maxHeight: 320,
-                            ),
-                            child: Scrollbar(
-                              thumbVisibility: true,
-                              child: ListView.builder(
-                                shrinkWrap: true,
-                                itemCount: currencies.length,
-                                itemBuilder: (context, idx) {
-                                  final c = currencies[idx];
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 8,
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: TextField(
-                                            controller: rates[c],
-                                            decoration: InputDecoration(
-                                              labelText: 'Tasa $c a USD',
-                                              border:
-                                                  const OutlineInputBorder(),
-                                              isDense: true,
-                                              // Resalta el campo de la moneda faltante
-                                              fillColor:
-                                                  c ==
-                                                      _currencyCode
-                                                          .toUpperCase()
-                                                  ? Colors.yellow[100]
-                                                  : null,
-                                              filled:
-                                                  c ==
-                                                  _currencyCode.toUpperCase(),
-                                            ),
-                                            keyboardType:
-                                                const TextInputType.numberWithOptions(
-                                                  decimal: true,
-                                                ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        ElevatedButton(
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.indigo,
-                                            foregroundColor: Colors.white,
-                                            minimumSize: const Size(60, 40),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                          ),
-                                          child: const Text('Fijar'),
-                                          onPressed: () {
-                                            final val = double.tryParse(
-                                              rates[c]!.text.replaceAll(
-                                                ',',
-                                                '.',
-                                              ),
-                                            );
-                                            if (val != null) {
-                                              currencyProvider
-                                                  .setRateForCurrency(c, val);
-                                              setState(() {});
-                                            }
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(ctx2).pop(),
-                              child: const Text('Cerrar'),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  },
-                );
-              },
-              child: const Text('Registrar tasa ahora'),
+              child: const Text('Cerrar'),
             ),
           ],
         ),
@@ -348,11 +247,18 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
     final colorScheme = Theme.of(context).colorScheme;
     final symbol = "";
     final currencyProvider = Provider.of<CurrencyProvider>(context);
+    final availableCurrencies = currencyProvider.availableCurrencies;
+    final nonUsdCurrencies = availableCurrencies
+        .where((c) => c != 'USD')
+        .toList();
+    final maxCurrenciesReached =
+        nonUsdCurrencies.length >= 2 &&
+        !nonUsdCurrencies.contains(_currencyCode.toUpperCase());
     final rateMissing =
         _currencyCode.toUpperCase() != 'USD' &&
         (currencyProvider.exchangeRates[_currencyCode.toUpperCase()] == null ||
             currencyProvider.exchangeRates[_currencyCode.toUpperCase()] == 0);
-    _rateFieldVisible = rateMissing;
+    _rateFieldVisible = rateMissing && !maxCurrenciesReached;
     final rateValid =
         double.tryParse(_rateController.text.replaceAll(',', '.')) != null &&
         double.parse(_rateController.text.replaceAll(',', '.')) > 0;
@@ -579,52 +485,160 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
                 items:
                     [
                           'USD',
-                          'VES',
-                          'COP',
-                          'EUR',
-                          'ARS',
-                          'BRL',
-                          'CLP',
-                          'MXN',
-                          'PEN',
-                          'BOB',
-                          'PYG',
-                          'UYU',
-                          'CRC',
-                          'GTQ',
-                          'HNL',
-                          'NIO',
-                          'DOP',
-                          'CUC',
-                          'CAD',
-                          'GBP',
-                          'JPY',
-                          'CNY',
-                          'KRW',
-                          'INR',
-                          'TRY',
-                          'RUB',
-                          'CHF',
-                          'AUD',
-                          'NZD',
-                          'SGD',
-                          'HKD',
-                          'ZAR',
+                          ...nonUsdCurrencies,
+                          // Solo permitir seleccionar una nueva moneda si no se ha alcanzado el máximo
+                          if (nonUsdCurrencies.length < 2)
+                            ...[
+                              'VES',
+                              'COP',
+                              'EUR',
+                              'ARS',
+                              'BRL',
+                              'CLP',
+                              'MXN',
+                              'PEN',
+                              'BOB',
+                              'PYG',
+                              'UYU',
+                              'CRC',
+                              'GTQ',
+                              'HNL',
+                              'NIO',
+                              'DOP',
+                              'CUC',
+                              'CAD',
+                              'GBP',
+                              'JPY',
+                              'CNY',
+                              'KRW',
+                              'INR',
+                              'TRY',
+                              'RUB',
+                              'CHF',
+                              'AUD',
+                              'NZD',
+                              'SGD',
+                              'HKD',
+                              'ZAR',
+                            ].where(
+                              (code) =>
+                                  code != 'USD' &&
+                                  !nonUsdCurrencies.contains(code),
+                            ),
                         ]
                         .map(
                           (code) =>
                               DropdownMenuItem(value: code, child: Text(code)),
                         )
                         .toList(),
-                onChanged: (code) {
+                onChanged: (code) async {
+                  // Si ya hay 2 monedas y se intenta seleccionar una nueva, mostrar gestión de monedas
+                  if (nonUsdCurrencies.length >= 2 &&
+                      !nonUsdCurrencies.contains(code) &&
+                      code != 'USD') {
+                    await showDialog(
+                      context: context,
+                      builder: (ctx) {
+                        final rates = {
+                          for (final c in nonUsdCurrencies)
+                            c: TextEditingController(
+                              text:
+                                  currencyProvider.exchangeRates[c]
+                                      ?.toString() ??
+                                  '',
+                            ),
+                        };
+                        return StatefulBuilder(
+                          builder: (context, setState) {
+                            return AlertDialog(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              title: const Text(
+                                'Solo puedes tener 2 monedas adicionales a USD',
+                              ),
+                              content: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 340,
+                                  maxHeight: 320,
+                                ),
+                                child: Scrollbar(
+                                  thumbVisibility: true,
+                                  child: ListView.builder(
+                                    shrinkWrap: true,
+                                    itemCount: nonUsdCurrencies.length,
+                                    itemBuilder: (context, idx) {
+                                      final c = nonUsdCurrencies[idx];
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 8,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              child: TextField(
+                                                controller: rates[c],
+                                                decoration: InputDecoration(
+                                                  labelText: 'Tasa $c a USD',
+                                                  border:
+                                                      const OutlineInputBorder(),
+                                                  isDense: true,
+                                                ),
+                                                keyboardType:
+                                                    const TextInputType.numberWithOptions(
+                                                      decimal: true,
+                                                    ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.red,
+                                                foregroundColor: Colors.white,
+                                                minimumSize: const Size(60, 40),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                              ),
+                                              child: const Text('Eliminar'),
+                                              onPressed: () {
+                                                currencyProvider
+                                                    .setAvailableCurrencies([
+                                                      ...nonUsdCurrencies.where(
+                                                        (x) => x != c,
+                                                      ),
+                                                    ]);
+                                                setState(() {});
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(ctx).pop(),
+                                  child: const Text('Cerrar'),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      },
+                    );
+                    return;
+                  }
                   setState(() {
                     _currencyCode = code ?? 'VES';
-                    // Si cambia la moneda, limpiar el campo de tasa
                     _rateController.text = '';
                   });
                 },
                 dropdownColor: Colors.white,
-                menuMaxHeight: 180, // Limita la altura del menú desplegable
+                menuMaxHeight: 180,
               ),
             ),
           ],

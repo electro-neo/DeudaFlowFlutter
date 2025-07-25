@@ -30,6 +30,7 @@ class ClientDetailsModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final rootContext = Navigator.of(context, rootNavigator: true).context;
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
@@ -38,7 +39,7 @@ class ClientDetailsModal extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Información del cliente con campos por defecto si están vacíos
+            // Información del cliente
             Row(
               children: [
                 const CircleAvatar(child: Icon(Icons.person)),
@@ -108,7 +109,7 @@ class ClientDetailsModal extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 18),
-            // Botones de acción SIEMPRE visibles, sin hamburguesa, responsivos
+            // Botones de acción
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -121,7 +122,7 @@ class ClientDetailsModal extends StatelessWidget {
                       Navigator.of(context, rootNavigator: true).pop();
                       Future.delayed(Duration.zero, () {
                         final txProvider = Provider.of<TransactionProvider>(
-                          context,
+                          rootContext,
                           listen: false,
                         );
                         final clientData = [
@@ -133,7 +134,7 @@ class ClientDetailsModal extends StatelessWidget {
                           },
                         ];
                         showDialog(
-                          context: context,
+                          context: rootContext,
                           builder: (_) =>
                               GeneralReceiptModal(clientData: clientData),
                         );
@@ -179,7 +180,7 @@ class ClientDetailsModal extends StatelessWidget {
                       Navigator.of(context, rootNavigator: true).pop();
                       Future.delayed(Duration.zero, () {
                         showDialog(
-                          context: context,
+                          context: rootContext,
                           builder: (dialogContext) => TransactionForm(
                             userId: userId,
                             initialClient: client,
@@ -239,7 +240,7 @@ class ClientDetailsModal extends StatelessWidget {
                     color: Colors.orange,
                     onPressed: () {
                       debugPrint(
-                        '[CLIENT_DETAILS_MODAL] Botón Ver movimientos PRESIONADO para cliente: \\${client.id}',
+                        '[CLIENT_DETAILS_MODAL] Botón Ver movimientos PRESIONADO para cliente: ${client.id}',
                       );
                       Navigator.of(context, rootNavigator: true).pop();
                       if (onViewMovements != null) {

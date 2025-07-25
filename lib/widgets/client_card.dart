@@ -42,11 +42,57 @@ class ExpandableClientCard extends StatefulWidget {
 
 class _ExpandableClientCardState extends State<ExpandableClientCard> {
   bool _expanded = false;
+  bool _isAnimating = false;
 
   void _toggleExpand() {
     setState(() {
+      _isAnimating = true;
       _expanded = !_expanded;
     });
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) setState(() => _isAnimating = false);
+    });
+  }
+
+  void _openModal() {
+    if (_isAnimating) return;
+    showDialog(
+      context: context,
+      builder: (_) => ClientDetailsModal(
+        client: Client.fromHive(widget.client),
+        userId: widget.userId,
+        onEdit: widget.onEdit == null
+            ? null
+            : () {
+                if (_isAnimating) return;
+                widget.onEdit!();
+              },
+        onDelete: widget.onDelete == null
+            ? null
+            : () {
+                if (_isAnimating) return;
+                widget.onDelete!();
+              },
+        onAddTransaction: widget.onAddTransaction == null
+            ? null
+            : () {
+                if (_isAnimating) return;
+                widget.onAddTransaction!();
+              },
+        onViewMovements: widget.onViewMovements == null
+            ? null
+            : ((id) {
+                if (_isAnimating) return;
+                widget.onViewMovements!(widget.client.id);
+              }),
+        onReceipt: widget.onReceipt == null
+            ? null
+            : () {
+                if (_isAnimating) return;
+                widget.onReceipt!();
+              },
+      ),
+    );
   }
 
   @override
@@ -84,29 +130,13 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
       margin: const EdgeInsets.symmetric(vertical: 0, horizontal: 0),
       child: Column(
         children: [
-          InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () {
-              showDialog(
-                context: context,
-                builder: (_) => ClientDetailsModal(
-                  client: Client.fromHive(client),
-                  userId: widget.userId,
-                  onEdit: widget.onEdit,
-                  onDelete: widget.onDelete,
-                  onAddTransaction: widget.onAddTransaction,
-                  onViewMovements: widget.onViewMovements != null
-                      ? ((_) => widget.onViewMovements!(client.id))
-                      : null,
-                  onReceipt: widget.onReceipt,
-                ),
-              );
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  CircleAvatar(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: _openModal,
+                  child: CircleAvatar(
                     backgroundColor: Colors.indigo.shade50,
                     child: Text(
                       firstLetter,
@@ -116,8 +146,11 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: _openModal,
                     child: Text(
                       client.name,
                       style: const TextStyle(
@@ -128,78 +161,78 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  if (widget.syncMessage != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: widget.syncMessage!.color.withOpacity(0.13),
-                        borderRadius: BorderRadius.circular(7),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            widget.syncMessage!.icon,
-                            size: 13,
+                ),
+                const SizedBox(width: 8),
+                if (widget.syncMessage != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: widget.syncMessage!.color.withOpacity(0.13),
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          widget.syncMessage!.icon,
+                          size: 13,
+                          color: widget.syncMessage!.color,
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          widget.syncMessage!.message,
+                          style: TextStyle(
+                            fontSize: 10,
                             color: widget.syncMessage!.color,
+                            fontWeight: FontWeight.w600,
                           ),
-                          const SizedBox(width: 3),
-                          Text(
-                            widget.syncMessage!.message,
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: widget.syncMessage!.color,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  else if (widget.syncText != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: widget.syncColor?.withOpacity(0.13),
-                        borderRadius: BorderRadius.circular(7),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            widget.syncIcon,
-                            size: 13,
+                        ),
+                      ],
+                    ),
+                  )
+                else if (widget.syncText != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: widget.syncColor?.withOpacity(0.13),
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          widget.syncIcon,
+                          size: 13,
+                          color: widget.syncColor,
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          widget.syncText!,
+                          style: TextStyle(
+                            fontSize: 10,
                             color: widget.syncColor,
+                            fontWeight: FontWeight.w600,
                           ),
-                          const SizedBox(width: 3),
-                          Text(
-                            widget.syncText!,
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: widget.syncColor,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  IconButton(
-                    icon: AnimatedRotation(
-                      turns: _expanded ? 0.5 : 0.0,
-                      duration: const Duration(milliseconds: 180),
-                      child: const Icon(Icons.expand_more),
-                    ),
-                    onPressed: _toggleExpand,
-                    tooltip: _expanded ? 'Ocultar balance' : 'Ver balance',
                   ),
-                ],
-              ),
+                IconButton(
+                  icon: AnimatedRotation(
+                    turns: _expanded ? 0.5 : 0.0,
+                    duration: const Duration(milliseconds: 180),
+                    child: const Icon(Icons.expand_more),
+                  ),
+                  onPressed: _toggleExpand,
+                  tooltip: _expanded ? 'Ocultar balance' : 'Ver balance',
+                ),
+              ],
             ),
           ),
           AnimatedCrossFade(

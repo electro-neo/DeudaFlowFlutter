@@ -19,6 +19,7 @@ import '../widgets/transaction_form.dart';
 import '../utils/no_scrollbar_behavior.dart';
 import '../providers/tab_provider.dart';
 import '../widgets/add_global_transaction_modal.dart';
+import '../widgets/sync_message_state.dart';
 
 class ClientsScreen extends StatefulWidget {
   final String userId;
@@ -74,6 +75,9 @@ class ClientsScreenState extends State<ClientsScreen>
   final FocusNode _searchFocusNode = FocusNode();
   // final bool _didLoadClients = false;
 
+  // Estado de mensajes de sincronización por cliente
+  final Map<String, SyncMessageState> _clientSyncStates = {};
+
   // Método para mostrar el formulario de transacción
   void _showTransactionForm(ClientHive client) async {
     final isMobile =
@@ -84,14 +88,27 @@ class ClientsScreenState extends State<ClientsScreen>
         context,
         listen: false,
       );
-      //final clientProvider = Provider.of<ClientProvider>(
-      //context,
-      // listen: false,
-      //);
+      // Mostrar mensaje de sincronización inmediato
+      setState(() {
+        _clientSyncStates[client.id] = SyncMessageState.syncing();
+      });
       await txProvider.addTransaction(tx, widget.userId, client.id);
       // Sincroniza en segundo plano tras agregar movimiento para refrescar statscards
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) _syncAll();
+      Future.delayed(const Duration(seconds: 2), () async {
+        if (mounted) {
+          await _syncAll();
+          // Mostrar mensaje de sincronizado por 3 segundos y luego ocultar
+          setState(() {
+            _clientSyncStates[client.id] = SyncMessageState.synced();
+          });
+          Future.delayed(const Duration(seconds: 3), () {
+            if (mounted) {
+              setState(() {
+                _clientSyncStates.remove(client.id);
+              });
+            }
+          });
+        }
       });
       if (!mounted) return;
       Navigator.of(context).pop();
@@ -309,6 +326,11 @@ class ClientsScreenState extends State<ClientsScreen>
               context,
               listen: false,
             );
+            // Mostrar mensaje de sincronización inmediato
+            final clientId = client?.id ?? newClient.id;
+            setState(() {
+              _clientSyncStates[clientId] = SyncMessageState.syncing();
+            });
             // 1. Crear SIEMPRE en Hive (offline-first)
             if (client == null) {
               // Guardar cliente en Hive y obtener el id real tras sincronizar
@@ -329,12 +351,24 @@ class ClientsScreenState extends State<ClientsScreen>
                   date: now,
                   createdAt: now,
                   synced: false, // Siempre pendiente por sincronizar
-                  currencyCode: newClient.currencyCode ?? 'VES',
+                  currencyCode: newClient.currencyCode,
                 );
                 await txProvider.addTransaction(tx, widget.userId, realId);
                 // Sincroniza en segundo plano tras agregar movimiento de saldo inicial
-                Future.delayed(const Duration(seconds: 2), () {
-                  if (mounted) _syncAll();
+                Future.delayed(const Duration(seconds: 2), () async {
+                  if (mounted) {
+                    await _syncAll();
+                    setState(() {
+                      _clientSyncStates[realId] = SyncMessageState.synced();
+                    });
+                    Future.delayed(const Duration(seconds: 3), () {
+                      if (mounted) {
+                        setState(() {
+                          _clientSyncStates.remove(realId);
+                        });
+                      }
+                    });
+                  }
                 });
                 await txProvider.loadTransactions(widget.userId);
                 await provider.loadClients(widget.userId);
@@ -355,13 +389,24 @@ class ClientsScreenState extends State<ClientsScreen>
                 ),
                 widget.userId,
               );
+              // Lanzar sincronización y feedback visual
+              Future.delayed(const Duration(seconds: 2), () async {
+                if (mounted) {
+                  await provider.syncPendingClients(widget.userId);
+                  await txProvider.syncPendingTransactions(widget.userId);
+                  setState(() {
+                    _clientSyncStates[client.id] = SyncMessageState.synced();
+                  });
+                  Future.delayed(const Duration(seconds: 3), () {
+                    if (mounted) {
+                      setState(() {
+                        _clientSyncStates.remove(client.id);
+                      });
+                    }
+                  });
+                }
+              });
             }
-            // 2. Lanzar sincronización a Supabase en segundo plano después de 2 segundos
-            Future.delayed(const Duration(seconds: 2), () async {
-              await provider.syncPendingClients(widget.userId);
-              await txProvider.syncPendingTransactions(widget.userId);
-              // Puedes agregar aquí lógica para mostrar un snackbar o actualizar la UI si lo deseas
-            });
             // 3. El modal se cierra inmediatamente tras guardar en Hive (lo hace el formulario)
             return newClient;
           },
@@ -1105,6 +1150,9 @@ class ClientsScreenState extends State<ClientsScreen>
                                                         ),
                                                   );
                                                 },
+                                                syncMessage:
+                                                    _clientSyncStates[client
+                                                        .id],
                                               ),
                                             );
                                           },

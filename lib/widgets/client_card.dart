@@ -6,6 +6,7 @@ import '../models/client.dart';
 import '../utils/currency_utils.dart';
 import '../providers/currency_provider.dart';
 import 'client_details_modal.dart';
+import 'sync_message_state.dart';
 
 // --- ExpandableClientCard y su estado deben estar al tope del archivo para evitar errores de anidación ---
 class ExpandableClientCard extends StatefulWidget {
@@ -19,6 +20,7 @@ class ExpandableClientCard extends StatefulWidget {
   final String? syncText;
   final IconData? syncIcon;
   final Color? syncColor;
+  final SyncMessageState? syncMessage;
   const ExpandableClientCard({
     super.key,
     required this.client,
@@ -31,6 +33,7 @@ class ExpandableClientCard extends StatefulWidget {
     this.syncText,
     this.syncIcon,
     this.syncColor,
+    this.syncMessage,
   });
 
   @override
@@ -126,7 +129,37 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  if (widget.syncText != null)
+                  if (widget.syncMessage != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: widget.syncMessage!.color.withOpacity(0.13),
+                        borderRadius: BorderRadius.circular(7),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            widget.syncMessage!.icon,
+                            size: 13,
+                            color: widget.syncMessage!.color,
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            widget.syncMessage!.message,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: widget.syncMessage!.color,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else if (widget.syncText != null)
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 6,
@@ -401,6 +434,7 @@ class ClientCard extends StatelessWidget {
   final VoidCallback? onAddTransaction;
   final void Function(String clientId)? onViewMovements;
   final VoidCallback? onReceipt;
+  final SyncMessageState? syncMessage;
 
   const ClientCard({
     super.key,
@@ -411,26 +445,14 @@ class ClientCard extends StatelessWidget {
     this.onAddTransaction,
     this.onViewMovements,
     this.onReceipt,
+    this.syncMessage,
   });
 
   @override
   Widget build(BuildContext context) {
-    String? syncText;
-    IconData? syncIcon;
-    Color? syncColor;
-    if (client.pendingDelete) {
-      syncText = 'Pendiente de eliminar';
-      syncIcon = Icons.delete_forever;
-      syncColor = Colors.red[700];
-    } else if (!client.synced) {
-      syncText = 'Pendiente por sincronizar';
-      syncIcon = Icons.sync;
-      syncColor = Colors.orange[800];
-    } else if (client.synced) {
-      syncText = 'Sincronizado';
-      syncIcon = Icons.cloud_done;
-      syncColor = Colors.green[700];
-    }
+    // Si hay mensaje temporal, úsalo; si no, usa el mensaje por defecto centralizado (puede ser null)
+    final SyncMessageState? effectiveSync =
+        syncMessage ?? SyncMessageState.fromClient(client);
     return ExpandableClientCard(
       client: client,
       userId: userId,
@@ -439,9 +461,10 @@ class ClientCard extends StatelessWidget {
       onAddTransaction: onAddTransaction,
       onViewMovements: onViewMovements,
       onReceipt: onReceipt,
-      syncText: syncText,
-      syncIcon: syncIcon,
-      syncColor: syncColor,
+      syncText: null, // Solo usa syncMessage
+      syncIcon: null,
+      syncColor: null,
+      syncMessage: effectiveSync,
     );
   }
 }

@@ -211,7 +211,7 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                               ),
                               const SizedBox(width: 6),
                               const Text(
-                                'Teléfono:',
+                                'Teléfono',
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                             ],
@@ -242,7 +242,7 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                               ),
                               const SizedBox(width: 6),
                               const Text(
-                                'Dirección:',
+                                'Dirección',
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                             ],
@@ -287,11 +287,12 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                       child: SizedBox(
                         width: double.infinity,
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.max,
                           children: [
                             Container(
                               width: double.infinity,
+                              height: 22,
                               decoration: BoxDecoration(
                                 color: Colors.indigo.withOpacity(0.08),
                                 borderRadius: BorderRadius.circular(4),
@@ -300,20 +301,22 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                                 right: 0,
                                 left: 0,
                                 top: 0,
-                                bottom: 6,
+                                bottom: 0,
                               ),
-                              child: Align(
-                                alignment: Alignment.centerRight,
-                                child: Text(
-                                  'Balance',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
-                                    letterSpacing: 0.5,
-                                    color: Colors.indigo,
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Balance',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                      letterSpacing: 0.5,
+                                      color: Colors.indigo,
+                                    ),
+                                    textAlign: TextAlign.left,
                                   ),
-                                  textAlign: TextAlign.right,
-                                ),
+                                ],
                               ),
                             ),
                             Table(

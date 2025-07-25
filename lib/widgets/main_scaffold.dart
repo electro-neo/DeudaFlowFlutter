@@ -529,110 +529,104 @@ class _MainScaffoldState extends State<MainScaffold> {
                                                                                         child: Row(
                                                                                           crossAxisAlignment: CrossAxisAlignment.start,
                                                                                           children: [
-                                                                                            CircleAvatar(
-                                                                                              backgroundColor: Colors.indigo.shade50,
-                                                                                              child: Text(
-                                                                                                c,
-                                                                                                style: const TextStyle(
-                                                                                                  fontWeight: FontWeight.bold,
-                                                                                                  color: Colors.indigo,
-                                                                                                ),
-                                                                                              ),
-                                                                                              radius: 18,
-                                                                                            ),
-                                                                                            const SizedBox(
-                                                                                              width: 10,
-                                                                                            ),
+                                                                                            // Eliminado el círculo con la abreviatura de la moneda
                                                                                             Expanded(
-                                                                                              child: Column(
-                                                                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                                                              child: Row(
+                                                                                                crossAxisAlignment: CrossAxisAlignment.center,
                                                                                                 children: [
-                                                                                                  TextField(
-                                                                                                    controller: rates[c],
-                                                                                                    decoration: InputDecoration(
-                                                                                                      labelText: 'Tasa $c a USD',
-                                                                                                      border: const OutlineInputBorder(),
-                                                                                                      isDense: true,
-                                                                                                    ),
-                                                                                                    keyboardType: const TextInputType.numberWithOptions(
-                                                                                                      decimal: true,
+                                                                                                  Flexible(
+                                                                                                    flex: 2,
+                                                                                                    child: TextField(
+                                                                                                      controller: rates[c],
+                                                                                                      decoration: InputDecoration(
+                                                                                                        labelText: 'Tasa $c a USD',
+                                                                                                        border: const OutlineInputBorder(),
+                                                                                                        filled: true,
+                                                                                                        fillColor: Colors.white,
+                                                                                                        isDense: true,
+                                                                                                        contentPadding: const EdgeInsets.symmetric(
+                                                                                                          horizontal: 8,
+                                                                                                          vertical: 8,
+                                                                                                        ),
+                                                                                                        labelStyle: const TextStyle(
+                                                                                                          fontSize: 13,
+                                                                                                        ),
+                                                                                                      ),
+                                                                                                      style: TextStyle(
+                                                                                                        fontSize: 15,
+                                                                                                      ),
+                                                                                                      keyboardType: TextInputType.numberWithOptions(
+                                                                                                        decimal: true,
+                                                                                                      ),
                                                                                                     ),
                                                                                                   ),
                                                                                                   const SizedBox(
-                                                                                                    height: 4,
+                                                                                                    width: 6,
                                                                                                   ),
-                                                                                                  Row(
-                                                                                                    children: [
-                                                                                                      ElevatedButton.icon(
-                                                                                                        style: ElevatedButton.styleFrom(
-                                                                                                          backgroundColor: Colors.indigo,
-                                                                                                          foregroundColor: Colors.white,
-                                                                                                          minimumSize: const Size(
-                                                                                                            60,
-                                                                                                            40,
-                                                                                                          ),
-                                                                                                          shape: RoundedRectangleBorder(
-                                                                                                            borderRadius: BorderRadius.circular(
-                                                                                                              8,
-                                                                                                            ),
-                                                                                                          ),
-                                                                                                        ),
-                                                                                                        icon: const Icon(
-                                                                                                          Icons.save,
-                                                                                                          size: 18,
-                                                                                                        ),
-                                                                                                        label: const Text(
-                                                                                                          'Fijar',
-                                                                                                          style: TextStyle(
-                                                                                                            fontSize: 13,
-                                                                                                          ),
-                                                                                                        ),
-                                                                                                        onPressed: () {
-                                                                                                          final val = double.tryParse(
-                                                                                                            rates[c]!.text.replaceAll(
-                                                                                                              ',',
-                                                                                                              '.',
-                                                                                                            ),
-                                                                                                          );
-                                                                                                          if (val !=
-                                                                                                              null) {
-                                                                                                            currencyProvider.setRateForCurrency(
-                                                                                                              c,
-                                                                                                              val,
-                                                                                                            );
-                                                                                                            setState(
-                                                                                                              () {},
-                                                                                                            );
-                                                                                                          }
-                                                                                                        },
+                                                                                                  ElevatedButton(
+                                                                                                    style: ElevatedButton.styleFrom(
+                                                                                                      backgroundColor: Colors.indigo,
+                                                                                                      foregroundColor: Colors.white,
+                                                                                                      minimumSize: const Size(
+                                                                                                        36,
+                                                                                                        36,
                                                                                                       ),
-                                                                                                      const SizedBox(
-                                                                                                        width: 8,
+                                                                                                      padding: const EdgeInsets.symmetric(
+                                                                                                        horizontal: 8,
+                                                                                                        vertical: 0,
                                                                                                       ),
-                                                                                                      IconButton(
-                                                                                                        icon: const Icon(
-                                                                                                          Icons.delete,
-                                                                                                          color: Colors.red,
+                                                                                                      shape: RoundedRectangleBorder(
+                                                                                                        borderRadius: BorderRadius.circular(
+                                                                                                          8,
                                                                                                         ),
-                                                                                                        tooltip: 'Eliminar moneda',
-                                                                                                        onPressed: () {
-                                                                                                          currencyProvider.setAvailableCurrencies(
-                                                                                                            [
-                                                                                                              ...currencies.where(
-                                                                                                                (
-                                                                                                                  x,
-                                                                                                                ) =>
-                                                                                                                    x !=
-                                                                                                                    c,
-                                                                                                              ),
-                                                                                                            ],
-                                                                                                          );
-                                                                                                          setState(
-                                                                                                            () {},
-                                                                                                          );
-                                                                                                        },
                                                                                                       ),
-                                                                                                    ],
+                                                                                                    ),
+                                                                                                    onPressed: () {
+                                                                                                      final val = double.tryParse(
+                                                                                                        rates[c]!.text.replaceAll(
+                                                                                                          ',',
+                                                                                                          '.',
+                                                                                                        ),
+                                                                                                      );
+                                                                                                      if (val !=
+                                                                                                          null) {
+                                                                                                        currencyProvider.setRateForCurrency(
+                                                                                                          c,
+                                                                                                          val,
+                                                                                                        );
+                                                                                                        setState(
+                                                                                                          () {},
+                                                                                                        );
+                                                                                                      }
+                                                                                                    },
+                                                                                                    child: const Icon(
+                                                                                                      Icons.save,
+                                                                                                      size: 18,
+                                                                                                    ),
+                                                                                                  ),
+                                                                                                  IconButton(
+                                                                                                    icon: const Icon(
+                                                                                                      Icons.delete,
+                                                                                                      color: Colors.red,
+                                                                                                      size: 20,
+                                                                                                    ),
+                                                                                                    tooltip: 'Eliminar moneda',
+                                                                                                    onPressed: () {
+                                                                                                      currencyProvider.setAvailableCurrencies(
+                                                                                                        [
+                                                                                                          ...currencies.where(
+                                                                                                            (
+                                                                                                              x,
+                                                                                                            ) =>
+                                                                                                                x !=
+                                                                                                                c,
+                                                                                                          ),
+                                                                                                        ],
+                                                                                                      );
+                                                                                                      setState(
+                                                                                                        () {},
+                                                                                                      );
+                                                                                                    },
                                                                                                   ),
                                                                                                 ],
                                                                                               ),

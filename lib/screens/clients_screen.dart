@@ -317,6 +317,7 @@ class ClientsScreenState extends State<ClientsScreen>
         child: ClientForm(
           initialClient: client,
           userId: widget.userId,
+          // Ajuste: onSave ahora espera que newClient traiga anchorUsdValue si corresponde
           onSave: (newClient) async {
             final provider = Provider.of<ClientProvider>(
               context,
@@ -341,6 +342,7 @@ class ClientsScreenState extends State<ClientsScreen>
               await provider.loadClients(widget.userId);
               if (newClient.balance != 0) {
                 final now = DateTime.now();
+                // --- Ajuste: Pasar anchorUsdValue si viene del formulario ---
                 final tx = Transaction(
                   id: DateTime.now().millisecondsSinceEpoch.toString(),
                   clientId: realId,
@@ -352,6 +354,8 @@ class ClientsScreenState extends State<ClientsScreen>
                   createdAt: now,
                   synced: false, // Siempre pendiente por sincronizar
                   currencyCode: newClient.currencyCode,
+                  anchorUsdValue:
+                      newClient.anchorUsdValue, // <-- Aquí el refuerzo
                 );
                 await txProvider.addTransaction(tx, widget.userId, realId);
                 // Sincroniza en segundo plano tras agregar movimiento de saldo inicial

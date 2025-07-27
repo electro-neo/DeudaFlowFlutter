@@ -273,6 +273,7 @@ class _ClientFormState extends State<ClientForm> {
 
     double balance = 0.0;
     String? type = _initialType;
+    double? anchorUsdValue;
     // Validar moneda seleccionada
     if (_showInitialBalanceFields) {
       if (_selectedCurrency == null || _selectedCurrency!.isEmpty) {
@@ -305,10 +306,30 @@ class _ClientFormState extends State<ClientForm> {
         });
         return;
       }
+      // --- Cálculo de anchorUsdValue ---
+      final provider = Provider.of<CurrencyProvider>(context, listen: false);
+      final rate = provider.exchangeRates[_selectedCurrency!.toUpperCase()];
+      if (rate != null && rate > 0) {
+        anchorUsdValue = balance / rate;
+        debugPrint(
+          '\u001b[41m[FORM][CALC] balance=$balance, currency=$_selectedCurrency, rate=$rate, anchorUsdValue=$anchorUsdValue\u001b[0m',
+        );
+      } else if (_selectedCurrency!.toUpperCase() == 'USD') {
+        anchorUsdValue = balance;
+        debugPrint(
+          '\u001b[41m[FORM][CALC] balance=$balance, currency=USD, anchorUsdValue=$anchorUsdValue\u001b[0m',
+        );
+      } else {
+        anchorUsdValue = null;
+        debugPrint(
+          '\u001b[41m[FORM][CALC][WARN] No rate for currency=$_selectedCurrency, anchorUsdValue=null\u001b[0m',
+        );
+      }
     } else {
       // Si no se presionó el botón, balance 0 y tipo null
       balance = 0.0;
       type = null;
+      anchorUsdValue = null;
     }
     setState(() {
       _error = null;
@@ -327,6 +348,10 @@ class _ClientFormState extends State<ClientForm> {
       synced: widget.initialClient?.synced ?? false,
       pendingDelete: widget.initialClient?.pendingDelete ?? false,
       currencyCode: _selectedCurrency ?? 'USD',
+      anchorUsdValue: anchorUsdValue, // <-- Ahora sí se pasa correctamente
+    );
+    debugPrint(
+      '\u001b[41m[FORM][SAVE] Cliente id=$newId, balance=$balance, currency=$_selectedCurrency, anchorUsdValue=$anchorUsdValue\u001b[0m',
     );
     try {
       await widget.onSave(client);

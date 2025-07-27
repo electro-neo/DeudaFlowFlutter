@@ -3,7 +3,8 @@ import '../widgets/budgeto_colors.dart';
 import 'package:flutter/services.dart';
 import '../models/transaction.dart';
 import '../models/client.dart';
-// import '../providers/currency_provider.dart';
+import '../providers/currency_provider.dart';
+import 'package:provider/provider.dart';
 // import '../utils/currency_utils.dart';
 
 class TransactionForm extends StatefulWidget {
@@ -115,6 +116,38 @@ class _TransactionFormState extends State<TransactionForm> {
         await Future.delayed(
           const Duration(milliseconds: 350),
         ); // Simula espera de guardado
+        // --- Cálculo de anchorUsdValue usando CurrencyProvider si está disponible ---
+        double? anchorUsdValue;
+        double? rate;
+        try {
+          final currencyProvider = Provider.of<CurrencyProvider>(
+            context,
+            listen: false,
+          );
+          rate = currencyProvider.exchangeRates[_currencyCode.toUpperCase()];
+          if (_currencyCode.toUpperCase() == 'USD') {
+            anchorUsdValue = amount;
+            rate = 1.0;
+          } else if (rate != null && rate > 0) {
+            anchorUsdValue = amount / rate;
+          } else {
+            anchorUsdValue = null;
+          }
+          debugPrint(
+            '\u001b[45m[TX_FORM][PROVIDER] currency=$_currencyCode, rate=$rate, anchorUsdValue=$anchorUsdValue\u001b[0m',
+          );
+        } catch (e) {
+          // Fallback si no hay provider en el árbol
+          if (_currencyCode.toUpperCase() == 'USD') {
+            anchorUsdValue = amount;
+            rate = 1.0;
+          } else {
+            anchorUsdValue = null;
+          }
+          debugPrint(
+            '\u001b[41m[TX_FORM][NO_PROVIDER] currency=$_currencyCode, anchorUsdValue=$anchorUsdValue, error=$e\u001b[0m',
+          );
+        }
         widget.onSave!(
           Transaction(
             id: localId, // id local único
@@ -127,6 +160,7 @@ class _TransactionFormState extends State<TransactionForm> {
             createdAt: now,
             localId: localId,
             currencyCode: _currencyCode,
+            anchorUsdValue: anchorUsdValue,
           ),
         );
       }
@@ -397,9 +431,31 @@ class _TransactionFormState extends State<TransactionForm> {
                               border: OutlineInputBorder(),
                               isDense: true,
                             ),
-                            items: ['USD', 'VES', 'COP', 'EUR', 'ARS', 'BRL', 'CLP', 'MXN', 'PEN', 'BOB', 'PYG', 'UYU', 'CRC', 'GTQ', 'HNL', 'NIO', 'DOP', 'CUC', 'CAD','GBP','JPY',
-'CNY',
-'KRW',
+                            items:
+                                [
+                                      'USD',
+                                      'VES',
+                                      'COP',
+                                      'EUR',
+                                      'ARS',
+                                      'BRL',
+                                      'CLP',
+                                      'MXN',
+                                      'PEN',
+                                      'BOB',
+                                      'PYG',
+                                      'UYU',
+                                      'CRC',
+                                      'GTQ',
+                                      'HNL',
+                                      'NIO',
+                                      'DOP',
+                                      'CUC',
+                                      'CAD',
+                                      'GBP',
+                                      'JPY',
+                                      'CNY',
+                                      'KRW',
                                       'INR',
                                       'TRY',
                                       'RUB',

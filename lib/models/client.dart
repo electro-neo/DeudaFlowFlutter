@@ -5,6 +5,7 @@ class Client {
   final String? phone;
   final double balance;
   final String? localId;
+  final double? anchorUsdValue;
 
   const Client({
     required this.id,
@@ -13,6 +14,7 @@ class Client {
     this.phone,
     required this.balance,
     this.localId,
+    this.anchorUsdValue,
   });
 
   factory Client.fromMap(Map<String, dynamic> map) => Client(
@@ -22,6 +24,9 @@ class Client {
     phone: map['phone']?.toString(),
     balance: (map['balance'] as num?)?.toDouble() ?? 0.0,
     localId: map['local_id']?.toString(),
+    anchorUsdValue: map['anchor_usd_value'] != null
+        ? (map['anchor_usd_value'] as num?)?.toDouble()
+        : null,
   );
 
   // Permite convertir un ClientHive a Client para compatibilidad
@@ -32,6 +37,7 @@ class Client {
     phone: hive.phone,
     balance: hive.balance,
     localId: hive.localId,
+    anchorUsdValue: hive.anchorUsdValue,
   );
 
   Map<String, dynamic> toMap() => {
@@ -41,5 +47,6 @@ class Client {
     'phone': phone,
     'balance': balance,
     'local_id': localId,
+    'anchor_usd_value': anchorUsdValue,
   };
 }

@@ -256,7 +256,13 @@ class TransactionProvider extends ChangeNotifier {
               .toList();
           if (localMatches.isNotEmpty && remote.id != localMatches.first.id) {
             final localMatch = localMatches.first;
-            // Actualiza el id local por el UUID real de Supabase
+            debugPrint(
+              '\u001b[35m[SYNC][RECONCILIACION][ANTES] localId=${localMatch.id}, remoteId=${remote.id}, anchorUsdValue local: ' +
+                  (localMatch.anchorUsdValue?.toString() ?? 'null') +
+                  ', anchorUsdValue remote: ' +
+                  (remote.anchorUsdValue?.toString() ?? 'null') +
+                  '\u001b[0m',
+            );
             final updated = TransactionHive(
               id: remote.id,
               clientId: localMatch.clientId,
@@ -267,6 +273,16 @@ class TransactionProvider extends ChangeNotifier {
               synced: true,
               pendingDelete: false,
               userId: localMatch.userId,
+              currencyCode: localMatch.currencyCode,
+              localId: localMatch.localId,
+              anchorUsdValue:
+                  localMatch.anchorUsdValue ??
+                  remote.anchorUsdValue, // Refuerzo: nunca perder valor
+            );
+            debugPrint(
+              '\u001b[36m[SYNC][RECONCILIACION][DESPUES] updatedId=${updated.id}, anchorUsdValue: ' +
+                  (updated.anchorUsdValue?.toString() ?? 'null') +
+                  '\u001b[0m',
             );
             await box.delete(localMatch.id);
             await box.put(updated.id, updated);
@@ -297,6 +313,7 @@ class TransactionProvider extends ChangeNotifier {
               userId: userId, // Asegura que el userId se guarde en Hive
               currencyCode: t.currencyCode,
               localId: t.localId,
+              anchorUsdValue: t.anchorUsdValue,
             ),
           );
         }
@@ -474,6 +491,9 @@ class TransactionProvider extends ChangeNotifier {
             synced: true,
             pendingDelete: false,
             userId: userId,
+            currencyCode: txWithLocalId.currencyCode,
+            localId: txWithLocalId.localId,
+            anchorUsdValue: txWithLocalId.anchorUsdValue,
           ),
         );
       } catch (_) {
@@ -489,6 +509,9 @@ class TransactionProvider extends ChangeNotifier {
             synced: false,
             pendingDelete: false,
             userId: userId,
+            currencyCode: txWithLocalId.currencyCode,
+            localId: txWithLocalId.localId,
+            anchorUsdValue: txWithLocalId.anchorUsdValue,
           ),
         );
       }
@@ -505,6 +528,9 @@ class TransactionProvider extends ChangeNotifier {
           synced: false,
           pendingDelete: false,
           userId: userId,
+          currencyCode: txWithLocalId.currencyCode,
+          localId: txWithLocalId.localId,
+          anchorUsdValue: txWithLocalId.anchorUsdValue,
         ),
       );
     }
@@ -630,20 +656,17 @@ class TransactionProvider extends ChangeNotifier {
         .where((t) => !t.synced && t.pendingDelete != true)
         .toList();
     for (final t in pending) {
-      // Validar que el clientId sea un UUID válido (36 caracteres)
       if (t.clientId.length != 36) {
         debugPrint(
           '[SYNC][SKIP] Transacción ${t.id} NO se sube porque clientId no es UUID válido: ${t.clientId}',
         );
         continue;
       }
-      // Busca si ya existe en remoto por local_id
       final idx = remoteTxs.indexWhere(
         (r) => r.localId != null && r.localId == t.id,
       );
       if (idx != -1) {
         final remoteMatch = remoteTxs[idx];
-        // Ya existe en Supabase, actualiza el registro local con el UUID y márcala como sincronizada
         final updated = TransactionHive(
           id: remoteMatch.id,
           clientId: t.clientId,
@@ -654,11 +677,13 @@ class TransactionProvider extends ChangeNotifier {
           synced: true,
           pendingDelete: false,
           userId: t.userId,
+          currencyCode: t.currencyCode,
+          localId: t.localId,
+          anchorUsdValue: t.anchorUsdValue ?? remoteMatch.anchorUsdValue,
         );
-        await box.delete(t.id); // Elimina la local con id temporal
-        await box.put(updated.id, updated); // Guarda con el UUID real
+        await box.delete(t.id);
+        await box.put(updated.id, updated);
       } else {
-        // No existe en Supabase, súbela normalmente
         final tx = Transaction.fromHive(t).copyWith(userId: userId);
         try {
           await _service.addTransaction(tx, userId, t.clientId);
@@ -669,7 +694,6 @@ class TransactionProvider extends ChangeNotifier {
             '[SYNC][ERROR] No se pudo subir la transacción offline con id ${t.id}: $e',
           );
           debugPrint('[SYNC][STACK] $stack');
-          // Si falla, sigue offline
         }
       }
     }

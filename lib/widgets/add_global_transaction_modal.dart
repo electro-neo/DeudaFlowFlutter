@@ -174,6 +174,29 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
 
       final localId =
           randomLetters(2) + DateTime.now().millisecondsSinceEpoch.toString();
+      // --- Cálculo de anchorUsdValue ---
+      double? anchorUsdValue;
+      final currencyProvider = Provider.of<CurrencyProvider>(
+        context,
+        listen: false,
+      );
+      final rate = currencyProvider.exchangeRates[_currencyCode.toUpperCase()];
+      if (rate != null && rate > 0) {
+        anchorUsdValue = amount / rate;
+        debugPrint(
+          '\u001b[41m[GLOBAL_FORM][CALC] amount=$amount, currency=$_currencyCode, rate=$rate, anchorUsdValue=$anchorUsdValue\u001b[0m',
+        );
+      } else if (_currencyCode.toUpperCase() == 'USD') {
+        anchorUsdValue = amount;
+        debugPrint(
+          '\u001b[41m[GLOBAL_FORM][CALC] amount=$amount, currency=USD, anchorUsdValue=$anchorUsdValue\u001b[0m',
+        );
+      } else {
+        anchorUsdValue = null;
+        debugPrint(
+          '\u001b[41m[GLOBAL_FORM][CALC][WARN] No rate for currency=$_currencyCode, anchorUsdValue=null\u001b[0m',
+        );
+      }
       final transaction = Transaction(
         id: localId, // id local único
         clientId: _selectedClient!.id,
@@ -185,6 +208,10 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
         createdAt: now,
         localId: localId,
         currencyCode: _currencyCode,
+        anchorUsdValue: anchorUsdValue,
+      );
+      debugPrint(
+        '\u001b[41m[GLOBAL_FORM][SAVE] id=$localId, amount=$amount, currency=$_currencyCode, anchorUsdValue=$anchorUsdValue\u001b[0m',
       );
       // Guardar usando TransactionProvider
       final txProvider = Provider.of<TransactionProvider>(

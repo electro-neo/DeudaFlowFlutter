@@ -120,7 +120,7 @@ class SupabaseService {
     String clientId,
   ) async {
     final now = DateTime.now().toIso8601String();
-    final response = await _client.from('transactions').upsert({
+    final data = {
       'client_id': clientId,
       'user_id': userId,
       'type': tx.type,
@@ -129,27 +129,41 @@ class SupabaseService {
       'date': tx.date.toIso8601String(),
       'created_at': now,
       'local_id': tx.id, // id local generado en Hive
-      'currency_code': tx.currencyCode, // <-- Agregado campo de moneda
-    }, onConflict: 'local_id').select();
+      'currency_code': tx.currencyCode,
+      'anchor_usd_value': tx.anchorUsdValue,
+    };
+    debugPrint(
+      '\u001b[45m[SUPABASE][UPSERT][TX] id=${tx.id}, clientId=$clientId, anchorUsdValue=${tx.anchorUsdValue}\u001b[0m',
+    );
+    final response = await _client
+        .from('transactions')
+        .upsert(data, onConflict: 'local_id')
+        .select();
     if (response.isEmpty) {
       debugPrint(
-        '[SUPABASE][ERROR] No se pudo insertar/upsert la transacción (respuesta vacía): $response',
+        '\u001b[41m[SUPABASE][ERROR] No se pudo insertar/upsert la transacción (respuesta vacía): $response\u001b[0m',
       );
       throw Exception('No se pudo insertar la transacción');
+    } else {
+      debugPrint(
+        '\u001b[42m[SUPABASE][UPSERT][OK] id=${tx.id}, anchorUsdValue=${tx.anchorUsdValue}, response=${response.toString()}\u001b[0m',
+      );
     }
   }
 
   Future<void> updateTransaction(Transaction tx) async {
-    await _client
-        .from('transactions')
-        .update({
-          'type': tx.type,
-          'amount': tx.amount,
-          'description': tx.description,
-          'date': tx.date.toIso8601String(),
-          'created_at': tx.createdAt.toIso8601String(),
-        })
-        .eq('id', tx.id);
+    final data = {
+      'type': tx.type,
+      'amount': tx.amount,
+      'description': tx.description,
+      'date': tx.date.toIso8601String(),
+      'created_at': tx.createdAt.toIso8601String(),
+      'anchor_usd_value': tx.anchorUsdValue,
+    };
+    debugPrint(
+      '\u001b[44m[SUPABASE][UPDATE][TX] id=${tx.id}, anchorUsdValue=${tx.anchorUsdValue}\u001b[0m',
+    );
+    await _client.from('transactions').update(data).eq('id', tx.id);
   }
 
   Future<void> deleteTransaction(String transactionId) async {

@@ -179,52 +179,57 @@ class ClientDetailsModal extends StatelessWidget {
                     onPressed: () {
                       Navigator.of(context, rootNavigator: true).pop();
                       Future.delayed(Duration.zero, () {
+                        // Envolver TransactionForm con Consumer<CurrencyProvider> para asegurar acceso
                         showDialog(
                           context: rootContext,
-                          builder: (dialogContext) => TransactionForm(
-                            userId: userId,
-                            initialClient: client,
-                            onClose: () => Navigator.of(
-                              dialogContext,
-                              rootNavigator: true,
-                            ).pop(),
-                            onSave: (tx) async {
-                              final txProvider =
-                                  Provider.of<TransactionProvider>(
+                          builder: (dialogContext) => Builder(
+                            builder: (innerContext) {
+                              // Si CurrencyProvider está en el árbol, úsalo; si no, muestra igual
+                              return TransactionForm(
+                                userId: userId,
+                                initialClient: client,
+                                onClose: () => Navigator.of(
+                                  dialogContext,
+                                  rootNavigator: true,
+                                ).pop(),
+                                onSave: (tx) async {
+                                  final txProvider =
+                                      Provider.of<TransactionProvider>(
+                                        dialogContext,
+                                        listen: false,
+                                      );
+                                  final clientProvider =
+                                      Provider.of<ClientProvider>(
+                                        dialogContext,
+                                        listen: false,
+                                      );
+                                  final navigator = Navigator.of(
                                     dialogContext,
-                                    listen: false,
+                                    rootNavigator: true,
                                   );
-                              final clientProvider =
-                                  Provider.of<ClientProvider>(
-                                    dialogContext,
-                                    listen: false,
+                                  final scaffoldMessenger =
+                                      ScaffoldMessenger.of(dialogContext);
+                                  await txProvider.addTransaction(
+                                    tx,
+                                    userId,
+                                    client.id,
                                   );
-                              final navigator = Navigator.of(
-                                dialogContext,
-                                rootNavigator: true,
+                                  await txProvider.loadTransactions(userId);
+                                  await clientProvider.loadClients(userId);
+                                  if (navigator.mounted && navigator.canPop()) {
+                                    navigator.pop();
+                                  }
+                                  try {
+                                    scaffoldMessenger.showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Transacción guardada correctamente',
+                                        ),
+                                      ),
+                                    );
+                                  } catch (_) {}
+                                },
                               );
-                              final scaffoldMessenger = ScaffoldMessenger.of(
-                                dialogContext,
-                              );
-                              await txProvider.addTransaction(
-                                tx,
-                                userId,
-                                client.id,
-                              );
-                              await txProvider.loadTransactions(userId);
-                              await clientProvider.loadClients(userId);
-                              if (navigator.mounted && navigator.canPop()) {
-                                navigator.pop();
-                              }
-                              try {
-                                scaffoldMessenger.showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Transacción guardada correctamente',
-                                    ),
-                                  ),
-                                );
-                              } catch (_) {}
                             },
                           ),
                         );

@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 class Transaction {
   final String id;
   final String clientId;
@@ -11,6 +13,7 @@ class Transaction {
   final bool? pendingDelete;
   final String? localId;
   final String currencyCode;
+  final double? anchorUsdValue;
 
   Transaction({
     required this.id,
@@ -25,7 +28,12 @@ class Transaction {
     this.pendingDelete,
     this.localId,
     required this.currencyCode,
-  });
+    this.anchorUsdValue,
+  }) {
+    debugPrint(
+      '\u001b[43m[TX][CREACION] id=$id, clientId=$clientId, type=$type, amount=$amount, currency=$currencyCode, anchorUsdValue=${anchorUsdValue?.toString() ?? 'null'}\u001b[0m',
+    );
+  }
 
   Transaction copyWith({
     String? id,
@@ -40,6 +48,7 @@ class Transaction {
     bool? pendingDelete,
     String? localId,
     String? currencyCode,
+    double? anchorUsdValue,
   }) {
     return Transaction(
       id: id ?? this.id,
@@ -54,11 +63,12 @@ class Transaction {
       pendingDelete: pendingDelete ?? this.pendingDelete,
       localId: localId ?? this.localId,
       currencyCode: currencyCode ?? this.currencyCode,
+      anchorUsdValue: anchorUsdValue ?? this.anchorUsdValue,
     );
   }
 
   static Transaction fromHive(dynamic t) {
-    return Transaction(
+    final tx = Transaction(
       id: t.id,
       clientId: t.clientId,
       userId: t.userId ?? '',
@@ -71,27 +81,41 @@ class Transaction {
       pendingDelete: t.pendingDelete,
       localId: t.localId,
       currencyCode: t.currencyCode ?? 'VES',
+      anchorUsdValue: t.anchorUsdValue,
     );
+    debugPrint(
+      '\u001b[31m[TX][fromHive] id=${tx.id}, anchorUsdValue=${tx.anchorUsdValue?.toString() ?? 'null'}\u001b[0m',
+    );
+    return tx;
   }
 
-  factory Transaction.fromMap(Map<String, dynamic> map) => Transaction(
-    id: map['id']?.toString() ?? '',
-    clientId: map['client_id']?.toString() ?? '',
-    userId: map['user_id']?.toString() ?? '',
-    type: map['type'],
-    amount: (map['amount'] as num?)?.toDouble() ?? 0.0,
-    description: map['description'] ?? '',
-    date: DateTime.parse(map['date']),
-    createdAt: DateTime.parse(map['created_at']),
-    synced: map['synced'] is bool
-        ? map['synced'] as bool
-        : (map['synced'] is int ? (map['synced'] == 1) : null),
-    pendingDelete: map['pendingDelete'] is bool
-        ? map['pendingDelete'] as bool
-        : (map['pendingDelete'] is int ? (map['pendingDelete'] == 1) : null),
-    localId: map['local_id']?.toString(),
-    currencyCode: map['currency_code']?.toString() ?? 'VES',
-  );
+  factory Transaction.fromMap(Map<String, dynamic> map) {
+    final tx = Transaction(
+      id: map['id']?.toString() ?? '',
+      clientId: map['client_id']?.toString() ?? '',
+      userId: map['user_id']?.toString() ?? '',
+      type: map['type'],
+      amount: (map['amount'] as num?)?.toDouble() ?? 0.0,
+      description: map['description'] ?? '',
+      date: DateTime.parse(map['date']),
+      createdAt: DateTime.parse(map['created_at']),
+      synced: map['synced'] is bool
+          ? map['synced'] as bool
+          : (map['synced'] is int ? (map['synced'] == 1) : null),
+      pendingDelete: map['pendingDelete'] is bool
+          ? map['pendingDelete'] as bool
+          : (map['pendingDelete'] is int ? (map['pendingDelete'] == 1) : null),
+      localId: map['local_id']?.toString(),
+      currencyCode: map['currency_code']?.toString() ?? 'VES',
+      anchorUsdValue: (map['anchor_usd_value'] is num)
+          ? (map['anchor_usd_value'] as num).toDouble()
+          : double.tryParse(map['anchor_usd_value']?.toString() ?? ''),
+    );
+    debugPrint(
+      '\u001b[35m[TX][fromMap] id=${tx.id}, anchorUsdValue=${tx.anchorUsdValue?.toString() ?? 'null'}\u001b[0m',
+    );
+    return tx;
+  }
 
   // Elimina el factory duplicado para evitar conflicto con el método estático
 }

@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'package:flutter/foundation.dart';
 part 'transaction_hive.g.dart';
 
 @HiveType(typeId: 1)
@@ -25,6 +26,8 @@ class TransactionHive extends HiveObject {
   String currencyCode; // Código de moneda (ej: 'USD', 'VES', 'COP')
   @HiveField(10)
   String? localId; // <-- Agregado para compatibilidad con Transaction
+  @HiveField(11)
+  double? anchorUsdValue; // Nuevo campo para valor en USD
 
   TransactionHive({
     required this.id,
@@ -38,9 +41,18 @@ class TransactionHive extends HiveObject {
     this.userId,
     this.currencyCode = 'VES', // Valor por defecto para datos antiguos
     this.localId,
-  });
+    this.anchorUsdValue,
+  }) {
+    // Debug: Rastreo de anchorUsdValue en creación de TransactionHive
+    debugPrint(
+      '\u001b[33m[HIVE][CREACION] id=$id, anchorUsdValue=${anchorUsdValue?.toString() ?? 'null'}\u001b[0m',
+    );
+  }
 
   factory TransactionHive.fromMap(Map<String, dynamic> map) {
+    debugPrint(
+      '\u001b[34m[HIVE][fromMap] id=${map['id']}, anchorUsdValue=${map['anchor_usd_value']?.toString() ?? 'null'}\u001b[0m',
+    );
     final idValue = map['id'];
     final clientIdValue = map['clientId'];
     final typeValue = map['type'];
@@ -83,7 +95,7 @@ class TransactionHive extends HiveObject {
         "El campo 'date' no tiene un formato válido en TransactionHive.fromMap: ${dateValue.toString()}",
       );
     }
-    return TransactionHive(
+    final tx = TransactionHive(
       id: idValue.toString(),
       clientId: clientIdValue.toString(),
       type: typeValue.toString(),
@@ -101,10 +113,21 @@ class TransactionHive extends HiveObject {
       userId: map['userId']?.toString(),
       currencyCode: map['currency_code']?.toString() ?? 'VES',
       localId: map['local_id']?.toString(),
+      anchorUsdValue: (map['anchor_usd_value'] is num)
+          ? (map['anchor_usd_value'] as num).toDouble()
+          : double.tryParse(map['anchor_usd_value']?.toString() ?? ''),
     );
+    debugPrint(
+      '\u001b[32m[HIVE][fromMap->CREADO] id=${tx.id}, anchorUsdValue=${tx.anchorUsdValue?.toString() ?? 'null'}\u001b[0m',
+    );
+    return tx;
   }
 
-  Map<String, dynamic> toMap() => {
+  Map<String, dynamic> toMap() {
+    debugPrint(
+      '\u001b[36m[HIVE][toMap] id=$id, anchorUsdValue=${anchorUsdValue?.toString() ?? 'null'}\u001b[0m',
+    );
+    return {
     'id': id,
     'clientId': clientId,
     'type': type,
@@ -116,5 +139,7 @@ class TransactionHive extends HiveObject {
     'userId': userId,
     'currency_code': currencyCode,
     'local_id': localId,
+    'anchor_usd_value': anchorUsdValue,
   };
+  }
 }

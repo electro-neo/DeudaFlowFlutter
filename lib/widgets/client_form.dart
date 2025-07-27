@@ -6,7 +6,6 @@ import '../widgets/budgeto_colors.dart';
 import 'package:flutter/services.dart';
 import '../models/client_hive.dart';
 import '../widgets/scale_on_tap.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 class ClientForm extends StatefulWidget {
   final Future<ClientHive> Function(ClientHive) onSave;

@@ -12,10 +12,7 @@ import '../providers/currency_provider.dart';
 import '../providers/transaction_filter_provider.dart';
 import 'add_global_transaction_modal.dart';
 import 'faq_help_sheet.dart';
-import 'client_form.dart';
-import '../providers/client_provider.dart';
 import '../providers/transaction_provider.dart';
-import '../models/transaction.dart';
 
 // Banner de debug para mostrar un número aleatorio que cambia en cada hot reload
 // class DebugBanner extends StatefulWidget {

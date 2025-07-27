@@ -304,7 +304,7 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
             displayStringForOption: (Client c) => c.name,
             fieldViewBuilder:
                 (context, controller, focusNode, onFieldSubmitted) {
-                  return Container(
+                  return SizedBox(
                     height: 40, // Igual que los ítems del menú
                     child: TextField(
                       controller: controller,

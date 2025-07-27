@@ -190,27 +190,32 @@ class _MainScaffoldState extends State<MainScaffold> {
         final viewInsets = MediaQuery.of(context).viewInsets;
         final isKeyboardVisible = viewInsets.bottom > 0.0;
 
-        // Update available currencies in CurrencyProvider from transactions (post-frame to avoid build errors)
+        // Actualiza las monedas disponibles combinando transacciones y tasas registradas
         WidgetsBinding.instance.addPostFrameCallback((_) {
           final currencyProvider = Provider.of<CurrencyProvider>(
             context,
             listen: false,
           );
-          // Normaliza a mayúsculas y elimina espacios
+          // Monedas de transacciones
           final transactionCurrencies = transactionProvider.transactions
               .map((t) => t.currencyCode.trim().toUpperCase())
               .where((c) => c.isNotEmpty)
               .toSet();
-          if (transactionCurrencies
+          // Monedas con tasa registrada
+          final rateCurrencies = currencyProvider.exchangeRates.keys
+              .map((c) => c.toUpperCase())
+              .where((c) => c.isNotEmpty)
+              .toSet();
+          // Unir ambos conjuntos
+          final allCurrencies = {...transactionCurrencies, ...rateCurrencies};
+          if (allCurrencies
                   .difference(currencyProvider.availableCurrencies.toSet())
                   .isNotEmpty ||
               currencyProvider.availableCurrencies
                   .toSet()
-                  .difference(transactionCurrencies)
+                  .difference(allCurrencies)
                   .isNotEmpty) {
-            currencyProvider.setAvailableCurrencies(
-              transactionCurrencies.toList(),
-            );
+            currencyProvider.setAvailableCurrencies(allCurrencies.toList());
           }
         });
 
@@ -419,6 +424,24 @@ class _MainScaffoldState extends State<MainScaffold> {
                                                         ],
                                                       ),
                                                       onPressed: () {
+                                                        // DEBUG: Mostrar monedas con tasa registrada
+                                                        final monedasConTasa =
+                                                            currencyProvider
+                                                                .exchangeRates
+                                                                .entries
+                                                                .where(
+                                                                  (e) =>
+                                                                      e.key !=
+                                                                      'USD',
+                                                                )
+                                                                .map(
+                                                                  (e) =>
+                                                                      '${e.key}: ${e.value}',
+                                                                )
+                                                                .toList();
+                                                        debugPrint(
+                                                          '[DEBUG][GESTION MONEDAS] Monedas con tasa registrada: ${monedasConTasa.join(', ')}',
+                                                        );
                                                         showDialog(
                                                           context: context,
                                                           builder: (ctx2) {

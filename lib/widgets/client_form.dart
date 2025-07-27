@@ -4,6 +4,8 @@ import '../screens/welcome_screen.dart' as welcome_screen;
 import 'package:permission_handler/permission_handler.dart';
 import '../widgets/budgeto_colors.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../providers/currency_provider.dart';
 import '../models/client_hive.dart';
 import '../widgets/scale_on_tap.dart';
 
@@ -26,6 +28,67 @@ class ClientForm extends StatefulWidget {
 }
 
 class _ClientFormState extends State<ClientForm> {
+  // Simulación de almacenamiento de tasas (puedes reemplazar por tu lógica real)
+  bool _hasRateForCurrency(String currency) {
+    final provider = Provider.of<CurrencyProvider>(context, listen: false);
+    return provider.exchangeRates.containsKey(currency.toUpperCase());
+  }
+
+  Future<void> _showRegisterRateDialog(String currency) async {
+    final controller = TextEditingController();
+    double? rate;
+    final result = await showDialog<double>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Text('Registrar tasa para $currency'),
+          content: TextField(
+            controller: controller,
+            keyboardType: TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(
+              labelText: 'Tasa de cambio',
+              hintText: 'Ej: 36.5',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final text = controller.text.trim();
+                final value = double.tryParse(text);
+                if (value == null || value <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Ingresa una tasa válida.')),
+                  );
+                  return;
+                }
+                rate = value;
+                Navigator.of(ctx).pop(rate);
+              },
+              child: Text('Guardar'),
+            ),
+          ],
+        );
+      },
+    );
+    if (result != null) {
+      final provider = Provider.of<CurrencyProvider>(context, listen: false);
+      provider.setRateForCurrency(currency, result);
+      // Asegura que la moneda esté en availableCurrencies si no hay transacción aún
+      final upper = currency.toUpperCase();
+      if (!provider.availableCurrencies.contains(upper)) {
+        final newList = List<String>.from(provider.availableCurrencies);
+        if (upper != 'USD') newList.add(upper);
+        provider.setAvailableCurrencies(newList);
+      }
+      setState(() {}); // Para refrescar el widget
+    }
+  }
+
   Future<Contact?> _selectContactModal(BuildContext context) async {
     List<Contact> contacts = welcome_screen.globalContacts;
     bool loading = contacts.isEmpty;
@@ -699,7 +762,21 @@ class _ClientFormState extends State<ClientForm> {
                                   child: Text(currency),
                                 );
                               }).toList(),
-                              onChanged: (value) {
+                              onChanged: (value) async {
+                                if (value == null) return;
+                                // Si la moneda no tiene tasa, mostrar el diálogo y solo cambiar si se registra la tasa
+                                if (!_hasRateForCurrency(value)) {
+                                  final prevCurrency = _selectedCurrency;
+                                  await _showRegisterRateDialog(value);
+                                  // Si después de registrar, sigue sin tasa (usuario canceló), no cambiar
+                                  if (!_hasRateForCurrency(value)) {
+                                    // Forzar a que el Dropdown vuelva al valor anterior
+                                    setState(() {
+                                      _selectedCurrency = prevCurrency;
+                                    });
+                                    return;
+                                  }
+                                }
                                 setState(() {
                                   _selectedCurrency = value;
                                 });

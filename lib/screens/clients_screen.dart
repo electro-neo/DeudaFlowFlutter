@@ -377,6 +377,8 @@ class ClientsScreenState extends State<ClientsScreen>
                   await txProvider.syncPendingTransactions(widget.userId);
                 }
               }
+              // Siempre recargar transacciones después de crear un cliente, incluso si no hay saldo inicial
+              await txProvider.loadTransactions(widget.userId);
             } else {
               // Edición: actualizar en Hive y marcar como pendiente de sincronizar (offline-first)
               await provider.updateClient(

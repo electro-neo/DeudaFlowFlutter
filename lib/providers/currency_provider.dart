@@ -45,13 +45,47 @@ class CurrencyProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Set a single rate for a currency
+  // Set a single rate for a currency (solo para monedas distintas de USD)
   void setRateForCurrency(String currency, double rate) {
-    // Solo permitir registrar tasa para USD o las 2 monedas adicionales
-    final allowed = _availableCurrencies.take(3).toList();
-    if (allowed.contains(currency.toUpperCase())) {
-      _exchangeRates[currency.toUpperCase()] = rate;
-      notifyListeners();
+    final upper = currency.toUpperCase();
+    // No permitir registrar tasa para USD
+    if (upper == 'USD') return;
+    // Solo permitir registrar tasa para monedas que estén en el listado permitido
+    final allowed = [
+      'VES',
+      'COP',
+      'EUR',
+      'ARS',
+      'BRL',
+      'CLP',
+      'MXN',
+      'PEN',
+      'UYU',
+      'GBP',
+      'CHF',
+      'RUB',
+      'TRY',
+      'JPY',
+      'CNY',
+      'KRW',
+      'INR',
+      'SGD',
+      'HKD',
+      'CAD',
+      'AUD',
+      'NZD',
+      'ZAR',
+    ];
+    if (!allowed.contains(upper)) return;
+
+    // Limitar a solo 2 monedas adicionales a USD
+    // Si la moneda ya tiene tasa, solo actualiza
+    final nonUsdRates = _exchangeRates.keys.where((k) => k != 'USD').toList();
+    if (!nonUsdRates.contains(upper) && nonUsdRates.length >= 2) {
+      // No se puede registrar más de 2 monedas adicionales
+      return;
     }
+    _exchangeRates[upper] = rate;
+    notifyListeners();
   }
 }

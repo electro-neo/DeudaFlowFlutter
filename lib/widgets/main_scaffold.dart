@@ -13,6 +13,7 @@ import '../providers/transaction_filter_provider.dart';
 import 'add_global_transaction_modal.dart';
 import 'faq_help_sheet.dart';
 import '../providers/transaction_provider.dart';
+import '../utils/currency_manager_dialog.dart';
 
 // Banner de debug para mostrar un número aleatorio que cambia en cada hot reload
 // class DebugBanner extends StatefulWidget {
@@ -192,31 +193,30 @@ class _MainScaffoldState extends State<MainScaffold> {
 
         // Actualiza las monedas disponibles combinando transacciones y tasas registradas
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          final currencyProvider = Provider.of<CurrencyProvider>(
-            context,
-            listen: false,
-          );
-          // Monedas de transacciones
-          final transactionCurrencies = transactionProvider.transactions
-              .map((t) => t.currencyCode.trim().toUpperCase())
-              .where((c) => c.isNotEmpty)
-              .toSet();
-          // Monedas con tasa registrada
-          final rateCurrencies = currencyProvider.exchangeRates.keys
-              .map((c) => c.toUpperCase())
-              .where((c) => c.isNotEmpty)
-              .toSet();
-          // Unir ambos conjuntos
-          final allCurrencies = {...transactionCurrencies, ...rateCurrencies};
-          if (allCurrencies
-                  .difference(currencyProvider.availableCurrencies.toSet())
-                  .isNotEmpty ||
-              currencyProvider.availableCurrencies
-                  .toSet()
-                  .difference(allCurrencies)
-                  .isNotEmpty) {
-            currencyProvider.setAvailableCurrencies(allCurrencies.toList());
-          }
+          // Desactivado: solo monedas agregadas manualmente deben aparecer en la gestión de monedas
+          // Si quieres restaurar la lógica automática, descomenta el bloque siguiente.
+          // final currencyProvider = Provider.of<CurrencyProvider>(
+          //   context,
+          //   listen: false,
+          // );
+          // final transactionCurrencies = transactionProvider.transactions
+          //     .map((t) => t.currencyCode.trim().toUpperCase())
+          //     .where((c) => c.isNotEmpty)
+          //     .toSet();
+          // final rateCurrencies = currencyProvider.exchangeRates.keys
+          //     .map((c) => c.toUpperCase())
+          //     .where((c) => c.isNotEmpty)
+          //     .toSet();
+          // final allCurrencies = {...transactionCurrencies, ...rateCurrencies};
+          // if (allCurrencies
+          //         .difference(currencyProvider.availableCurrencies.toSet())
+          //         .isNotEmpty ||
+          //     currencyProvider.availableCurrencies
+          //         .toSet()
+          //         .difference(allCurrencies)
+          //         .isNotEmpty) {
+          //   currencyProvider.setAvailableCurrencies(allCurrencies.toList());
+          // }
         });
 
         Widget? fab = isKeyboardVisible
@@ -444,239 +444,8 @@ class _MainScaffoldState extends State<MainScaffold> {
                                                         );
                                                         showDialog(
                                                           context: context,
-                                                          builder: (ctx2) {
-                                                            final currencies =
-                                                                currencyProvider
-                                                                    .availableCurrencies
-                                                                    .where(
-                                                                      (c) =>
-                                                                          c !=
-                                                                          'USD',
-                                                                    )
-                                                                    .toList();
-                                                            final rates = {
-                                                              for (final c
-                                                                  in currencies)
-                                                                c: TextEditingController(
-                                                                  text:
-                                                                      currencyProvider
-                                                                          .exchangeRates[c]
-                                                                          ?.toString() ??
-                                                                      '',
-                                                                ),
-                                                            };
-                                                            return StatefulBuilder(
-                                                              builder: (context, setState) {
-                                                                return AlertDialog(
-                                                                  shape: RoundedRectangleBorder(
-                                                                    borderRadius:
-                                                                        BorderRadius.circular(
-                                                                          16,
-                                                                        ),
-                                                                  ),
-                                                                  title: Row(
-                                                                    children: const [
-                                                                      Icon(
-                                                                        Icons
-                                                                            .attach_money_rounded,
-                                                                        color: Colors
-                                                                            .indigo,
-                                                                      ),
-                                                                      SizedBox(
-                                                                        width:
-                                                                            8,
-                                                                      ),
-                                                                      Text(
-                                                                        'Gestión de monedas',
-                                                                        style: TextStyle(
-                                                                          fontWeight:
-                                                                              FontWeight.bold,
-                                                                        ),
-                                                                      ),
-                                                                    ],
-                                                                  ),
-                                                                  content: Column(
-                                                                    mainAxisSize:
-                                                                        MainAxisSize
-                                                                            .min,
-                                                                    crossAxisAlignment:
-                                                                        CrossAxisAlignment
-                                                                            .start,
-                                                                    children: [
-                                                                      const Text(
-                                                                        'Puedes registrar hasta 2 monedas adicionales a USD. Aquí puedes fijar la tasa, cambiarla manualmente o eliminar monedas para agregar nuevas.',
-                                                                        style: TextStyle(
-                                                                          fontSize:
-                                                                              14,
-                                                                          color:
-                                                                              Colors.black87,
-                                                                        ),
-                                                                      ),
-                                                                      const SizedBox(
-                                                                        height:
-                                                                            10,
-                                                                      ),
-                                                                      SizedBox(
-                                                                        width:
-                                                                            340,
-                                                                        child: ConstrainedBox(
-                                                                          constraints: const BoxConstraints(
-                                                                            maxHeight:
-                                                                                320,
-                                                                          ),
-                                                                          child: Scrollbar(
-                                                                            thumbVisibility:
-                                                                                true,
-                                                                            child: ListView.builder(
-                                                                              shrinkWrap: true,
-                                                                              itemCount: currencies.length,
-                                                                              itemBuilder:
-                                                                                  (
-                                                                                    context,
-                                                                                    idx,
-                                                                                  ) {
-                                                                                    final c = currencies[idx];
-                                                                                    return Card(
-                                                                                      margin: const EdgeInsets.symmetric(
-                                                                                        vertical: 6,
-                                                                                      ),
-                                                                                      elevation: 1,
-                                                                                      child: Padding(
-                                                                                        padding: const EdgeInsets.symmetric(
-                                                                                          vertical: 8,
-                                                                                          horizontal: 8,
-                                                                                        ),
-                                                                                        child: Row(
-                                                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                                                          children: [
-                                                                                            // Eliminado el círculo con la abreviatura de la moneda
-                                                                                            Expanded(
-                                                                                              child: Row(
-                                                                                                crossAxisAlignment: CrossAxisAlignment.center,
-                                                                                                children: [
-                                                                                                  Flexible(
-                                                                                                    flex: 2,
-                                                                                                    child: TextField(
-                                                                                                      controller: rates[c],
-                                                                                                      decoration: InputDecoration(
-                                                                                                        labelText: 'Tasa $c a USD',
-                                                                                                        border: const OutlineInputBorder(),
-                                                                                                        filled: true,
-                                                                                                        fillColor: Colors.white,
-                                                                                                        isDense: true,
-                                                                                                        contentPadding: const EdgeInsets.symmetric(
-                                                                                                          horizontal: 8,
-                                                                                                          vertical: 8,
-                                                                                                        ),
-                                                                                                        labelStyle: const TextStyle(
-                                                                                                          fontSize: 13,
-                                                                                                        ),
-                                                                                                      ),
-                                                                                                      style: TextStyle(
-                                                                                                        fontSize: 15,
-                                                                                                      ),
-                                                                                                      keyboardType: TextInputType.numberWithOptions(
-                                                                                                        decimal: true,
-                                                                                                      ),
-                                                                                                    ),
-                                                                                                  ),
-                                                                                                  const SizedBox(
-                                                                                                    width: 6,
-                                                                                                  ),
-                                                                                                  ElevatedButton(
-                                                                                                    style: ElevatedButton.styleFrom(
-                                                                                                      backgroundColor: Colors.indigo,
-                                                                                                      foregroundColor: Colors.white,
-                                                                                                      minimumSize: const Size(
-                                                                                                        36,
-                                                                                                        36,
-                                                                                                      ),
-                                                                                                      padding: const EdgeInsets.symmetric(
-                                                                                                        horizontal: 8,
-                                                                                                        vertical: 0,
-                                                                                                      ),
-                                                                                                      shape: RoundedRectangleBorder(
-                                                                                                        borderRadius: BorderRadius.circular(
-                                                                                                          8,
-                                                                                                        ),
-                                                                                                      ),
-                                                                                                    ),
-                                                                                                    onPressed: () {
-                                                                                                      final val = double.tryParse(
-                                                                                                        rates[c]!.text.replaceAll(
-                                                                                                          ',',
-                                                                                                          '.',
-                                                                                                        ),
-                                                                                                      );
-                                                                                                      if (val !=
-                                                                                                          null) {
-                                                                                                        currencyProvider.setRateForCurrency(
-                                                                                                          c,
-                                                                                                          val,
-                                                                                                        );
-                                                                                                        setState(
-                                                                                                          () {},
-                                                                                                        );
-                                                                                                      }
-                                                                                                    },
-                                                                                                    child: const Icon(
-                                                                                                      Icons.save,
-                                                                                                      size: 18,
-                                                                                                    ),
-                                                                                                  ),
-                                                                                                  IconButton(
-                                                                                                    icon: const Icon(
-                                                                                                      Icons.delete,
-                                                                                                      color: Colors.red,
-                                                                                                      size: 20,
-                                                                                                    ),
-                                                                                                    tooltip: 'Eliminar moneda',
-                                                                                                    onPressed: () {
-                                                                                                      currencyProvider.setAvailableCurrencies(
-                                                                                                        [
-                                                                                                          ...currencies.where(
-                                                                                                            (
-                                                                                                              x,
-                                                                                                            ) =>
-                                                                                                                x !=
-                                                                                                                c,
-                                                                                                          ),
-                                                                                                        ],
-                                                                                                      );
-                                                                                                      setState(
-                                                                                                        () {},
-                                                                                                      );
-                                                                                                    },
-                                                                                                  ),
-                                                                                                ],
-                                                                                              ),
-                                                                                            ),
-                                                                                          ],
-                                                                                        ),
-                                                                                      ),
-                                                                                    );
-                                                                                  },
-                                                                            ),
-                                                                          ),
-                                                                        ),
-                                                                      ),
-                                                                    ],
-                                                                  ),
-                                                                  actions: [
-                                                                    TextButton(
-                                                                      onPressed: () =>
-                                                                          Navigator.of(
-                                                                            ctx2,
-                                                                          ).pop(),
-                                                                      child: const Text(
-                                                                        'Cerrar',
-                                                                      ),
-                                                                    ),
-                                                                  ],
-                                                                );
-                                                              },
-                                                            );
-                                                          },
+                                                          builder: (ctx2) =>
+                                                              const CurrencyManagerDialog(),
                                                         );
                                                       },
                                                     ),

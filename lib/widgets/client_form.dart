@@ -81,9 +81,7 @@ class _ClientFormState extends State<ClientForm> {
       // Asegura que la moneda esté en availableCurrencies si no hay transacción aún
       final upper = currency.toUpperCase();
       if (!provider.availableCurrencies.contains(upper)) {
-        final newList = List<String>.from(provider.availableCurrencies);
-        if (upper != 'USD') newList.add(upper);
-        provider.setAvailableCurrencies(newList);
+        provider.addManualCurrency(upper);
       }
       setState(() {}); // Para refrescar el widget
     }

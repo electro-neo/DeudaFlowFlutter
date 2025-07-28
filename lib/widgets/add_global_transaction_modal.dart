@@ -631,11 +631,7 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
                                               child: const Text('Eliminar'),
                                               onPressed: () {
                                                 currencyProvider
-                                                    .setAvailableCurrencies([
-                                                      ...nonUsdCurrencies.where(
-                                                        (x) => x != c,
-                                                      ),
-                                                    ]);
+                                                    .removeManualCurrency(c);
                                                 setState(() {});
                                               },
                                             ),

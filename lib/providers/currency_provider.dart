@@ -1,6 +1,154 @@
 import 'package:flutter/material.dart';
 
 class CurrencyProvider extends ChangeNotifier {
+  // Listado global de monedas permitidas para toda la app
+  static const List<String> allowedCurrencies = [
+    'USD',
+    'VES',
+    'COP',
+    'EUR',
+    'BRL',
+    'ARS',
+    'CLP',
+    'MXN',
+    'PEN',
+    'BOB',
+    'PYG',
+    'UYU',
+    'CRC',
+    'DOP',
+    'GTQ',
+    'HNL',
+    'NIO',
+    'PAB',
+    'BZD',
+    'JMD',
+    'TTD',
+    'HTG',
+    'XCD',
+    'CAD',
+    'GBP',
+    'CHF',
+    'JPY',
+    'CNY',
+    'KRW',
+    'INR',
+    'RUB',
+    'TRY',
+    'ZAR',
+    'AUD',
+    'NZD',
+    'SGD',
+    'HKD',
+    'SEK',
+    'NOK',
+    'DKK',
+    'PLN',
+    'CZK',
+    'HUF',
+    'RON',
+    'BGN',
+    'HRK',
+    'IDR',
+    'MYR',
+    'THB',
+    'VND',
+    'EGP',
+    'SAR',
+    'AED',
+    'ILS',
+    'TWD',
+    'PHP',
+    'MAD',
+    'KZT',
+    'UAH',
+    'GHS',
+    'NGN',
+    'PKR',
+    'BDT',
+    'LKR',
+    'MMK',
+    'KHR',
+    'LAK',
+    'MNT',
+    'MOP',
+    'BAM',
+    'MKD',
+    'RSD',
+    'ISK',
+    'GEL',
+    'AZN',
+    'QAR',
+    'KWD',
+    'OMR',
+    'BHD',
+    'JOD',
+    'LBP',
+    'SYP',
+    'IQD',
+    'AFN',
+    'IRR',
+    'YER',
+    'SDG',
+    'DZD',
+    'TND',
+    'LYD',
+    'MRU',
+    'SOS',
+    'TZS',
+    'KES',
+    'UGX',
+    'RWF',
+    'BIF',
+    'MWK',
+    'ZMW',
+    'MZN',
+    'SZL',
+    'LSL',
+    'NAD',
+    'BWP',
+    'ZWL',
+    'SCR',
+    'MUR',
+    'KMF',
+    'DJF',
+    'ETB',
+    'ERN',
+    'SLL',
+    'GMD',
+    'GNF',
+    'CVE',
+    'XOF',
+    'XAF',
+    'XPF',
+    'WST',
+    'TOP',
+    'FJD',
+    'PGK',
+    'SBD',
+    'VUV',
+    'KID',
+    'TVD',
+    'BSD',
+    'BBD',
+    'KYD',
+    'BMD',
+    'ANG',
+    'AWG',
+    'SRD',
+    'GYD',
+    'BND',
+    'NPR',
+    'BTN',
+    'MVR',
+    'AMD',
+    'KGS',
+    'UZS',
+    'TJS',
+    'TMT',
+    'BYN',
+    'MDL',
+  ];
   String _currency = 'VES';
   // Map of currency code to rate (rate = how many units of that currency per 1 USD)
   Map<String, double> _exchangeRates = {};
@@ -24,19 +172,52 @@ class CurrencyProvider extends ChangeNotifier {
   }
 
   // Update available currencies from a list (e.g., from transactions)
-  void setAvailableCurrencies(List<String> currencies) {
+  // Solo debe usarse para actualizar monedas detectadas automáticamente,
+  // nunca eliminar monedas agregadas manualmente salvo que el usuario lo indique.
+  void setAvailableCurrencies(
+    List<String> currencies, {
+    List<String>? manualCurrencies,
+  }) {
     // Siempre mantener USD como base
     final filtered = currencies
         .map((c) => c.toUpperCase())
         .where((c) => c != 'USD')
-        .toSet()
-        .toList();
-    // Limitar a máximo 2 monedas adicionales
-    if (filtered.length > 2) {
-      filtered.removeRange(2, filtered.length);
-    }
-    _availableCurrencies = ['USD', ...filtered];
+        .toSet();
+
+    // Si hay monedas agregadas manualmente, asegurarlas en la lista
+    final manual =
+        manualCurrencies
+            ?.map((c) => c.toUpperCase())
+            .where((c) => c != 'USD')
+            .toSet() ??
+        {};
+    final allCurrencies = {'USD', ...filtered, ...manual};
+
+    // Solo eliminar tasas de monedas que no estén en la lista final
+    _exchangeRates.removeWhere((key, value) => !allCurrencies.contains(key));
+    _availableCurrencies = allCurrencies.toList();
     notifyListeners();
+  }
+
+  // Agrega una moneda manualmente y la mantiene en la lista hasta que el usuario la quite explícitamente
+  void addManualCurrency(String currency) {
+    final upper = currency.toUpperCase();
+    if (upper == 'USD') return;
+    if (!_availableCurrencies.contains(upper)) {
+      _availableCurrencies.add(upper);
+      notifyListeners();
+    }
+  }
+
+  // Elimina una moneda manualmente agregada (y su tasa)
+  void removeManualCurrency(String currency) {
+    final upper = currency.toUpperCase();
+    if (upper == 'USD') return;
+    if (_availableCurrencies.contains(upper)) {
+      _availableCurrencies.remove(upper);
+      _exchangeRates.remove(upper);
+      notifyListeners();
+    }
   }
 
   // Set VES rate for legacy code
@@ -55,36 +236,152 @@ class CurrencyProvider extends ChangeNotifier {
       'VES',
       'COP',
       'EUR',
-      'ARS',
       'BRL',
+      'ARS',
       'CLP',
       'MXN',
       'PEN',
+      'BOB',
+      'PYG',
       'UYU',
+      'CRC',
+      'DOP',
+      'GTQ',
+      'HNL',
+      'NIO',
+      'PAB',
+      'BZD',
+      'JMD',
+      'TTD',
+      'HTG',
+      'XCD',
+      'CAD',
       'GBP',
       'CHF',
-      'RUB',
-      'TRY',
       'JPY',
       'CNY',
       'KRW',
       'INR',
-      'SGD',
-      'HKD',
-      'CAD',
+      'RUB',
+      'TRY',
+      'ZAR',
       'AUD',
       'NZD',
-      'ZAR',
+      'SGD',
+      'HKD',
+      'SEK',
+      'NOK',
+      'DKK',
+      'PLN',
+      'CZK',
+      'HUF',
+      'RON',
+      'BGN',
+      'HRK',
+      'IDR',
+      'MYR',
+      'THB',
+      'VND',
+      'EGP',
+      'SAR',
+      'AED',
+      'ILS',
+      'TWD',
+      'PHP',
+      'MAD',
+      'KZT',
+      'UAH',
+      'GHS',
+      'NGN',
+      'PKR',
+      'BDT',
+      'LKR',
+      'MMK',
+      'KHR',
+      'LAK',
+      'MNT',
+      'MOP',
+      'BAM',
+      'MKD',
+      'RSD',
+      'ISK',
+      'GEL',
+      'AZN',
+      'QAR',
+      'KWD',
+      'OMR',
+      'BHD',
+      'JOD',
+      'LBP',
+      'SYP',
+      'IQD',
+      'AFN',
+      'IRR',
+      'YER',
+      'SDG',
+      'DZD',
+      'TND',
+      'LYD',
+      'MRU',
+      'SOS',
+      'TZS',
+      'KES',
+      'UGX',
+      'RWF',
+      'BIF',
+      'MWK',
+      'ZMW',
+      'MZN',
+      'SZL',
+      'LSL',
+      'NAD',
+      'BWP',
+      'ZWL',
+      'SCR',
+      'MUR',
+      'KMF',
+      'DJF',
+      'ETB',
+      'ERN',
+      'SLL',
+      'GMD',
+      'GNF',
+      'CVE',
+      'XOF',
+      'XAF',
+      'XPF',
+      'WST',
+      'TOP',
+      'FJD',
+      'PGK',
+      'SBD',
+      'VUV',
+      'KID',
+      'TVD',
+      'BSD',
+      'BBD',
+      'KYD',
+      'BMD',
+      'ANG',
+      'AWG',
+      'SRD',
+      'GYD',
+      'BND',
+      'NPR',
+      'BTN',
+      'MVR',
+      'AMD',
+      'KGS',
+      'UZS',
+      'TJS',
+      'TMT',
+      'BYN',
+      'MDL',
+      'USD',
+      'MXN',
     ];
     if (!allowed.contains(upper)) return;
-
-    // Limitar a solo 2 monedas adicionales a USD
-    // Si la moneda ya tiene tasa, solo actualiza
-    final nonUsdRates = _exchangeRates.keys.where((k) => k != 'USD').toList();
-    if (!nonUsdRates.contains(upper) && nonUsdRates.length >= 2) {
-      // No se puede registrar más de 2 monedas adicionales
-      return;
-    }
+    // Eliminar el límite de solo 2 monedas adicionales a USD
     _exchangeRates[upper] = rate;
     notifyListeners();
   }

@@ -59,5 +59,10 @@ Resultado: Ahora los filtros de la pantalla de movimientos están 100% sincroniz
    - Problema: El modelo TransactionHive no tenía los campos localId ni createdAt, pero el código intentaba acceder a ellos al convertir entre modelos, causando errores y bloqueando la creación/sincronización de transacciones.
    - Solución: Se agregó el campo localId al modelo TransactionHive y se corrigió el método Transaction.fromHive para usar solo el campo date como createdAt. Ahora la conversión entre modelos es segura y no genera errores.
    - Resultado: Ya se pueden crear transacciones iniciales y globales para clientes sin errores, y la sincronización con Hive y Supabase funciona correctamente. El flujo de creación y visualización de movimientos es estable y sin bugs relacionados a los modelos.
-Fecha: 2025-07-24
+
+13. Error/Mejora: El campo anchorUsdValue no se calculaba ni enviaba correctamente al crear transacciones desde el TransactionForm (modal de cliente), resultando en valores null en Supabase y en la app.
+   - Problema: El cálculo de anchorUsdValue fallaba porque el acceso al CurrencyProvider usaba Provider.of<dynamic>, lo cual no es soportado y lanzaba una excepción. Esto hacía que anchorUsdValue quedara null en todas las monedas excepto USD, y el debug mostraba un error de assertion.
+   - Solución: Se corrigió el acceso usando Provider.of<CurrencyProvider>(context, listen: false), con fallback robusto si el provider no está en el árbol. Ahora anchorUsdValue se calcula y envía correctamente en todos los flujos, igual que en el modal global, y los debugPrints muestran el valor y la tasa usada.
+   - Resultado: El valor anchorUsdValue ya nunca es null (salvo que realmente no haya provider ni tasa), la sincronización con Supabase y Hive es correcta, y el flujo de creación de transacciones es robusto y trazable desde todos los formularios.
+Fecha: 2025-07-28
 

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-// import '../providers/transaction_provider.dart';
 import '../models/client_hive.dart';
 import '../models/client.dart';
 import '../utils/currency_utils.dart';
 import '../providers/currency_provider.dart';
+import '../providers/transaction_provider.dart';
 import 'client_details_modal.dart';
 import 'sync_message_state.dart';
 
@@ -98,27 +98,29 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
   @override
   Widget build(BuildContext context) {
     final client = widget.client;
-    final balance = client.balance;
-    // final balanceColor = balance < 0 ? Colors.red : Colors.green;
     final currencyProvider = Provider.of<CurrencyProvider>(
       context,
       listen: false,
     );
+    final txProvider = Provider.of<TransactionProvider>(context, listen: false);
     final availableCurrencies = currencyProvider.availableCurrencies;
-    final exchangeRates = currencyProvider.exchangeRates;
-    final usdBalance = client.currencyCode == 'USD'
-        ? balance
-        : (balance / (exchangeRates[client.currencyCode] ?? 1));
+    // --- Balance USD real usando anchorUsdValue ---
+    final clientTxs = txProvider.transactions.where(
+      (t) => t.clientId == client.id,
+    );
+    final usdBalance = clientTxs.fold<double>(
+      0.0,
+      (sum, t) => sum + (t.anchorUsdValue ?? 0.0),
+    );
     final balances = <String, double>{};
     balances['USD'] = usdBalance;
+    // Para cada moneda, suma los amount de las transacciones en esa moneda
     for (final code in availableCurrencies) {
       if (code != 'USD') {
-        if (client.currencyCode == code) {
-          balances[code] = balance;
-        } else {
-          final rate = exchangeRates[code] ?? 1;
-          balances[code] = usdBalance * rate;
-        }
+        final sumInCurrency = clientTxs
+            .where((t) => t.currencyCode.toUpperCase() == code)
+            .fold<double>(0.0, (sum, t) => sum + t.amount);
+        balances[code] = sumInCurrency;
       }
     }
     final firstLetter = client.name.isNotEmpty

@@ -26,7 +26,12 @@ class TransactionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: const Color.fromARGB(255, 11, 11, 11).withAlpha((0.25 * 255).toInt()),
+            color: const Color.fromARGB(
+              255,
+              11,
+              11,
+              11,
+            ).withAlpha((0.25 * 255).toInt()),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -46,7 +51,9 @@ class TransactionCard extends StatelessWidget {
                       : const Color(0xFFE5FFE8),
                   radius: 22,
                   child: Icon(
-                    t.type == 'debt' ? Icons.arrow_downward : Icons.arrow_upward,
+                    t.type == 'debt'
+                        ? Icons.arrow_downward
+                        : Icons.arrow_upward,
                     color: t.type == 'debt' ? Colors.red : Colors.green,
                     size: 24,
                   ),
@@ -61,7 +68,12 @@ class TransactionCard extends StatelessWidget {
                         children: [
                           Expanded(
                             child: Text(
-                              t.description,
+                              t.description != null &&
+                                      t.description is String &&
+                                      t.description.isNotEmpty
+                                  ? t.description[0].toUpperCase() +
+                                        t.description.substring(1)
+                                  : '',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
@@ -73,7 +85,9 @@ class TransactionCard extends StatelessWidget {
                           Text(
                             format(t.amount),
                             style: TextStyle(
-                              color: t.type == 'payment' ? Colors.green : Colors.red,
+                              color: t.type == 'payment'
+                                  ? Colors.green
+                                  : Colors.red,
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
                             ),
@@ -83,32 +97,28 @@ class TransactionCard extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 2),
-                      Row(
+                      // Cliente y fecha en columna
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Text(
-                              'Cliente: ${client.name}',
-                              style: const TextStyle(
-                                fontSize: 13.5,
-                                color: Colors.black54,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
+                          Text(
+                            'Cliente: ${client.name}',
+                            style: const TextStyle(
+                              fontSize: 13.5,
+                              color: Colors.black54,
                             ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
                           ),
-                          const SizedBox(width: 8),
-                          SizedBox(
-                            width: 90,
-                            child: Text(
-                              '${t.date.year}-${t.date.month.toString().padLeft(2, '0')}-${t.date.day.toString().padLeft(2, '0')}',
-                              style: const TextStyle(
-                                fontSize: 12.5,
-                                color: Colors.black45,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                              textAlign: TextAlign.right,
+                          const SizedBox(height: 2),
+                          Text(
+                            '${t.date.year}-${t.date.month.toString().padLeft(2, '0')}-${t.date.day.toString().padLeft(2, '0')}',
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              color: Colors.black45,
                             ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
                           ),
                         ],
                       ),
@@ -119,9 +129,14 @@ class TransactionCard extends StatelessWidget {
                             children: [
                               const Spacer(),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 7,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: Colors.red.withAlpha((0.09 * 255).toInt()),
+                                  color: Colors.red.withAlpha(
+                                    (0.09 * 255).toInt(),
+                                  ),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: const Row(
@@ -154,9 +169,14 @@ class TransactionCard extends StatelessWidget {
                             children: [
                               const Spacer(),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 7,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: Colors.orange.withAlpha((0.09 * 255).toInt()),
+                                  color: Colors.orange.withAlpha(
+                                    (0.09 * 255).toInt(),
+                                  ),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: const Row(
@@ -193,7 +213,10 @@ class TransactionCard extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 8, bottom: 0),
                 child: Center(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.green.withAlpha((0.09 * 255).toInt()),
                       borderRadius: BorderRadius.circular(12),
@@ -201,11 +224,7 @@ class TransactionCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: const [
-                        Icon(
-                          Icons.cloud_done,
-                          size: 14,
-                          color: Colors.green,
-                        ),
+                        Icon(Icons.cloud_done, size: 14, color: Colors.green),
                         SizedBox(width: 4),
                         Text(
                           'Sincronizado',

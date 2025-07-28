@@ -68,9 +68,9 @@ Future<void> _initializeApp() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await clearHiveData(); // Limpia datos locales de Hive SOLO para migración
-  _initializeApp();
-  // Quita la línea de clearHiveData después de iniciar correctamente una vez
+  await _initializeApp();
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -85,18 +85,13 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => TabProvider()),
         ChangeNotifierProvider(create: (_) => TransactionFilterProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
-        ChangeNotifierProvider(
-          create: (_) => SyncProvider(),
-        ), // <--- Agrega esto
+        ChangeNotifierProvider(create: (_) => SyncProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) => MaterialApp(
-          navigatorKey:
-              navigatorKey, // <--- Asegura que el navigatorKey se use aquí
+          navigatorKey: navigatorKey,
           title: 'Deuda Flow Control',
-          theme: BudgetoTheme.light,
-          darkTheme: BudgetoTheme.dark,
-          themeMode: themeProvider.themeMode,
+          theme: BudgetoTheme.light, // Usa tu tema estático
           initialRoute: '/',
           routes: {
             '/': (context) => const WelcomeScreen(),

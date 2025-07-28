@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/currency_provider.dart';
+import '../widgets/scale_on_tap.dart';
 
 class CurrencyManagerDialog extends StatefulWidget {
   const CurrencyManagerDialog({super.key});
@@ -79,6 +80,7 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
       await showDialog(
         context: context,
         builder: (ctx) {
+          final theme = Theme.of(context);
           return AlertDialog(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
@@ -107,10 +109,21 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
                       });
                     }
                   },
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Theme.of(context).inputDecorationTheme.enabledBorder?.borderSide.color ?? theme.colorScheme.primary),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Theme.of(context).inputDecorationTheme.enabledBorder?.borderSide.color ?? theme.colorScheme.primary),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Theme.of(context).inputDecorationTheme.focusedBorder?.borderSide.color ?? theme.colorScheme.secondary, width: 2),
+                    ),
                     isDense: true,
-                    contentPadding: EdgeInsets.symmetric(
+                    contentPadding: const EdgeInsets.symmetric(
                       horizontal: 6,
                       vertical: 6,
                     ),
@@ -124,7 +137,20 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
       );
     }
 
-    return AlertDialog(
+    // Envolver el AlertDialog en un WillPopScope para interceptar el cierre por tap en la sombra
+    return WillPopScope(
+      onWillPop: () async {
+        // Guardar todas las tasas al cerrar por tap en la sombra o back
+        for (final c in currencies) {
+          final text = rates[c]?.text.trim() ?? '';
+          final val = double.tryParse(text.replaceAll(',', '.'));
+          if (val != null && val > 0) {
+            currencyProvider.setRateForCurrency(c, val);
+          }
+        }
+        return true; // Permitir el cierre
+      },
+      child: AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Row(
         children: const [
@@ -164,7 +190,7 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
                           bottom: 4,
                         ),
                         child: Text(
-                          'Puedes registrar cualquier cantidad de monedas adicionales (sin repetir). Aquí puedes fijar la tasa, cambiarla manualmente o eliminar monedas para agregar nuevas.',
+                          'Puedes registrar cualquier cantidad de monedas. Aquí puedes fijar la tasa, cambiarla manualmente o eliminar monedas para agregar nuevas.',
                           style: TextStyle(fontSize: 14, color: Colors.black87),
                         ),
                       ),
@@ -331,12 +357,30 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
         },
       ),
       actions: [
-        TextButton(
-          onPressed: showCurrencyPickerDialog,
-          child: const Text('Agregar Moneda'),
+        // Botón Agregar Moneda
+        ScaleOnTap(
+          onTap: showCurrencyPickerDialog,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              'Agregar Moneda',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onPrimary,
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+              ),
+            ),
+          ),
         ),
-        TextButton(
-          onPressed: () {
+        // Espacio mínimo
+        const SizedBox(width: 8),
+        // Botón Cerrar
+        ScaleOnTap(
+          onTap: () {
             // Guardar todas las tasas al cerrar
             for (final c in currencies) {
               final text = rates[c]?.text.trim() ?? '';
@@ -347,9 +391,24 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
             }
             Navigator.of(context).pop();
           },
-          child: const Text('Cerrar'),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.secondary,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              'Cerrar',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSecondary,
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+              ),
+            ),
+          ),
         ),
       ],
+    ),
     );
   }
 }

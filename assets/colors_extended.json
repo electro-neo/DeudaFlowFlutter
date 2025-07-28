@@ -1,0 +1,19 @@
+{
+    "primary": "#540A88",
+    "secondary": "#F18484FF",
+    "onSecondary": "#FFFFFF",
+    "primaryColor": "#420690",
+    "cardColor": "#F53F3FFF",
+    "scaffoldBackgroundColor": "#FFFFFF",
+    "appBarBackground": "#4CAF50",
+    "appBarForeground": "#FFFFFF",
+    "backgroundGradientStart": "#7C3AED",
+    "backgroundGradientEnd": "#60A5FA",
+    "cardBackgroundColor": "rgba(255,255,255,0.1)",
+    "iconColor": "#FFFFFF",
+    "titleColor": "#FFFFFF",
+    "inputFieldColor": "#FFFFFF",
+    "buttonColor": "#7C3AED",
+    "buttonShadowColor": "rgba(0,0,0,0.16)",
+    "greenColor": "#005A96"
+}

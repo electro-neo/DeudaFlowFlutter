@@ -12,8 +12,10 @@ import '../providers/currency_provider.dart';
 import '../providers/transaction_filter_provider.dart';
 import 'add_global_transaction_modal.dart';
 import 'faq_help_sheet.dart';
+
 import '../providers/transaction_provider.dart';
 import '../utils/currency_manager_dialog.dart';
+import 'budgeto_theme.dart';
 
 // Banner de debug para mostrar un número aleatorio que cambia en cada hot reload
 // class DebugBanner extends StatefulWidget {
@@ -375,6 +377,10 @@ class _MainScaffoldState extends State<MainScaffold> {
                                               CrossAxisAlignment.stretch,
                                           children: [
                                             const SizedBox(height: 16),
+                                            // ...
+                                            // Botón para recargar el tema desde JSON eliminado
+                                            const SizedBox(height: 12),
+                                            // Botón original de gestionar monedas
                                             Consumer<CurrencyProvider>(
                                               builder: (context, currencyProvider, _) {
                                                 return Row(
@@ -424,7 +430,6 @@ class _MainScaffoldState extends State<MainScaffold> {
                                                         ],
                                                       ),
                                                       onPressed: () {
-                                                        // DEBUG: Mostrar monedas con tasa registrada
                                                         final monedasConTasa =
                                                             currencyProvider
                                                                 .exchangeRates
@@ -454,6 +459,7 @@ class _MainScaffoldState extends State<MainScaffold> {
                                               },
                                             ),
                                             const SizedBox(height: 16),
+                                            // ...eliminado el botón de cambio de color primario dinámico...
                                             ScaleOnTap(
                                               duration: scaleTapDuration,
                                               onTap: () {
@@ -740,13 +746,18 @@ class _MobileBottomBarState extends State<_MobileBottomBar> {
                               children: [
                                 const Icon(Icons.brightness_6),
                                 Switch(
-                                  value: themeProvider.isDarkMode,
+                                  value:
+                                      themeProvider.themeData.brightness ==
+                                      Brightness.dark,
                                   onChanged: (val) {
-                                    themeProvider.toggleTheme(val);
+                                    themeProvider.toggleTheme();
                                   },
                                 ),
                                 Text(
-                                  themeProvider.isDarkMode ? 'Dark' : 'Light',
+                                  themeProvider.themeData.brightness ==
+                                          Brightness.dark
+                                      ? 'Dark'
+                                      : 'Light',
                                 ),
                               ],
                             ),

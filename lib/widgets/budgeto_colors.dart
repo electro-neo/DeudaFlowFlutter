@@ -45,7 +45,7 @@ const kTextFieldColor = Color(0xffF7F8F9);
 
 /// Color del borde de los TextField en tema claro
 /// Usado en: budgeto_theme.dart (inputDecorationTheme.focusedBorder, enabledBorder)
-const kTextFieldBorderC = Color(0xffECEFF5);
+const kTextFieldBorderC = Color.fromARGB(255, 43, 101, 216);
 
 /// Color principal para textos en tema claro
 /// Usado en: budgeto_theme.dart (textTheme.bodyLarge/bodyMedium/bodySmall)

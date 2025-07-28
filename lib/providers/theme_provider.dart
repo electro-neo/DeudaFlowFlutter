@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
+import '../widgets/budgeto_theme.dart';
 
 class ThemeProvider with ChangeNotifier {
-  ThemeMode _themeMode = ThemeMode.light;
+  ThemeData _themeData = BudgetoTheme.light;
 
-  ThemeMode get themeMode => _themeMode;
+  ThemeData get themeData => _themeData;
 
-  void toggleTheme(bool isDark) {
-    _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
+  void setTheme(ThemeData theme) {
+    _themeData = theme;
     notifyListeners();
   }
 
-  bool get isDarkMode => _themeMode == ThemeMode.dark;
+  void toggleTheme() {
+    if (_themeData.brightness == Brightness.dark) {
+      setTheme(BudgetoTheme.light);
+    } else {
+      setTheme(BudgetoTheme.dark);
+    }
+  }
 }

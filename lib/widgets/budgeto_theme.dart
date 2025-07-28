@@ -8,14 +8,16 @@ class BudgetoTheme {
     scaffoldBackgroundColor: Colors.white,
     // ColorScheme principal (usa kGreenColor como color primario)
     colorScheme: const ColorScheme.light(
-      primary: Color.fromARGB(255, 84, 10, 136),
+      primary: Color.fromARGB(255, 84, 10, 136),  // kGreenColor: color principal/acento
+      secondary: Color.fromARGB(255, 132, 145, 241), // Color secundario para acentos y bordes enfocados 
+      onSecondary: Colors.white, // <--- Aquí defines el color del texto sobre secondary
     ), // kGreenColor: color principal/acento
     primaryColor: const Color.fromARGB(255, 66, 6, 144), // kGreenColor: color principal/acento
     cardColor: kCardColor, // kCardColor: fondo de tarjetas
     textTheme: const TextTheme(
       bodyLarge: TextStyle(color: kFontBlackC), // kFontBlackC: texto principal
-      bodyMedium: TextStyle(color: kFontBlackC),
-      bodySmall: TextStyle(color: kFontBlackC),
+      bodyMedium: TextStyle(color: kFontBlackC), // kFontBlackC: texto secundario
+      bodySmall: TextStyle(color: kFontBlackC), // kFontBlackC: texto pequeño
     ),
     appBarTheme: const AppBarTheme(
       backgroundColor: kGreenColor, // kGreenColor: fondo de AppBar
@@ -33,16 +35,16 @@ class BudgetoTheme {
     inputDecorationTheme: InputDecorationTheme(
       hoverColor: kGreenColor, // kGreenColor: hover en campos
       focusColor:
-          kTextFieldColor, // kTextFieldColor: fondo de TextField enfocado
+          const Color.fromARGB(255, 133, 189, 246), // kTextFieldColor: fondo de TextField enfocado
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(
-          color: kTextFieldBorderC,
+          color: Color.fromARGB(255, 26, 98, 243),
         ), // kTextFieldBorderC: borde enfocado
       ),
       enabledBorder: OutlineInputBorder(
         borderSide: const BorderSide(
-          color: kTextFieldBorderC,
+          color: Color.fromARGB(255, 1, 84, 248),
         ), // kTextFieldBorderC: borde habilitado
         borderRadius: BorderRadius.circular(12),
       ),
@@ -73,6 +75,7 @@ class BudgetoTheme {
     // ColorScheme principal (usa kDarkGreenColor como color primario)
     colorScheme: const ColorScheme.dark(
       primary: kDarkGreenColor,
+      secondary: kDarkGreenColor, // Color secundario para acentos y bordes enfocados en oscuro
     ), // kDarkGreenColor: color principal/acento oscuro
     primaryColor:
         kDarkGreenColor, // kDarkGreenColor: color principal/acento oscuro

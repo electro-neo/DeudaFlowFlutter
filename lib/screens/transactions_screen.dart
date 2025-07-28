@@ -10,6 +10,7 @@ import '../models/client.dart';
 import '../providers/client_provider.dart';
 import '../providers/sync_provider.dart';
 import '../utils/no_scrollbar_behavior.dart';
+import '../widgets/transaction_card.dart';
 
 class TransactionsScreen extends StatefulWidget {
   final String userId;
@@ -692,7 +693,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         ),
                       ),
                       confirmDismiss: (direction) async {
-                        // ...existing code...
                         return await showDialog<bool>(
                               context: context,
                               builder: (dialogContext) => AlertDialog(
@@ -717,7 +717,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                             false;
                       },
                       onDismissed: (direction) async {
-                        // ...existing code...
                         final txProvider = Provider.of<TransactionProvider>(
                           context,
                           listen: false,
@@ -731,9 +730,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         txProvider.removeTransactionLocally(
                           transactionIdToDelete,
                         );
-                        // ignore: use_build_context_synchronously
                         if (!mounted) return;
-                        // ignore: use_build_context_synchronously
                         final messenger = ScaffoldMessenger.maybeOf(context);
                         messenger?.showSnackBar(
                           SnackBar(
@@ -763,7 +760,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           );
                           debugPrint('Stacktrace: \n$stack');
                           if (mounted) {
-                            // ignore: use_build_context_synchronously
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
@@ -775,256 +771,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           }
                         }
                       },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: const Color.fromARGB(255, 255, 255, 255),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color.fromARGB(
-                                255,
-                                11,
-                                11,
-                                11,
-                              ).withAlpha((0.25 * 255).toInt()),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 10, // Valor original/restaurado
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              // ...existing code...
-                              CircleAvatar(
-                                backgroundColor: t.type == 'debt'
-                                    ? const Color(0xFFFFE5E5)
-                                    : const Color(0xFFE5FFE8),
-                                radius: 22,
-                                child: Icon(
-                                  t.type == 'debt'
-                                      ? Icons.arrow_downward
-                                      : Icons.arrow_upward,
-                                  color: t.type == 'debt'
-                                      ? Colors.red
-                                      : Colors.green,
-                                  size: 24,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            t.description,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16,
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                        const Spacer(),
-                                        Text(
-                                          format(t.amount),
-                                          style: TextStyle(
-                                            color: t.type == 'payment'
-                                                ? Colors.green
-                                                : Colors.red,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 18,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                          textAlign: TextAlign.right,
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            'Cliente: ${client.name}',
-                                            style: const TextStyle(
-                                              fontSize: 13.5,
-                                              color: Colors.black54,
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
-                                            maxLines: 1,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        SizedBox(
-                                          width: 90,
-                                          child: Text(
-                                            '${t.date.year}-${t.date.month.toString().padLeft(2, '0')}-${t.date.day.toString().padLeft(2, '0')}',
-                                            style: const TextStyle(
-                                              fontSize: 12.5,
-                                              color: Colors.black45,
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
-                                            maxLines: 1,
-                                            textAlign: TextAlign.right,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    // Estado de sincronización y eliminación
-                                    if (clientPendingDelete && isOffline)
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                          top: 2,
-                                          bottom: 1,
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            const Spacer(),
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 7,
-                                                    vertical: 2,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: Colors.red.withAlpha(
-                                                  (0.09 * 255).toInt(),
-                                                ),
-                                                borderRadius:
-                                                    BorderRadius.circular(10),
-                                              ),
-                                              child: const Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Icon(
-                                                    Icons.delete_forever,
-                                                    size: 12,
-                                                    color: Colors.red,
-                                                  ),
-                                                  SizedBox(width: 2),
-                                                  Text(
-                                                    'Pendiente por eliminar',
-                                                    style: TextStyle(
-                                                      fontSize: 9,
-                                                      color: Colors.red,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      )
-                                    else if (t.synced == false)
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                          top: 2,
-                                          bottom: 1,
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            const Spacer(),
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 7,
-                                                    vertical: 2,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: Colors.orange.withAlpha(
-                                                  (0.09 * 255).toInt(),
-                                                ),
-                                                borderRadius:
-                                                    BorderRadius.circular(10),
-                                              ),
-                                              child: const Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Icon(
-                                                    Icons.sync,
-                                                    size: 10,
-                                                    color: Colors.orange,
-                                                  ),
-                                                  SizedBox(width: 2),
-                                                  Text(
-                                                    'Pendiente por sincronizar',
-                                                    style: TextStyle(
-                                                      fontSize: 9,
-                                                      color: Colors.orange,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      )
-                                    else if (t.synced == true)
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                          top: 2,
-                                          bottom: 1,
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            const Spacer(),
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 7,
-                                                    vertical: 2,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: Colors.green.withAlpha(
-                                                  (0.09 * 255).toInt(),
-                                                ),
-                                                borderRadius:
-                                                    BorderRadius.circular(10),
-                                              ),
-                                              child: const Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Icon(
-                                                    Icons.cloud_done,
-                                                    size: 10,
-                                                    color: Colors.green,
-                                                  ),
-                                                  SizedBox(width: 2),
-                                                  Text(
-                                                    'Sincronizado',
-                                                    style: TextStyle(
-                                                      fontSize: 9,
-                                                      color: Colors.green,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                      child: TransactionCard(
+                        transaction: t,
+                        client: client,
+                        format: format,
+                        clientPendingDelete: clientPendingDelete,
+                        isOffline: isOffline,
                       ),
                     );
                   },

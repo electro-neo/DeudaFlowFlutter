@@ -71,14 +71,13 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
     }
     currencies = newCurrencies;
     // Si se está agregando una nueva moneda, mostrarla de primera en currencies (lista para escribir la tasa)
-    if (showAddFields && selectedCurrency != null) {
-      // Si la moneda aún no está en currencies, la insertamos y creamos su controlador
-      if (!currencies.contains(selectedCurrency)) {
-        currencies = currencies.where((c) => c != selectedCurrency).toList();
-        currencies.insert(0, selectedCurrency!);
-        if (!rates.containsKey(selectedCurrency)) {
-          rates[selectedCurrency!] = TextEditingController();
-        }
+    if (showAddFields &&
+        selectedCurrency != null &&
+        !currencies.contains(selectedCurrency)) {
+      currencies = currencies.where((c) => c != selectedCurrency).toList();
+      currencies.insert(0, selectedCurrency!);
+      if (!rates.containsKey(selectedCurrency)) {
+        rates[selectedCurrency!] = TextEditingController();
       }
     }
 
@@ -215,14 +214,11 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
           if (current.contains(selectedCurrency!)) {
             current.remove(selectedCurrency!);
             current.insert(0, selectedCurrency!);
-            // Si el provider lo permite, actualiza la lista
             try {
               currencyProvider.availableCurrencies
                 ..clear()
                 ..addAll(current);
-            } catch (_) {
-              // Si no es posible, lo manejamos localmente en el widget
-            }
+            } catch (_) {}
           }
         }
       }
@@ -231,7 +227,6 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
         currencies = currencyProvider.availableCurrencies
             .where((c) => c != 'USD')
             .toList();
-        // Si se acaba de agregar una nueva moneda, mostrarla primero
         if (selectedCurrency != null && currencies.contains(selectedCurrency)) {
           currencies.remove(selectedCurrency);
           currencies.insert(0, selectedCurrency!);
@@ -243,7 +238,6 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
             );
           }
         }
-        // Limpiar campos de agregar
         showAddFields = false;
         selectedCurrency = null;
         newRateController.clear();

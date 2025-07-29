@@ -55,7 +55,7 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
   String? _type;
-  String _currencyCode = 'VES';
+  String _currencyCode = 'USD';
   DateTime _selectedDate = DateTime.now();
   Client? _selectedClient;
   String? _error;
@@ -114,52 +114,36 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
       logError('Descripción obligatoria');
       return;
     }
-
-    // VALIDACIÓN DE límite de monedas: si ya hay 2 monedas no-USD y se intenta guardar con una nueva, mostrar alerta
-    final currencyProvider = Provider.of<CurrencyProvider>(
-      context,
-      listen: false,
-    );
-    final nonUsdCurrencies = currencyProvider.availableCurrencies
-        .where((c) => c != 'USD')
-        .toList();
-    final isNewNonUsd =
-        _currencyCode.toUpperCase() != 'USD' &&
-        !nonUsdCurrencies.contains(_currencyCode.toUpperCase());
-    if (isNewNonUsd && nonUsdCurrencies.length >= 2) {
-      setState(() {
-        _loading = false;
-      });
-      await showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Row(
-            children: const [
-              Icon(Icons.attach_money_rounded, color: Colors.indigo),
-              SizedBox(width: 8),
-              Text(
-                'Límite de monedas alcanzado',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          content: const Text(
-            'Solo puedes tener 2 monedas adicionales a USD. Elimina una moneda existente en la gestión de monedas para poder registrar una nueva.',
-            style: TextStyle(fontSize: 15),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cerrar'),
-            ),
-          ],
-        ),
-      );
-      return;
+    // Validar y guardar tasa solo si el campo está visible
+    if (_rateFieldVisible) {
+      final rateText = _rateController.text.replaceAll(',', '.');
+      final rateValue = double.tryParse(rateText);
+      if (rateValue == null || rateValue <= 0) {
+        setState(() {
+          _error = 'Ingrese una tasa válida';
+          _loading = false;
+        });
+        logError('Tasa inválida');
+        return;
+      } else {
+        final currencyProvider = Provider.of<CurrencyProvider>(
+          context,
+          listen: false,
+        );
+        // Agregar la moneda manualmente si no existe
+        if (!currencyProvider.availableCurrencies.contains(
+          _currencyCode.toUpperCase(),
+        )) {
+          currencyProvider.addManualCurrency(_currencyCode.toUpperCase());
+        }
+        currencyProvider.setRateForCurrency(
+          _currencyCode.toUpperCase(),
+          rateValue,
+        );
+      }
     }
+
+    // Se eliminó la validación de límite de monedas no-USD. Ahora se pueden crear transacciones con cualquier cantidad de monedas diferentes a USD.
 
     try {
       final now = DateTime.now();
@@ -274,18 +258,14 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
     final colorScheme = Theme.of(context).colorScheme;
     final symbol = "";
     final currencyProvider = Provider.of<CurrencyProvider>(context);
-    final availableCurrencies = currencyProvider.availableCurrencies;
-    final nonUsdCurrencies = availableCurrencies
-        .where((c) => c != 'USD')
-        .toList();
-    final maxCurrenciesReached =
-        nonUsdCurrencies.length >= 2 &&
-        !nonUsdCurrencies.contains(_currencyCode.toUpperCase());
+    // final availableCurrencies = currencyProvider.availableCurrencies; // Eliminada variable no usada
+    final allowedCurrencies = CurrencyProvider.allowedCurrencies;
+    // Eliminada variable no usada: nonUsdCurrencies
     final rateMissing =
         _currencyCode.toUpperCase() != 'USD' &&
         (currencyProvider.exchangeRates[_currencyCode.toUpperCase()] == null ||
             currencyProvider.exchangeRates[_currencyCode.toUpperCase()] == 0);
-    _rateFieldVisible = rateMissing && !maxCurrenciesReached;
+    _rateFieldVisible = rateMissing;
     final rateValid =
         double.tryParse(_rateController.text.replaceAll(',', '.')) != null &&
         double.parse(_rateController.text.replaceAll(',', '.')) > 0;
@@ -351,7 +331,12 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
                     ),
                   );
                 },
-            onSelected: (Client c) => setState(() => _selectedClient = c),
+            onSelected: (Client c) {
+              setState(() => _selectedClient = c);
+              FocusScope.of(
+                context,
+              ).unfocus(); // Oculta el teclado al seleccionar un cliente
+            },
             optionsViewBuilder: (context, onSelected, options) {
               return Align(
                 alignment: Alignment.topLeft,
@@ -510,151 +495,13 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
                   isDense: true,
                 ),
                 items:
-                    [
-                          'USD',
-                          ...nonUsdCurrencies,
-                          // Solo permitir seleccionar una nueva moneda si no se ha alcanzado el máximo
-                          if (nonUsdCurrencies.length < 2)
-                            ...[
-                              'VES',
-                              'COP',
-                              'EUR',
-                              'ARS',
-                              'BRL',
-                              'CLP',
-                              'MXN',
-                              'PEN',
-                              'BOB',
-                              'PYG',
-                              'UYU',
-                              'CRC',
-                              'GTQ',
-                              'HNL',
-                              'NIO',
-                              'DOP',
-                              'CUC',
-                              'CAD',
-                              'GBP',
-                              'JPY',
-                              'CNY',
-                              'KRW',
-                              'INR',
-                              'TRY',
-                              'RUB',
-                              'CHF',
-                              'AUD',
-                              'NZD',
-                              'SGD',
-                              'HKD',
-                              'ZAR',
-                            ].where(
-                              (code) =>
-                                  code != 'USD' &&
-                                  !nonUsdCurrencies.contains(code),
-                            ),
-                        ]
+                    ['USD', ...allowedCurrencies.where((code) => code != 'USD')]
                         .map(
                           (code) =>
                               DropdownMenuItem(value: code, child: Text(code)),
                         )
                         .toList(),
-                onChanged: (code) async {
-                  // Si ya hay 2 monedas y se intenta seleccionar una nueva, mostrar gestión de monedas
-                  if (nonUsdCurrencies.length >= 2 &&
-                      !nonUsdCurrencies.contains(code) &&
-                      code != 'USD') {
-                    await showDialog(
-                      context: context,
-                      builder: (ctx) {
-                        final rates = {
-                          for (final c in nonUsdCurrencies)
-                            c: TextEditingController(
-                              text:
-                                  currencyProvider.exchangeRates[c]
-                                      ?.toString() ??
-                                  '',
-                            ),
-                        };
-                        return StatefulBuilder(
-                          builder: (context, setState) {
-                            return AlertDialog(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              title: const Text(
-                                'Solo puedes tener 2 monedas adicionales a USD',
-                              ),
-                              content: ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxWidth: 340,
-                                  maxHeight: 320,
-                                ),
-                                child: Scrollbar(
-                                  thumbVisibility: true,
-                                  child: ListView.builder(
-                                    shrinkWrap: true,
-                                    itemCount: nonUsdCurrencies.length,
-                                    itemBuilder: (context, idx) {
-                                      final c = nonUsdCurrencies[idx];
-                                      return Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 8,
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Expanded(
-                                              child: TextField(
-                                                controller: rates[c],
-                                                decoration: InputDecoration(
-                                                  labelText: 'Tasa $c a USD',
-                                                  border:
-                                                      const OutlineInputBorder(),
-                                                  isDense: true,
-                                                ),
-                                                keyboardType:
-                                                    const TextInputType.numberWithOptions(
-                                                      decimal: true,
-                                                    ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            ElevatedButton(
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: Colors.red,
-                                                foregroundColor: Colors.white,
-                                                minimumSize: const Size(60, 40),
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                ),
-                                              ),
-                                              child: const Text('Eliminar'),
-                                              onPressed: () {
-                                                currencyProvider
-                                                    .removeManualCurrency(c);
-                                                setState(() {});
-                                              },
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(ctx).pop(),
-                                  child: const Text('Cerrar'),
-                                ),
-                              ],
-                            );
-                          },
-                        );
-                      },
-                    );
-                    return;
-                  }
+                onChanged: (code) {
                   setState(() {
                     _currencyCode = code ?? 'VES';
                     _rateController.text = '';
@@ -761,16 +608,9 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
                   ? 'Guardando...'
                   : (_type == 'debt' ? 'Guardar Deuda' : 'Guardar Abono'),
             ),
-            onPressed: _loading || (_rateFieldVisible && !rateValid)
+            onPressed: _loading
                 ? null
                 : () async {
-                    // Si falta la tasa y el campo es válido, registrar la tasa antes de guardar
-                    if (_rateFieldVisible && rateValid) {
-                      currencyProvider.setRateForCurrency(
-                        _currencyCode.toUpperCase(),
-                        double.parse(_rateController.text.replaceAll(',', '.')),
-                      );
-                    }
                     await _save();
                   },
           ),

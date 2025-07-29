@@ -75,13 +75,34 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final txProvider = Provider.of<TransactionProvider>(context);
     final clientProvider = Provider.of<ClientProvider>(context);
     final filterProvider = Provider.of<TransactionFilterProvider>(context);
-    String format(num value) {
-      final isUSD = currencyProvider.currency == 'USD';
-      final rate = currencyProvider.rate > 0 ? currencyProvider.rate : 1.0;
-      final converted = isUSD ? value.toDouble() / rate : value.toDouble();
-      return isUSD
-          ? '\$${converted.toStringAsFixed(2)}'
-          : converted.toStringAsFixed(2);
+    // Formatea el valor mostrado según la moneda seleccionada.
+    // Para USD, siempre usa anchorUsdValue (o amount si es null).
+    // Para otras monedas, convierte desde anchorUsdValue usando el rate.
+    String format(dynamic transactionOrValue) {
+      if (transactionOrValue is num) {
+        if (currencyProvider.currency == 'USD') {
+          return 'USD ${transactionOrValue.toStringAsFixed(2)}';
+        } else {
+          final rate = currencyProvider.rate > 0 ? currencyProvider.rate : 1.0;
+          final converted = transactionOrValue.toDouble() * rate;
+          return converted.toStringAsFixed(2);
+        }
+      }
+      if (transactionOrValue != null) {
+        final anchorUsdValue = (transactionOrValue.anchorUsdValue != null)
+            ? transactionOrValue.anchorUsdValue
+            : (transactionOrValue.amount != null
+                  ? transactionOrValue.amount
+                  : 0.0);
+        if (currencyProvider.currency == 'USD') {
+          return 'USD ${anchorUsdValue.toStringAsFixed(2)}';
+        } else {
+          final rate = currencyProvider.rate > 0 ? currencyProvider.rate : 1.0;
+          final converted = anchorUsdValue.toDouble() * rate;
+          return converted.toStringAsFixed(2);
+        }
+      }
+      return '';
     }
 
     final clients = clientProvider.clients;
@@ -238,7 +259,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   Widget _buildTransactionColumn(
-    String Function(num) format,
+    String Function(dynamic) format,
     List<Client> clients,
     List transactions,
     String? selectedClientId,
@@ -285,6 +306,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     double listViewBottomPadding =
         75.0; // Ajusta este valor para que el último item sea visible
 
+    final currencyProvider = Provider.of<CurrencyProvider>(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -318,7 +340,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             },
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 15),
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -371,9 +393,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           filterProvider.setClientId(value);
                         },
                         isExpanded: true,
-                        // --- Hacer el dropdown scrollable si hay muchos clientes ---
-                        menuMaxHeight:
-                            250, // Ajusta la altura máxima del menú desplegable
+                        menuMaxHeight: 250,
                       ),
                 ),
               ),
@@ -474,9 +494,61 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             ),
           ],
         ),
-
-        // --- INICIO DEL BLOQUE CORREGIDO ---
-        // Este Builder ahora contiene tanto las estadísticas como el rango de fechas.
+        // Espacio después de la fila de filtros
+        const SizedBox(height: 0),
+        // Chips de monedas justo debajo de la fila de filtros
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: ChoiceChip(
+                  label: const Text('USD'),
+                  selected: currencyProvider.currency == 'USD',
+                  onSelected: (selected) {
+                    if (!selected) return;
+                    currencyProvider.setCurrency('USD');
+                  },
+                  selectedColor: Colors.blue.shade100,
+                  backgroundColor: Colors.grey.shade200,
+                  labelStyle: TextStyle(
+                    color: currencyProvider.currency == 'USD'
+                        ? Colors.blue
+                        : Colors.black87,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              ...currencyProvider.availableCurrencies
+                  .where((currency) => currency != 'USD')
+                  .map((currency) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: ChoiceChip(
+                        label: Text(currency),
+                        selected: currencyProvider.currency == currency,
+                        onSelected: (selected) {
+                          if (!selected) return;
+                          currencyProvider.setCurrency(currency);
+                        },
+                        selectedColor: Colors.blue.shade100,
+                        backgroundColor: Colors.grey.shade200,
+                        labelStyle: TextStyle(
+                          color: currencyProvider.currency == currency
+                              ? Colors.blue
+                              : Colors.black87,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    );
+                  })
+                  .toList(),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        // ...existing code for stats, list, etc...
         Builder(
           builder: (context) {
             double totalAbono = 0;
@@ -676,6 +748,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       (c) => c.id == t.clientId,
                       orElse: () => Client(id: '', name: '', balance: 0),
                     );
+                    final currencyProvider = Provider.of<CurrencyProvider>(
+                      context,
+                      listen: false,
+                    );
                     return Dismissible(
                       key: ValueKey(t.id),
                       direction: DismissDirection.endToStart,
@@ -777,6 +853,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         format: format,
                         clientPendingDelete: clientPendingDelete,
                         isOffline: isOffline,
+                        availableCurrencies:
+                            currencyProvider.availableCurrencies,
+                        exchangeRates: currencyProvider.exchangeRates,
+                        selectedCurrency: currencyProvider.currency,
+                        onCurrencySelected: (currency) {
+                          currencyProvider.setCurrency(currency);
+                        },
                       ),
                     );
                   },

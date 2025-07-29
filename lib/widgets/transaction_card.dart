@@ -4,9 +4,13 @@ import '../models/client.dart';
 class TransactionCard extends StatelessWidget {
   final dynamic transaction;
   final Client client;
-  final String Function(num) format;
+  final String Function(dynamic) format;
   final bool clientPendingDelete;
   final bool isOffline;
+  final List<String> availableCurrencies;
+  final Map<String, double> exchangeRates;
+  final String selectedCurrency;
+  final void Function(String) onCurrencySelected;
 
   const TransactionCard({
     super.key,
@@ -15,6 +19,10 @@ class TransactionCard extends StatelessWidget {
     required this.format,
     required this.clientPendingDelete,
     required this.isOffline,
+    required this.availableCurrencies,
+    required this.exchangeRates,
+    required this.selectedCurrency,
+    required this.onCurrencySelected,
   });
 
   @override
@@ -49,13 +57,13 @@ class TransactionCard extends StatelessWidget {
                   backgroundColor: t.type == 'debt'
                       ? const Color(0xFFFFE5E5)
                       : const Color(0xFFE5FFE8),
-                  radius: 22,
+                  radius: 16, // reducido de 22
                   child: Icon(
                     t.type == 'debt'
                         ? Icons.arrow_downward
                         : Icons.arrow_upward,
                     color: t.type == 'debt' ? Colors.red : Colors.green,
-                    size: 24,
+                    size: 16, // reducido de 24
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -82,17 +90,47 @@ class TransactionCard extends StatelessWidget {
                             ),
                           ),
                           const Spacer(),
-                          Text(
-                            format(t.amount),
-                            style: TextStyle(
-                              color: t.type == 'payment'
-                                  ? Colors.green
-                                  : Colors.red,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.right,
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              // Siempre mostrar el valor USD fijo
+                              Text(
+                                'USD ' +
+                                    ((t.anchorUsdValue ?? t.amount)
+                                            ?.toStringAsFixed(2) ??
+                                        '0.00'),
+                                style: TextStyle(
+                                  color: t.type == 'payment'
+                                      ? Colors.green
+                                      : Colors.red,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.right,
+                              ),
+                              // Valor convertido a moneda local (solo si no es USD)
+                              if (selectedCurrency != 'USD')
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: Text(
+                                    () {
+                                      final usd = t.anchorUsdValue ?? t.amount;
+                                      final rate =
+                                          exchangeRates[selectedCurrency] ??
+                                          1.0;
+                                      final converted = usd * rate;
+                                      return '${converted.toStringAsFixed(2)} $selectedCurrency';
+                                    }(),
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.black54,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    textAlign: TextAlign.right,
+                                  ),
+                                ),
+                            ],
                           ),
                         ],
                       ),
@@ -102,7 +140,7 @@ class TransactionCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Cliente: ${client.name}',
+                            '${client.name}',
                             style: const TextStyle(
                               fontSize: 13.5,
                               color: Colors.black54,

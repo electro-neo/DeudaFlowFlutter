@@ -30,8 +30,8 @@ class CurrencyUtils {
     );
     final isUSD = currencyProvider.currency == 'USD';
     final rate = currencyProvider.rate > 0 ? currencyProvider.rate : 1.0;
-    final converted = isUSD ? value.toDouble() / rate : value.toDouble();
-    // Formato: punto como separador de miles, coma como decimal
+    // Si es USD, no dividir ni modificar el valor
+    final converted = isUSD ? value.toDouble() : value.toDouble();
     final formatter = NumberFormat.currency(
       locale: 'es',
       symbol: isUSD ? '\$' : '',

@@ -103,7 +103,6 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
       listen: false,
     );
     final txProvider = Provider.of<TransactionProvider>(context, listen: false);
-    final availableCurrencies = currencyProvider.availableCurrencies;
     // --- Balance USD real usando anchorUsdValue ---
     final clientTxs = txProvider.transactions.where(
       (t) => t.clientId == client.id,
@@ -112,17 +111,16 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
       0.0,
       (sum, t) => sum + (t.anchorUsdValue ?? 0.0),
     );
-    final balances = <String, double>{};
-    balances['USD'] = usdBalance;
-    // Para cada moneda, suma los amount de las transacciones en esa moneda
-    for (final code in availableCurrencies) {
-      if (code != 'USD') {
-        final sumInCurrency = clientTxs
-            .where((t) => t.currencyCode.toUpperCase() == code)
-            .fold<double>(0.0, (sum, t) => sum + t.amount);
-        balances[code] = sumInCurrency;
-      }
-    }
+    // Siempre muestra USD primero, luego los equivalentes
+    final List<MapEntry<String, double>> balancesList = [
+      MapEntry('USD', usdBalance),
+      ...currencyProvider.availableCurrencies
+          .where((code) => code != 'USD')
+          .map((code) {
+            final rate = currencyProvider.exchangeRates[code] ?? 1.0;
+            return MapEntry(code, usdBalance * rate);
+          }),
+    ];
     final firstLetter = client.name.isNotEmpty
         ? client.name[0].toUpperCase()
         : '?';
@@ -391,7 +389,7 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                               defaultVerticalAlignment:
                                   TableCellVerticalAlignment.middle,
                               children: [
-                                ...balances.entries.map(
+                                ...balancesList.map(
                                   (e) => TableRow(
                                     children: [
                                       Padding(

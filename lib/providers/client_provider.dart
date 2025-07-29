@@ -364,23 +364,26 @@ class ClientProvider extends ChangeNotifier {
       ).join();
     }
 
+    // Si el id es UUID, úsalo, si no, genera uno local
+    final isUuid = client.id.length == 36;
     final localId =
-        randomLetters(2) + DateTime.now().millisecondsSinceEpoch.toString();
+        client.localId ??
+        (randomLetters(2) + DateTime.now().millisecondsSinceEpoch.toString());
     final clientHive = ClientHive(
-      id: client.id,
+      id: isUuid ? client.id : localId,
       name: client.name,
       address: client.address,
       phone: client.phone,
       balance: client.balance,
       synced: false,
       pendingDelete: false,
-      localId: client.localId ?? localId,
+      localId: localId,
     );
-    box.put(client.id, clientHive);
+    box.put(clientHive.id, clientHive);
     await _refreshClientsFromHive();
 
-    // Si estamos online, sincroniza inmediatamente
-    String finalId = client.id;
+    // Siempre intenta sincronizar, incluso si no hay transacciones
+    String finalId = clientHive.id;
     if (await _isOnline()) {
       await syncPendingClients(userId);
       // Buscar el id real en Hive después de sincronizar
@@ -390,11 +393,11 @@ class ClientProvider extends ChangeNotifier {
             c.address == client.address &&
             c.phone == client.phone &&
             c.balance == client.balance,
-        orElse: () => box.get(client.id)!,
+        orElse: () => box.get(clientHive.id)!,
       );
       finalId = updated.id;
       // --- ACTUALIZAR TRANSACCIONES CON EL NUEVO ID DE CLIENTE ---
-      if (finalId != client.id) {
+      if (finalId != clientHive.id) {
         Box<TransactionHive> txBox;
         if (Hive.isBoxOpen('transactions')) {
           txBox = Hive.box<TransactionHive>('transactions');
@@ -402,7 +405,7 @@ class ClientProvider extends ChangeNotifier {
           txBox = await Hive.openBox<TransactionHive>('transactions');
         }
         final txsToUpdate = txBox.values
-            .where((tx) => tx.clientId == client.id)
+            .where((tx) => tx.clientId == clientHive.id)
             .toList();
         for (final tx in txsToUpdate) {
           tx.clientId = finalId;

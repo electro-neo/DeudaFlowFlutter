@@ -29,6 +29,10 @@ class SyncMessageState {
   /// Si el cliente está sincronizado y no pendiente de eliminar, retorna null (no mostrar mensaje)
   static SyncMessageState? fromClient(dynamic client) {
     if (client.pendingDelete == true) {
+      // DEBUG: Verifica si el cliente está marcado como pendiente de eliminar
+      debugPrint(
+        '[SYNC_MESSAGE_STATE] Cliente marcado como pendingDelete: id=${client.id}, name=${client.name}, synced=${client.synced}',
+      );
       return SyncMessageState(
         SyncMessageType.syncing,
         'Pendiente de eliminar',

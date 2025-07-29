@@ -163,6 +163,9 @@ class ClientDetailsModal extends StatelessWidget {
                     icon: const Icon(Icons.delete, size: 26),
                     color: Colors.red,
                     onPressed: () {
+                      debugPrint(
+                        '[CLIENT_DETAILS_MODAL] Botón Eliminar PRESIONADO para cliente: id=${client.id}, name=${client.name}',
+                      );
                       Navigator.of(context, rootNavigator: true).pop();
                       if (onDelete != null) {
                         Future.delayed(Duration.zero, onDelete!);

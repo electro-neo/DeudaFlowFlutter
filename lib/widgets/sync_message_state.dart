@@ -6,6 +6,9 @@ import 'package:flutter/material.dart';
 enum SyncMessageType { syncing, synced }
 
 class SyncMessageState {
+  bool get isSyncing =>
+      type == SyncMessageType.syncing && message == 'Sincronizando';
+  bool get isSynced => type == SyncMessageType.synced;
   final SyncMessageType type;
   final String message;
   final IconData icon;

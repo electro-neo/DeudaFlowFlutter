@@ -222,8 +222,8 @@ class ClientProvider extends ChangeNotifier {
 
   Future<void> _refreshClientsFromHive() async {
     final box = Hive.box<ClientHive>('clients');
+    // Mostrar TODOS los clientes, incluyendo los pendingDelete, para que la UI pueda mostrar el estado visual
     final newClients = box.values
-        .where((c) => c.pendingDelete != true)
         .map(
           (c) => Client(
             id: c.id,
@@ -234,22 +234,7 @@ class ClientProvider extends ChangeNotifier {
           ),
         )
         .toList();
-    debugPrint('[PROVIDER][REFRESH] Recargando clientes desde Hive...');
-    for (final c in box.values) {
-      debugPrint(
-        '[DEBUG][PROVIDER][REFRESH] Cliente: id=${c.id}, name=${c.name}, balance=${c.balance}, pendingDelete=${c.pendingDelete}',
-      );
-    }
-    debugPrint(
-      '[PROVIDER][REFRESH] Lista de clientes previa: ${_clients.map((c) => '${c.id}:${c.balance}').join(', ')}',
-    );
-    debugPrint(
-      '[PROVIDER][REFRESH] Lista de clientes nueva: ${newClients.map((c) => '${c.id}:${c.balance}').join(', ')}',
-    );
     _clients = newClients;
-    debugPrint(
-      '[PROVIDER][REFRESH] La lista de clientes se ha actualizado desde Hive.',
-    );
   }
 
   Future<void> loadClients(String userId) async {
@@ -299,7 +284,6 @@ class ClientProvider extends ChangeNotifier {
         }
         // Refresca la lista desde Hive para asegurar que el estado synced es correcto
         _clients = box.values
-            .where((c) => c.pendingDelete != true)
             .map(
               (c) => Client(
                 id: c.id,
@@ -322,7 +306,6 @@ class ClientProvider extends ChangeNotifier {
       } catch (e) {
         // Si falla la red, carga desde Hive
         _clients = box.values
-            .where((c) => c.pendingDelete != true)
             .map(
               (c) => Client(
                 id: c.id,
@@ -337,7 +320,6 @@ class ClientProvider extends ChangeNotifier {
     } else {
       // Offline: usa Hive
       _clients = box.values
-          .where((c) => c.pendingDelete != true)
           .map(
             (c) => Client(
               id: c.id,
@@ -449,6 +431,9 @@ class ClientProvider extends ChangeNotifier {
     // 1. Marcar como pendiente de eliminar en Hive
     c.pendingDelete = true;
     await c.save();
+    debugPrint(
+      '[CLIENT_PROVIDER][DELETE] Cliente marcado como pendingDelete: id=${c.id}, name=${c.name}, pendingDelete=${c.pendingDelete}, synced=${c.synced}',
+    );
 
     // 1.1. Si está offline, también marca todas las transacciones asociadas como pendingDelete=true
     if (!await _isOnline()) {

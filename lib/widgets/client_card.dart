@@ -561,6 +561,7 @@ class ClientCard extends StatelessWidget {
     final SyncMessageState? effectiveSync =
         syncMessage ?? SyncMessageState.fromClient(client);
     return ExpandableClientCard(
+      key: ValueKey(client.id + '_' + client.pendingDelete.toString()),
       client: client,
       userId: userId,
       onEdit: onEdit,

@@ -64,5 +64,16 @@ Resultado: Ahora los filtros de la pantalla de movimientos están 100% sincroniz
    - Problema: El cálculo de anchorUsdValue fallaba porque el acceso al CurrencyProvider usaba Provider.of<dynamic>, lo cual no es soportado y lanzaba una excepción. Esto hacía que anchorUsdValue quedara null en todas las monedas excepto USD, y el debug mostraba un error de assertion.
    - Solución: Se corrigió el acceso usando Provider.of<CurrencyProvider>(context, listen: false), con fallback robusto si el provider no está en el árbol. Ahora anchorUsdValue se calcula y envía correctamente en todos los flujos, igual que en el modal global, y los debugPrints muestran el valor y la tasa usada.
    - Resultado: El valor anchorUsdValue ya nunca es null (salvo que realmente no haya provider ni tasa), la sincronización con Supabase y Hive es correcta, y el flujo de creación de transacciones es robusto y trazable desde todos los formularios.
-Fecha: 2025-07-28
+
+14. Mejora/Error: Lógica de visualización de mensajes de sincronización y eliminación en la UI de clientes (ClientCard/ExpandableClientCard).
+   - Problema: El flujo de mensajes temporales y persistentes ("Sincronizando", "Pendiente por sincronizar", "Sincronizado", "Pendiente de eliminar") no era consistente ni claro para el usuario, especialmente al trabajar offline o tras eliminar un cliente. Además, había debugPrint innecesarios y la lógica estaba dispersa entre provider y UI.
+   - Solución: Se depuró y centralizó la lógica en ClientsScreen para que:
+     - Al guardar un cliente, se muestre "Sincronizando" (azul) como estado temporal.
+     - Si no hay internet tras intentar sincronizar, el mensaje cambia a "Pendiente por sincronizar" (naranja) y se mantiene hasta que vuelva la conexión.
+     - Cuando vuelve el internet, se muestra nuevamente "Sincronizando" mientras se intenta sincronizar.
+     - Cuando se sincroniza exitosamente, se muestra "Sincronizado" (verde) por unos segundos y luego se oculta el mensaje.
+     - Al eliminar un cliente, se muestra "Pendiente de eliminar" (rojo) incluso en modo offline.
+     - Se eliminaron debugPrint innecesarios y se forzó el rebuild de la card para mostrar el estado correcto.
+   - Resultado: El usuario percibe claramente el estado de sincronización y eliminación de cada cliente, tanto online como offline, y la UI es consistente y profesional. El flujo cumple con el UX solicitado y la lógica es más mantenible.
+Fecha: 2025-07-29
 

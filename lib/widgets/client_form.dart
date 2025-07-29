@@ -333,6 +333,7 @@ class _ClientFormState extends State<ClientForm> {
       _error = null;
       _isSaving = true;
     });
+
     // Generar un id único local si es nuevo
     String newId =
         widget.initialClient?.id ??
@@ -351,11 +352,17 @@ class _ClientFormState extends State<ClientForm> {
     debugPrint(
       '\u001b[41m[FORM][SAVE] Cliente id=$newId, balance=$balance, currency=$_selectedCurrency, anchorUsdValue=$anchorUsdValue\u001b[0m',
     );
-    try {
-      await widget.onSave(client);
+
+    // Cerrar el formulario tras 1 segundo, pero seguir guardando en background
+    Future.delayed(const Duration(seconds: 1), () {
       if (mounted) {
         Navigator.of(context).pop();
       }
+    });
+
+    // Guardar en background (sin esperar el cierre del formulario)
+    try {
+      await widget.onSave(client);
     } catch (e) {
       if (!mounted) return;
       final msg = e.toString();

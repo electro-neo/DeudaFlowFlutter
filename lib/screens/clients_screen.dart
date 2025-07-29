@@ -272,7 +272,6 @@ class ClientsScreenState extends State<ClientsScreen>
 
   Future<void> _syncAll() async {
     if (_isSyncing) return;
-    // Verifica conexión a internet antes de sincronizar
     final txProvider = Provider.of<TransactionProvider>(context, listen: false);
     final provider = Provider.of<ClientProvider>(context, listen: false);
     bool isOnline = true;
@@ -282,6 +281,14 @@ class ClientsScreenState extends State<ClientsScreen>
       isOnline = false;
     }
     if (!isOnline) {
+      // Si no hay internet, limpiar todos los estados temporales de sincronización
+      setState(() {
+        _isSyncing = false;
+        _syncController.reset();
+        _clientSyncStates.removeWhere(
+          (key, value) => value.isSyncing || value.isSynced,
+        );
+      });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -294,26 +301,27 @@ class ClientsScreenState extends State<ClientsScreen>
       }
       return;
     }
-    setState(() => _isSyncing = true);
-    _syncController.repeat();
+    setState(() {
+      _isSyncing = true;
+      _syncController.repeat();
+      // Al reconectar, mostrar "Sincronizando" para todos los que estaban pendientes
+      final box = Hive.box<ClientHive>('clients');
+      for (final c in box.values) {
+        // Considerar pendiente de sincronizar si no está sincronizado ni pendiente de eliminar
+        if ((!c.synced && !c.pendingDelete) || c.pendingDelete == true) {
+          _clientSyncStates[c.id] = SyncMessageState.syncing();
+        }
+      }
+    });
     await provider.syncPendingClients(widget.userId);
-    await provider
-        .cleanLocalPendingDeletedClients(); // Refuerzo: limpieza tras sync
+    await provider.cleanLocalPendingDeletedClients();
     await txProvider.syncPendingTransactions(widget.userId);
-    await txProvider
-        .cleanLocalOrphanTransactions(); // Refuerzo: limpieza tras sync
-    // Esperar a que no haya clientes pendientes de eliminar antes de recargar la lista
+    await txProvider.cleanLocalOrphanTransactions();
     int intentos = 0;
     bool hayPendientes;
     do {
       await provider.loadClients(widget.userId);
       final box = Hive.box<ClientHive>('clients');
-      // LOG: Mostrar balances reales de todos los clientes tras recarga
-      for (final c in box.values) {
-        debugPrint(
-          '[DEBUG][SYNC] Cliente: id=${c.id}, name=${c.name}, balance=${c.balance}, pendingDelete=${c.pendingDelete}',
-        );
-      }
       hayPendientes = box.values.any((c) => c.pendingDelete == true);
       if (hayPendientes) {
         await Future.delayed(const Duration(milliseconds: 500));
@@ -322,8 +330,24 @@ class ClientsScreenState extends State<ClientsScreen>
     } while (hayPendientes && intentos < 8);
     await txProvider.loadTransactions(widget.userId);
     if (mounted) {
-      setState(() => _isSyncing = false);
-      _syncController.reset();
+      setState(() {
+        _isSyncing = false;
+        _syncController.reset();
+        // Mostrar "Sincronizado" para los que estaban en syncing
+        final ids = _clientSyncStates.keys.toList();
+        for (final id in ids) {
+          if (_clientSyncStates[id]?.isSyncing == true) {
+            _clientSyncStates[id] = SyncMessageState.synced();
+            Future.delayed(const Duration(seconds: 3), () {
+              if (mounted) {
+                setState(() {
+                  _clientSyncStates.remove(id);
+                });
+              }
+            });
+          }
+        }
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -345,7 +369,6 @@ class ClientsScreenState extends State<ClientsScreen>
         child: ClientForm(
           initialClient: client,
           userId: widget.userId,
-          // Ajuste: onSave ahora espera que newClient traiga anchorUsdValue si corresponde
           onSave: (newClient) async {
             final provider = Provider.of<ClientProvider>(
               context,
@@ -355,14 +378,17 @@ class ClientsScreenState extends State<ClientsScreen>
               context,
               listen: false,
             );
-            // Mostrar mensaje de sincronización inmediato
             final clientId = client?.id ?? newClient.id;
             setState(() {
               _clientSyncStates[clientId] = SyncMessageState.syncing();
             });
-            // 1. Crear SIEMPRE en Hive (offline-first)
+            bool isOnline = true;
+            try {
+              isOnline = await txProvider.isOnline();
+            } catch (_) {
+              isOnline = false;
+            }
             if (client == null) {
-              // Guardar cliente en Hive y obtener el id real tras sincronizar
               final realId = await provider.addClient(
                 Client.fromHive(newClient),
                 widget.userId,
@@ -370,7 +396,6 @@ class ClientsScreenState extends State<ClientsScreen>
               await provider.loadClients(widget.userId);
               if (newClient.balance != 0) {
                 final now = DateTime.now();
-                // --- Ajuste: Pasar anchorUsdValue si viene del formulario ---
                 final tx = Transaction(
                   id: DateTime.now().millisecondsSinceEpoch.toString(),
                   clientId: realId,
@@ -380,39 +405,30 @@ class ClientsScreenState extends State<ClientsScreen>
                   description: 'Saldo inicial',
                   date: now,
                   createdAt: now,
-                  synced: false, // Siempre pendiente por sincronizar
+                  synced: false,
                   currencyCode: newClient.currencyCode,
-                  anchorUsdValue:
-                      newClient.anchorUsdValue, // <-- Aquí el refuerzo
+                  anchorUsdValue: newClient.anchorUsdValue,
                 );
                 await txProvider.addTransaction(tx, widget.userId, realId);
-                // Sincroniza en segundo plano tras agregar movimiento de saldo inicial
                 Future.delayed(const Duration(seconds: 2), () async {
-                  if (mounted) {
+                  if (!mounted) return;
+                  if (isOnline) {
                     await _syncAll();
+                  } else {
+                    // Si no hay internet, limpiar el estado temporal para que la UI muestre el estado persistente
                     setState(() {
-                      _clientSyncStates[realId] = SyncMessageState.synced();
-                    });
-                    Future.delayed(const Duration(seconds: 3), () {
-                      if (mounted) {
-                        setState(() {
-                          _clientSyncStates.remove(realId);
-                        });
-                      }
+                      _clientSyncStates.remove(realId);
                     });
                   }
                 });
                 await txProvider.loadTransactions(widget.userId);
                 await provider.loadClients(widget.userId);
-                // Si estamos online, sincroniza la transacción de saldo inicial inmediatamente
-                if (await txProvider.isOnline()) {
+                if (isOnline) {
                   await txProvider.syncPendingTransactions(widget.userId);
                 }
               }
-              // Siempre recargar transacciones después de crear un cliente, incluso si no hay saldo inicial
               await txProvider.loadTransactions(widget.userId);
             } else {
-              // Edición: actualizar en Hive y marcar como pendiente de sincronizar (offline-first)
               await provider.updateClient(
                 Client(
                   id: client.id,
@@ -423,25 +439,28 @@ class ClientsScreenState extends State<ClientsScreen>
                 ),
                 widget.userId,
               );
-              // Lanzar sincronización y feedback visual
               Future.delayed(const Duration(seconds: 2), () async {
-                if (mounted) {
+                if (!mounted) return;
+                if (isOnline) {
                   await provider.syncPendingClients(widget.userId);
                   await txProvider.syncPendingTransactions(widget.userId);
-                  setState(() {
-                    _clientSyncStates[client.id] = SyncMessageState.synced();
-                  });
-                  Future.delayed(const Duration(seconds: 3), () {
-                    if (mounted) {
-                      setState(() {
-                        _clientSyncStates.remove(client.id);
-                      });
-                    }
-                  });
                 }
+                setState(() {
+                  if (isOnline) {
+                    _clientSyncStates[client.id] = SyncMessageState.synced();
+                    Future.delayed(const Duration(seconds: 3), () {
+                      if (mounted) {
+                        setState(() {
+                          _clientSyncStates.remove(client.id);
+                        });
+                      }
+                    });
+                  } else {
+                    _clientSyncStates.remove(client.id);
+                  }
+                });
               });
             }
-            // 3. El modal se cierra inmediatamente tras guardar en Hive (lo hace el formulario)
             return newClient;
           },
           readOnlyBalance: client != null,
@@ -714,9 +733,6 @@ class ClientsScreenState extends State<ClientsScreen>
                                             );
                                             final allClients = box.values
                                                 .toList();
-                                            debugPrint(
-                                              '[ELIMINAR_TODOS] Clientes encontrados: \\${allClients.length}',
-                                            );
                                             if (allClients.isEmpty) {
                                               ScaffoldMessenger.of(
                                                 context,
@@ -764,13 +780,7 @@ class ClientsScreenState extends State<ClientsScreen>
                                               ),
                                             );
                                             if (confirm == true) {
-                                              debugPrint(
-                                                '[ELIMINAR_TODOS] Eliminando todos los clientes...',
-                                              );
                                               for (final client in allClients) {
-                                                debugPrint(
-                                                  '[ELIMINAR_TODOS] Eliminando cliente: \\${client.id} (\\${client.name})',
-                                                );
                                                 await provider.deleteClient(
                                                   client.id,
                                                   widget.userId,
@@ -778,9 +788,6 @@ class ClientsScreenState extends State<ClientsScreen>
                                               }
                                               await provider
                                                   .cleanLocalPendingDeletedClients();
-                                              debugPrint(
-                                                '[ELIMINAR_TODOS] Sincronizando eliminaciones...',
-                                              );
                                               await provider.syncPendingClients(
                                                 widget.userId,
                                               );
@@ -802,9 +809,6 @@ class ClientsScreenState extends State<ClientsScreen>
                                                   (c) =>
                                                       c.pendingDelete == true,
                                                 );
-                                                debugPrint(
-                                                  '[ELIMINAR_TODOS] Intento \\${intentos + 1}: ¿Quedan clientes pendientes de eliminar? \\$hayPendientes',
-                                                );
                                                 if (hayPendientes) {
                                                   await Future.delayed(
                                                     const Duration(
@@ -815,26 +819,14 @@ class ClientsScreenState extends State<ClientsScreen>
                                                 intentos++;
                                               } while (hayPendientes &&
                                                   intentos < 8);
-                                              debugPrint(
-                                                '[ELIMINAR_TODOS] Recargando transacciones...',
-                                              );
                                               await txProvider.loadTransactions(
                                                 widget.userId,
                                               );
                                               if (mounted) {
-                                                debugPrint(
-                                                  '[ELIMINAR_TODOS] Proceso completado.',
-                                                );
                                                 final isOnline =
                                                     await txProvider.isOnline();
                                                 if (!mounted) return;
-                                                // El siguiente uso de context es seguro porque:
-                                                // 1. Se verifica 'if (!mounted) return;' justo antes.
-                                                // 2. Este context es el de la clase State, no de un builder externo.
-                                                // Por lo tanto, el warning puede ser ignorado.
-                                                // ignore: use_build_context_synchronously
                                                 ScaffoldMessenger.of(
-                                                  // ignore: use_build_context_synchronously
                                                   context,
                                                 ).showSnackBar(
                                                   SnackBar(
@@ -1112,6 +1104,13 @@ class ClientsScreenState extends State<ClientsScreen>
                                                       client.id,
                                                       widget.userId,
                                                     );
+                                                    // Refresca la lista para que la UI muestre el estado pendingDelete
+                                                    await provider.loadClients(
+                                                      widget.userId,
+                                                    );
+                                                    if (mounted)
+                                                      setState(() {});
+                                                    // El resto de la sync y feedback visual
                                                     await provider
                                                         .cleanLocalPendingDeletedClients();
                                                     await provider
@@ -1122,9 +1121,6 @@ class ClientsScreenState extends State<ClientsScreen>
                                                         .syncPendingTransactions(
                                                           widget.userId,
                                                         );
-                                                    await provider.loadClients(
-                                                      widget.userId,
-                                                    );
                                                     await txProvider
                                                         .loadTransactions(
                                                           widget.userId,
@@ -1198,7 +1194,10 @@ class ClientsScreenState extends State<ClientsScreen>
                                                 },
                                                 syncMessage:
                                                     _clientSyncStates[client
-                                                        .id],
+                                                        .id] ??
+                                                    SyncMessageState.fromClient(
+                                                      client,
+                                                    ),
                                               ),
                                             );
                                           },

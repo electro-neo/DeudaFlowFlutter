@@ -106,14 +106,30 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
       // listen: false, // Elimina esto para que escuche cambios y reconstruya
     );
     final txProvider = Provider.of<TransactionProvider>(context, listen: false);
-    // --- Balance USD real usando anchorUsdValue ---
+    // --- Balance USD real usando anchorUsdValue (ya con signo correcto) ---
     final clientTxs = txProvider.transactions.where(
       (t) => t.clientId == client.id,
     );
-    final usdBalance = clientTxs.fold<double>(
-      0.0,
-      (sum, t) => sum + (t.anchorUsdValue ?? 0.0),
-    );
+    // Suma: si es "deuda" resta, si es "abono" suma
+    double usdBalance = 0.0;
+    for (var t in clientTxs) {
+      final value = t.anchorUsdValue ?? 0.0;
+      final type = t.type.toLowerCase();
+      if (type == 'debt') {
+        usdBalance -= value;
+      } else if (type == 'payment') {
+        usdBalance += value;
+      }
+    }
+    // Color según balance USD
+    Color balanceColor;
+    if (usdBalance < 0) {
+      balanceColor = Colors.red;
+    } else if (usdBalance > 0) {
+      balanceColor = Colors.green;
+    } else {
+      balanceColor = Colors.black87;
+    }
     // Siempre muestra USD primero, luego los equivalentes
     final List<MapEntry<String, double>> balancesList = [
       MapEntry('USD', usdBalance),
@@ -432,15 +448,13 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                                                   child: Text(
                                                     CurrencyUtils.format(
                                                       context,
-                                                      e.value,
+                                                      e.value.abs(),
                                                     ),
                                                     style: TextStyle(
                                                       fontWeight:
                                                           FontWeight.bold,
                                                       fontSize: 15,
-                                                      color: e.value < 0
-                                                          ? Colors.red
-                                                          : Colors.green,
+                                                      color: balanceColor,
                                                     ),
                                                     textAlign: TextAlign.right,
                                                   ),
@@ -492,14 +506,12 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                                             child: Text(
                                               CurrencyUtils.format(
                                                 context,
-                                                e.value,
+                                                e.value.abs(),
                                               ),
                                               style: TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 15,
-                                                color: e.value < 0
-                                                    ? Colors.red
-                                                    : Colors.green,
+                                                color: balanceColor,
                                               ),
                                               textAlign: TextAlign.right,
                                             ),

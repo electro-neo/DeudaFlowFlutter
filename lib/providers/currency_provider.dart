@@ -204,7 +204,7 @@ class CurrencyProvider extends ChangeNotifier {
     final upper = currency.toUpperCase();
     if (upper == 'USD') return;
     if (!_availableCurrencies.contains(upper)) {
-      _availableCurrencies.add(upper);
+      _availableCurrencies.insert(1, upper); // Insertar siempre después de USD
       notifyListeners();
     }
   }

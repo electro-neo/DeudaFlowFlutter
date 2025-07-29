@@ -70,7 +70,31 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
       }
     }
     currencies = newCurrencies;
-    final alreadyRegistered = {...currencies, 'USD'};
+    // Si se está agregando una nueva moneda, NO mostrarla en currencies (solo en la card especial)
+    if (showAddFields && selectedCurrency != null) {
+      currencies = currencies.where((c) => c != selectedCurrency).toList();
+      // Asegurar que haya un solo controlador para la nueva moneda
+      if (!rates.containsKey(selectedCurrency)) {
+        rates[selectedCurrency!] = TextEditingController();
+      }
+    }
+
+    // Eliminar la card visual temporal si el usuario cancela el agregado
+    if (!showAddFields &&
+        selectedCurrency != null &&
+        currencies.contains(selectedCurrency) &&
+        !currencyProvider.availableCurrencies.contains(selectedCurrency)) {
+      currencies = currencies.where((c) => c != selectedCurrency).toList();
+      if (rates.containsKey(selectedCurrency)) {
+        rates[selectedCurrency!]?.dispose();
+        rates.remove(selectedCurrency);
+      }
+    }
+    // Para el dropdown, solo mostrar monedas realmente registradas y no la temporal
+    final alreadyRegistered = {
+      ...currencyProvider.availableCurrencies.where((c) => c != 'USD'),
+      'USD',
+    };
     final availableToAdd = allPossibleCurrencies
         .where((code) => !alreadyRegistered.contains(code))
         .toList();
@@ -183,6 +207,20 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
         if (val != null && val > 0) {
           currencyProvider.addManualCurrency(selectedCurrency!);
           currencyProvider.setRateForCurrency(selectedCurrency!, val);
+          // Reordenar la lista para que la nueva moneda esté al principio
+          final current = currencyProvider.availableCurrencies.toList();
+          if (current.contains(selectedCurrency!)) {
+            current.remove(selectedCurrency!);
+            current.insert(0, selectedCurrency!);
+            // Si el provider lo permite, actualiza la lista
+            try {
+              currencyProvider.availableCurrencies
+                ..clear()
+                ..addAll(current);
+            } catch (_) {
+              // Si no es posible, lo manejamos localmente en el widget
+            }
+          }
         }
       }
       // Actualizar la lista de monedas y controladores
@@ -190,6 +228,11 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
         currencies = currencyProvider.availableCurrencies
             .where((c) => c != 'USD')
             .toList();
+        // Si se acaba de agregar una nueva moneda, mostrarla primero
+        if (selectedCurrency != null && currencies.contains(selectedCurrency)) {
+          currencies.remove(selectedCurrency);
+          currencies.insert(0, selectedCurrency!);
+        }
         for (final c in currencies) {
           if (!rates.containsKey(c)) {
             rates[c] = TextEditingController(
@@ -207,6 +250,23 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
 
     return WillPopScope(
       onWillPop: () async {
+        // Si el usuario cierra el dialog sin guardar, limpiar la card temporal
+        setState(() {
+          if (showAddFields &&
+              selectedCurrency != null &&
+              !currencyProvider.availableCurrencies.contains(
+                selectedCurrency,
+              )) {
+            if (rates.containsKey(selectedCurrency)) {
+              rates[selectedCurrency!]?.dispose();
+              rates.remove(selectedCurrency);
+            }
+            showAddFields = false;
+            selectedCurrency = null;
+            newRateController.clear();
+            addError = null;
+          }
+        });
         saveAllRates();
         return true; // Permitir el cierre
       },
@@ -443,7 +503,7 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
               ),
               // Espacio mínimo
               const SizedBox(width: 8),
-              // Botón Cerrar
+              // Botón Cerrar/Guardar
               ScaleOnTap(
                 onTap: () {
                   saveAllRates();
@@ -459,11 +519,15 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    'Cerrar',
+                    showAddFields && selectedCurrency != null
+                        ? 'Guardar'
+                        : 'Cerrar',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSecondary,
                       fontWeight: FontWeight.w600,
-                      fontSize: 15,
+                      fontSize: (showAddFields && selectedCurrency != null)
+                          ? 13.5
+                          : 15,
                     ),
                   ),
                 ),

@@ -9,7 +9,7 @@ class BudgetoTheme {
     // ColorScheme principal (usa kGreenColor como color primario)
     colorScheme: const ColorScheme.light(
       primary: Color.fromARGB(255, 84, 10, 136),  // kGreenColor: color principal/acento
-      secondary: Color.fromARGB(255, 132, 145, 241), // Color secundario para acentos y bordes enfocados 
+      secondary: Color.fromARGB(255, 79, 155, 247), // Color secundario para acentos y bordes enfocados 
       onSecondary: Colors.white, // <--- Aquí defines el color del texto sobre secondary
     ), // kGreenColor: color principal/acento
     primaryColor: const Color.fromARGB(255, 66, 6, 144), // kGreenColor: color principal/acento

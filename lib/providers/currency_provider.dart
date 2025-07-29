@@ -149,10 +149,10 @@ class CurrencyProvider extends ChangeNotifier {
     'BYN',
     'MDL',
   ];
-  String _currency = 'VES';
+  String _currency = 'USD';
   // Map of currency code to rate (rate = how many units of that currency per 1 USD)
   Map<String, double> _exchangeRates = {};
-  List<String> _availableCurrencies = ['USD', 'VES'];
+  List<String> _availableCurrencies = ['USD'];
 
   String get currency => _currency;
   Map<String, double> get exchangeRates => _exchangeRates;

@@ -257,11 +257,7 @@ class TransactionProvider extends ChangeNotifier {
           if (localMatches.isNotEmpty && remote.id != localMatches.first.id) {
             final localMatch = localMatches.first;
             debugPrint(
-              '\u001b[35m[SYNC][RECONCILIACION][ANTES] localId=${localMatch.id}, remoteId=${remote.id}, anchorUsdValue local: ' +
-                  (localMatch.anchorUsdValue?.toString() ?? 'null') +
-                  ', anchorUsdValue remote: ' +
-                  (remote.anchorUsdValue?.toString() ?? 'null') +
-                  '\u001b[0m',
+              '\u001b[35m[SYNC][RECONCILIACION][ANTES] localId=${localMatch.id}, remoteId=${remote.id}, anchorUsdValue local: ${localMatch.anchorUsdValue?.toString() ?? 'null'}, anchorUsdValue remote: ${remote.anchorUsdValue?.toString() ?? 'null'}\u001b[0m',
             );
             final updated = TransactionHive(
               id: remote.id,
@@ -280,9 +276,7 @@ class TransactionProvider extends ChangeNotifier {
                   remote.anchorUsdValue, // Refuerzo: nunca perder valor
             );
             debugPrint(
-              '\u001b[36m[SYNC][RECONCILIACION][DESPUES] updatedId=${updated.id}, anchorUsdValue: ' +
-                  (updated.anchorUsdValue?.toString() ?? 'null') +
-                  '\u001b[0m',
+              '\u001b[36m[SYNC][RECONCILIACION][DESPUES] updatedId=${updated.id}, anchorUsdValue: ${updated.anchorUsdValue?.toString() ?? 'null'}\u001b[0m',
             );
             await box.delete(localMatch.id);
             await box.put(updated.id, updated);

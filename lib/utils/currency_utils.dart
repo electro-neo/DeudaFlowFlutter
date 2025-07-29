@@ -55,6 +55,6 @@ class CurrencyUtils {
     final code = currencyCode ?? currencyProvider.currency;
     final isUSD = code == 'USD';
     final compact = NumberFormat.compact(locale: 'en').format(value.toDouble());
-    return isUSD ? '\$' + compact : compact;
+    return isUSD ? '\$$compact' : compact;
   }
 }

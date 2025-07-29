@@ -140,7 +140,7 @@ class TransactionCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '${client.name}',
+                            client.name,
                             style: const TextStyle(
                               fontSize: 13.5,
                               color: Colors.black54,

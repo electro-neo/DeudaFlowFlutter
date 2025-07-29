@@ -91,9 +91,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       if (transactionOrValue != null) {
         final anchorUsdValue = (transactionOrValue.anchorUsdValue != null)
             ? transactionOrValue.anchorUsdValue
-            : (transactionOrValue.amount != null
-                  ? transactionOrValue.amount
-                  : 0.0);
+            : (transactionOrValue.amount ?? 0.0);
         if (currencyProvider.currency == 'USD') {
           return 'USD ${anchorUsdValue.toStringAsFixed(2)}';
         } else {
@@ -543,7 +541,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       ),
                     );
                   })
-                  .toList(),
+                  ,
             ],
           ),
         ),

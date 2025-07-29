@@ -15,7 +15,6 @@ import 'faq_help_sheet.dart';
 
 import '../providers/transaction_provider.dart';
 import '../utils/currency_manager_dialog.dart';
-import 'budgeto_theme.dart';
 
 // Banner de debug para mostrar un número aleatorio que cambia en cada hot reload
 // class DebugBanner extends StatefulWidget {

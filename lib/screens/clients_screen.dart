@@ -32,6 +32,21 @@ class ClientsScreen extends StatefulWidget {
 
 class ClientsScreenState extends State<ClientsScreen>
     with SingleTickerProviderStateMixin {
+  // Permite cerrar la expansión del cliente desde fuera (por ejemplo, MainScaffold)
+  void closeExpansion() {
+    if (_expandedClientId != null) {
+      setState(() {
+        _expandedClientId = null;
+      });
+    }
+  }
+
+  @override
+  void deactivate() {
+    _expandedClientId = null;
+    super.deactivate();
+  }
+
   // Permite limpiar el buscador desde fuera usando GlobalKey
   void resetSearchState() {
     if (_showSearch || _searchText.isNotEmpty) {
@@ -46,12 +61,23 @@ class ClientsScreenState extends State<ClientsScreen>
 
   int? _lastTabIndex;
 
-  // Limpia el buscador si la pestaña de clientes se vuelve visible
+  // Limpia el buscador si la pestaña de clientes se vuelve visible y cierra expansión si no es la pestaña de clientes
   void _handleTabChange() {
     final tabProvider = Provider.of<TabProvider>(context, listen: false);
     final currentTab = tabProvider.currentIndex;
-    if (_lastTabIndex != null && _lastTabIndex != 1 && currentTab == 1) {
-      // Se acaba de volver a la pestaña de clientes
+    const int clientsTabIndex =
+        1; // Cambia este valor si tu pestaña de clientes tiene otro índice
+
+    // Si NO estamos en la pestaña de clientes, cerrar expansión siempre
+    if (currentTab != clientsTabIndex && _expandedClientId != null) {
+      setState(() {
+        _expandedClientId = null;
+      });
+    }
+    // Si volvemos a la pestaña de clientes, limpiar buscador si estaba abierto
+    if (_lastTabIndex != null &&
+        _lastTabIndex != clientsTabIndex &&
+        currentTab == clientsTabIndex) {
       if (_showSearch || _searchText.isNotEmpty) {
         setState(() {
           _showSearch = false;

@@ -91,9 +91,10 @@ class _MainScaffoldState extends State<MainScaffold> {
   int _currentIndex = 0;
 
   void _onTab(int index) {
-    // Si cambias desde la pestaña de clientes, limpia el buscador
+    // Si cambias desde la pestaña de clientes, limpia el buscador y cierra expansión
     if (_currentIndex == 1 && index != 1) {
       _clientsScreenKey.currentState?.resetSearchState();
+      _clientsScreenKey.currentState?.closeExpansion();
     }
     // Si cambias desde la pestaña de movimientos, limpia el buscador de transacciones
     if (_currentIndex == 2 && index != 2) {

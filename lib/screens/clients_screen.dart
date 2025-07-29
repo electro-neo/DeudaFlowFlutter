@@ -77,6 +77,8 @@ class ClientsScreenState extends State<ClientsScreen>
 
   // Estado de mensajes de sincronización por cliente
   final Map<String, SyncMessageState> _clientSyncStates = {};
+  // Control de expansión único por id de cliente
+  String? _expandedClientId;
 
   // Método para mostrar el formulario de transacción
   void _showTransactionForm(ClientHive client) async {
@@ -1001,9 +1003,21 @@ class ClientsScreenState extends State<ClientsScreen>
                                                   ),
                                                 ],
                                               ),
-                                              child: ClientCard(
+                                              child: ExpandableClientCard(
                                                 client: client,
                                                 userId: widget.userId,
+                                                expanded:
+                                                    _expandedClientId ==
+                                                    client.id,
+                                                onExpand: () {
+                                                  setState(() {
+                                                    _expandedClientId =
+                                                        _expandedClientId ==
+                                                            client.id
+                                                        ? null
+                                                        : client.id;
+                                                  });
+                                                },
                                                 onEdit: () =>
                                                     showClientForm(client),
                                                 onDelete: () async {
@@ -1027,7 +1041,7 @@ class ClientsScreenState extends State<ClientsScreen>
                                                   if (userTransactions
                                                       .isNotEmpty) {
                                                     warning =
-                                                        '\n\nADVERTENCIA: Este cliente tiene \\${userTransactions.length} transacción(es) asociada(s). Se eliminarán TODAS las transacciones de este cliente.';
+                                                        '\n\nADVERTENCIA: Este cliente tiene ${userTransactions.length} transacción(es) asociada(s). Se eliminarán TODAS las transacciones de este cliente.';
                                                   }
                                                   final confirm =
                                                       await showDialog<bool>(
@@ -1037,7 +1051,7 @@ class ClientsScreenState extends State<ClientsScreen>
                                                             'Eliminar Cliente',
                                                           ),
                                                           content: Text(
-                                                            '¿Estás seguro de eliminar a \$client.name?$warning',
+                                                            '¿Estás seguro de eliminar a ${client.name}?$warning',
                                                           ),
                                                           actions: [
                                                             TextButton(
@@ -1088,13 +1102,7 @@ class ClientsScreenState extends State<ClientsScreen>
                                                         await txProvider
                                                             .isOnline();
                                                     if (!mounted) return;
-                                                    // El siguiente uso de context es seguro porque:
-                                                    // 1. Se verifica 'if (!mounted) return;' justo antes.
-                                                    // 2. Este context es el de la clase State, no de un builder externo.
-                                                    // Por lo tanto, el warning puede ser ignorado.
-                                                    // ignore: use_build_context_synchronously
                                                     ScaffoldMessenger.of(
-                                                      // ignore: use_build_context_synchronously
                                                       context,
                                                     ).showSnackBar(
                                                       SnackBar(

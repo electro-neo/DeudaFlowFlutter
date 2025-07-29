@@ -21,10 +21,14 @@ class ExpandableClientCard extends StatefulWidget {
   final IconData? syncIcon;
   final Color? syncColor;
   final SyncMessageState? syncMessage;
+  final bool expanded;
+  final VoidCallback? onExpand;
   const ExpandableClientCard({
     super.key,
     required this.client,
     required this.userId,
+    this.expanded = false,
+    this.onExpand,
     this.onEdit,
     this.onDelete,
     this.onAddTransaction,
@@ -41,17 +45,16 @@ class ExpandableClientCard extends StatefulWidget {
 }
 
 class _ExpandableClientCardState extends State<ExpandableClientCard> {
-  bool _expanded = false;
   bool _isAnimating = false;
 
-  void _toggleExpand() {
-    setState(() {
-      _isAnimating = true;
-      _expanded = !_expanded;
-    });
-    Future.delayed(const Duration(milliseconds: 200), () {
-      if (mounted) setState(() => _isAnimating = false);
-    });
+  void _handleExpand() {
+    if (widget.onExpand != null) {
+      setState(() => _isAnimating = true);
+      widget.onExpand!();
+      Future.delayed(const Duration(milliseconds: 200), () {
+        if (mounted) setState(() => _isAnimating = false);
+      });
+    }
   }
 
   void _openModal() {
@@ -100,7 +103,7 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
     final client = widget.client;
     final currencyProvider = Provider.of<CurrencyProvider>(
       context,
-      listen: false,
+      // listen: false, // Elimina esto para que escuche cambios y reconstruya
     );
     final txProvider = Provider.of<TransactionProvider>(context, listen: false);
     // --- Balance USD real usando anchorUsdValue ---
@@ -225,12 +228,12 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                   ),
                 IconButton(
                   icon: AnimatedRotation(
-                    turns: _expanded ? 0.5 : 0.0,
+                    turns: widget.expanded ? 0.5 : 0.0,
                     duration: const Duration(milliseconds: 180),
                     child: const Icon(Icons.expand_more),
                   ),
-                  onPressed: _toggleExpand,
-                  tooltip: _expanded ? 'Ocultar balance' : 'Ver balance',
+                  onPressed: _handleExpand,
+                  tooltip: widget.expanded ? 'Ocultar balance' : 'Ver balance',
                 ),
               ],
             ),
@@ -515,7 +518,7 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                 ],
               ),
             ),
-            crossFadeState: _expanded
+            crossFadeState: widget.expanded
                 ? CrossFadeState.showSecond
                 : CrossFadeState.showFirst,
             duration: const Duration(milliseconds: 200),

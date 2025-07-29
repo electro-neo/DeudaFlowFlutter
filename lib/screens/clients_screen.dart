@@ -516,7 +516,9 @@ class ClientsScreenState extends State<ClientsScreen>
                     context,
                     listen: false,
                   );
-                  final clients = _showSearch && _searchText.isNotEmpty
+                  // Ordena alfabéticamente por la primera letra del nombre
+                  List<ClientHive> clients =
+                      _showSearch && _searchText.isNotEmpty
                       ? allClients
                             .where(
                               (c) => c.name.toLowerCase().contains(
@@ -524,7 +526,11 @@ class ClientsScreenState extends State<ClientsScreen>
                               ),
                             )
                             .toList()
-                      : allClients;
+                      : List<ClientHive>.from(allClients);
+                  clients.sort(
+                    (a, b) =>
+                        a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+                  );
                   // --- LAYOUT INDEPENDIENTE Y MODERNO ---
                   return Column(
                     children: [

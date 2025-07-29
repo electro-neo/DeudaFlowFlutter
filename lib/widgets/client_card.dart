@@ -329,9 +329,9 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                       ),
                     ),
                   ),
-                  // Balance (derecha, ancho fijo)
+                  // Balance (derecha, ancho fijo, scroll si hay más de 4 monedas)
                   SizedBox(
-                    width: 180,
+                    width: 190, // Ajusta el ancho según sea necesario
                     child: Container(
                       margin: const EdgeInsets.only(
                         right: 16,
@@ -381,61 +381,132 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                                 ],
                               ),
                             ),
-                            Table(
-                              columnWidths: const {
-                                0: IntrinsicColumnWidth(),
-                                1: FlexColumnWidth(),
-                              },
-                              defaultVerticalAlignment:
-                                  TableCellVerticalAlignment.middle,
-                              children: [
-                                ...balancesList.map(
-                                  (e) => TableRow(
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                          bottom: 2,
-                                          right: 8,
-                                        ),
-                                        child: Align(
-                                          alignment: Alignment.centerRight,
-                                          child: Text(
-                                            e.key,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 13,
-                                              color: Colors.indigo,
-                                            ),
+                            if (balancesList.length > 3)
+                              SizedBox(
+                                height:
+                                    4 *
+                                    18.0, // USD + 3 monedas visibles, luego scroll
+                                child: Scrollbar(
+                                  thumbVisibility: true,
+                                  child: SingleChildScrollView(
+                                    child: Table(
+                                      columnWidths: const {
+                                        0: IntrinsicColumnWidth(),
+                                        1: FlexColumnWidth(),
+                                      },
+                                      defaultVerticalAlignment:
+                                          TableCellVerticalAlignment.middle,
+                                      children: [
+                                        ...balancesList.map(
+                                          (e) => TableRow(
+                                            children: [
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                  bottom: 2,
+                                                  right: 8,
+                                                ),
+                                                child: Align(
+                                                  alignment:
+                                                      Alignment.centerRight,
+                                                  child: Text(
+                                                    e.key,
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      fontSize: 13,
+                                                      color: Colors.indigo,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                  bottom: 2,
+                                                ),
+                                                child: Align(
+                                                  alignment:
+                                                      Alignment.centerRight,
+                                                  child: Text(
+                                                    CurrencyUtils.format(
+                                                      context,
+                                                      e.value,
+                                                    ),
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 15,
+                                                      color: e.value < 0
+                                                          ? Colors.red
+                                                          : Colors.green,
+                                                    ),
+                                                    textAlign: TextAlign.right,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                          bottom: 2,
-                                        ),
-                                        child: Align(
-                                          alignment: Alignment.centerRight,
-                                          child: Text(
-                                            CurrencyUtils.format(
-                                              context,
-                                              e.value,
-                                            ),
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 15,
-                                              color: e.value < 0
-                                                  ? Colors.red
-                                                  : Colors.green,
-                                            ),
-                                            textAlign: TextAlign.right,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ],
-                            ),
+                              )
+                            else
+                              Table(
+                                columnWidths: const {
+                                  0: IntrinsicColumnWidth(),
+                                  1: FlexColumnWidth(),
+                                },
+                                defaultVerticalAlignment:
+                                    TableCellVerticalAlignment.middle,
+                                children: [
+                                  ...balancesList.map(
+                                    (e) => TableRow(
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 2,
+                                            right: 8,
+                                          ),
+                                          child: Align(
+                                            alignment: Alignment.centerRight,
+                                            child: Text(
+                                              e.key,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 13,
+                                                color: Colors.indigo,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 2,
+                                          ),
+                                          child: Align(
+                                            alignment: Alignment.centerRight,
+                                            child: Text(
+                                              CurrencyUtils.format(
+                                                context,
+                                                e.value,
+                                              ),
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 15,
+                                                color: e.value < 0
+                                                    ? Colors.red
+                                                    : Colors.green,
+                                              ),
+                                              textAlign: TextAlign.right,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                           ],
                         ),
                       ),

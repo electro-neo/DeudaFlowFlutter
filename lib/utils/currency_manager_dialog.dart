@@ -70,12 +70,15 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
       }
     }
     currencies = newCurrencies;
-    // Si se está agregando una nueva moneda, NO mostrarla en currencies (solo en la card especial)
+    // Si se está agregando una nueva moneda, mostrarla de primera en currencies (lista para escribir la tasa)
     if (showAddFields && selectedCurrency != null) {
-      currencies = currencies.where((c) => c != selectedCurrency).toList();
-      // Asegurar que haya un solo controlador para la nueva moneda
-      if (!rates.containsKey(selectedCurrency)) {
-        rates[selectedCurrency!] = TextEditingController();
+      // Si la moneda aún no está en currencies, la insertamos y creamos su controlador
+      if (!currencies.contains(selectedCurrency)) {
+        currencies = currencies.where((c) => c != selectedCurrency).toList();
+        currencies.insert(0, selectedCurrency!);
+        if (!rates.containsKey(selectedCurrency)) {
+          rates[selectedCurrency!] = TextEditingController();
+        }
       }
     }
 
@@ -319,8 +322,11 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
                                 ),
                               ),
                             ),
-                            ...currencies.map(
-                              (c) => Card(
+                            ...currencies.map((c) {
+                              // Si estamos agregando una moneda y es la seleccionada, usar el newRateController
+                              final isNew =
+                                  showAddFields && selectedCurrency == c;
+                              return Card(
                                 margin: const EdgeInsets.symmetric(vertical: 6),
                                 elevation: 1,
                                 child: Padding(
@@ -340,7 +346,9 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
                                             Flexible(
                                               flex: 2,
                                               child: TextField(
-                                                controller: rates[c],
+                                                controller: isNew
+                                                    ? newRateController
+                                                    : rates[c],
                                                 decoration: InputDecoration(
                                                   labelText: 'Tasa $c a USD',
                                                   border:
@@ -375,9 +383,17 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
                                               ),
                                               tooltip: 'Eliminar moneda',
                                               onPressed: () {
-                                                currencyProvider
-                                                    .removeManualCurrency(c);
-                                                setState(() {});
+                                                if (isNew) {
+                                                  setState(() {
+                                                    selectedCurrency = null;
+                                                    newRateController.clear();
+                                                    addError = null;
+                                                  });
+                                                } else {
+                                                  currencyProvider
+                                                      .removeManualCurrency(c);
+                                                  setState(() {});
+                                                }
                                               },
                                             ),
                                           ],
@@ -386,79 +402,8 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
                                     ],
                                   ),
                                 ),
-                              ),
-                            ),
-                            if (showAddFields && selectedCurrency != null)
-                              Card(
-                                margin: const EdgeInsets.symmetric(vertical: 6),
-                                elevation: 1,
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 8,
-                                    horizontal: 8,
-                                  ),
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Expanded(
-                                        child: Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          children: [
-                                            Flexible(
-                                              flex: 2,
-                                              child: TextField(
-                                                controller: newRateController,
-                                                decoration: InputDecoration(
-                                                  labelText:
-                                                      'Tasa $selectedCurrency a USD',
-                                                  border:
-                                                      const OutlineInputBorder(),
-                                                  filled: true,
-                                                  fillColor: Colors.white,
-                                                  isDense: true,
-                                                  contentPadding:
-                                                      const EdgeInsets.symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 8,
-                                                      ),
-                                                  labelStyle: const TextStyle(
-                                                    fontSize: 13,
-                                                  ),
-                                                ),
-                                                style: const TextStyle(
-                                                  fontSize: 15,
-                                                ),
-                                                keyboardType:
-                                                    const TextInputType.numberWithOptions(
-                                                      decimal: true,
-                                                    ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 6),
-                                            IconButton(
-                                              icon: const Icon(
-                                                Icons.delete,
-                                                color: Colors.red,
-                                                size: 20,
-                                              ),
-                                              tooltip: 'Eliminar moneda',
-                                              onPressed: () {
-                                                setState(() {
-                                                  selectedCurrency = null;
-                                                  newRateController.clear();
-                                                  addError = null;
-                                                });
-                                              },
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
+                              );
+                            }),
                             if (addError != null)
                               Padding(
                                 padding: const EdgeInsets.only(top: 4, left: 2),

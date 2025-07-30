@@ -125,10 +125,11 @@ class TransactionProvider extends ChangeNotifier {
     );
     double newBalance = 0;
     for (final t in txs) {
+      final usdValue = t.anchorUsdValue ?? 0.0;
       if (t.type == 'debt') {
-        newBalance -= t.amount;
+        newBalance -= usdValue;
       } else if (t.type == 'payment') {
-        newBalance += t.amount;
+        newBalance += usdValue;
       }
     }
     if (client.balance != newBalance) {
@@ -384,10 +385,11 @@ class TransactionProvider extends ChangeNotifier {
     );
     double newBalance = 0;
     for (final t in txs) {
+      final usdValue = t.anchorUsdValue ?? 0.0;
       if (t.type == 'debt') {
-        newBalance -= t.amount;
+        newBalance -= usdValue;
       } else if (t.type == 'payment') {
-        newBalance += t.amount;
+        newBalance += usdValue;
       }
     }
     debugPrint(

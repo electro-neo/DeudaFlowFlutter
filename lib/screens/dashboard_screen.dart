@@ -1,6 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/faq_help_sheet.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart'; // Importar para formateo de números
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/client.dart';
@@ -533,130 +534,143 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       // --- Lógica de balance corregida ---
                                       final valueInUsd =
                                           tx.anchorUsdValue ?? tx.amount ?? 0.0;
+
+                                      // Lógica de conversión explícita para reaccionar a la moneda seleccionada
+                                      final selectedCurrency =
+                                          currencyProvider.currency;
+                                      final rate = currencyProvider.rate;
+                                      num displayValue = valueInUsd;
+
+                                      if (selectedCurrency != 'USD' &&
+                                          rate > 0) {
+                                        displayValue = valueInUsd * rate;
+                                      }
+
+                                      final formattedNumber = NumberFormat(
+                                        "#,##0.00",
+                                        "en_US",
+                                      ).format(displayValue);
+
                                       final formattedAmount =
-                                          CurrencyUtils.format(
-                                            context,
-                                            valueInUsd,
-                                          );
+                                          (selectedCurrency == 'USD')
+                                          ? 'USD $formattedNumber'
+                                          : '$formattedNumber $selectedCurrency';
+
                                       final amountText = tx.type == 'debt'
                                           ? '-$formattedAmount'
                                           : '+$formattedAmount';
                                       // --- Fin de la corrección ---
 
                                       // El degradado se ajusta según la posición: el primer card es más blanco
-                                      return Builder(
-                                        builder: (context) => Container(
-                                          decoration: BoxDecoration(
-                                            gradient: LinearGradient(
-                                              begin: Alignment.topLeft,
-                                              end: Alignment.bottomRight,
-                                              colors: [
-                                                Color.lerp(
-                                                  Colors.white,
-                                                  const Color.fromARGB(
-                                                    255,
-                                                    250,
-                                                    250,
-                                                    250,
-                                                  ),
-                                                  i /
-                                                      (recent.length - 1 == 0
-                                                          ? 1
-                                                          : recent.length - 1),
-                                                )!,
+                                      return Container(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                            colors: [
+                                              Color.lerp(
+                                                Colors.white,
                                                 const Color.fromARGB(
                                                   255,
-                                                  255,
-                                                  255,
-                                                  255,
+                                                  250,
+                                                  250,
+                                                  250,
                                                 ),
-                                                const Color(0xFFD1E8FF),
-                                              ],
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              16,
-                                            ),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.black.withAlpha(
-                                                  (0.04 * 255).toInt(),
-                                                ),
-                                                blurRadius: 8,
-                                                offset: const Offset(0, 2),
+                                                i /
+                                                    (recent.length - 1 == 0
+                                                        ? 1
+                                                        : recent.length - 1),
+                                              )!,
+                                              const Color.fromARGB(
+                                                255,
+                                                255,
+                                                255,
+                                                255,
                                               ),
+                                              const Color(0xFFD1E8FF),
                                             ],
                                           ),
-                                          child: ListTile(
-                                            contentPadding:
-                                                const EdgeInsets.symmetric(
-                                                  horizontal: 16,
-                                                  vertical: 8,
-                                                ),
-                                            leading: Container(
-                                              width: 44,
-                                              height: 44,
-                                              decoration: BoxDecoration(
-                                                color: tx.type == 'debt'
-                                                    ? const Color(0xFFFFE5E5)
-                                                    : const Color(0xFFE5FFE8),
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
+                                          borderRadius: BorderRadius.circular(
+                                            16,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withAlpha(
+                                                (0.04 * 255).toInt(),
                                               ),
-                                              child: Icon(
-                                                tx.type == 'debt'
-                                                    ? Icons
-                                                          .arrow_downward_rounded
-                                                    : Icons
-                                                          .arrow_upward_rounded,
-                                                color: tx.type == 'debt'
-                                                    ? const Color(0xFFD32F2F)
-                                                    : const Color(0xFF388E3C),
-                                                size: 28,
-                                              ),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 2),
                                             ),
-                                            title: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  tx.description,
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.w600,
-                                                    fontSize: 16,
-                                                    color: Colors.deepPurple,
-                                                  ),
+                                          ],
+                                        ),
+                                        child: ListTile(
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                                horizontal: 16,
+                                                vertical: 8,
+                                              ),
+                                          leading: Container(
+                                            width: 44,
+                                            height: 44,
+                                            decoration: BoxDecoration(
+                                              color: tx.type == 'debt'
+                                                  ? const Color(0xFFFFE5E5)
+                                                  : const Color(0xFFE5FFE8),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            child: Icon(
+                                              tx.type == 'debt'
+                                                  ? Icons.arrow_downward_rounded
+                                                  : Icons.arrow_upward_rounded,
+                                              color: tx.type == 'debt'
+                                                  ? const Color(0xFFD32F2F)
+                                                  : const Color(0xFF388E3C),
+                                              size: 28,
+                                            ),
+                                          ),
+                                          title: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                tx.description,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 16,
+                                                  color: Colors.deepPurple,
                                                 ),
-                                                Text(
-                                                  'Cliente: $clientName',
-                                                  style: const TextStyle(
-                                                    fontSize: 13,
-                                                    color: Color(0xFF7B7B7B),
-                                                  ),
+                                              ),
+                                              Text(
+                                                'Cliente: $clientName',
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  color: Color(0xFF7B7B7B),
                                                 ),
-                                                const SizedBox(height: 8),
-                                                Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.end,
-                                                  children: [
-                                                    Text(
-                                                      amountText,
-                                                      style: TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        fontSize: 16,
-                                                        color: tx.type == 'debt'
-                                                            ? const Color(
-                                                                0xFFD32F2F,
-                                                              )
-                                                            : const Color(
-                                                                0xFF388E3C,
-                                                              ),
-                                                      ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.end,
+                                                children: [
+                                                  Text(
+                                                    amountText,
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 16,
+                                                      color: tx.type == 'debt'
+                                                          ? const Color(
+                                                              0xFFD32F2F,
+                                                            )
+                                                          : const Color(
+                                                              0xFF388E3C,
+                                                            ),
                                                     ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       );

@@ -794,19 +794,29 @@ class _ClientFormState extends State<ClientForm> {
                               }).toList(),
                               onChanged: (value) async {
                                 if (value == null) return;
-                                // Si la moneda no tiene tasa, mostrar el diálogo y solo cambiar si se registra la tasa
+
+                                // Si la moneda es USD, no se necesita tasa.
+                                if (value.toUpperCase() == 'USD') {
+                                  setState(() {
+                                    _selectedCurrency = value;
+                                  });
+                                  return;
+                                }
+
+                                // Para otras monedas, verificar si tienen tasa.
                                 if (!_hasRateForCurrency(value)) {
                                   final prevCurrency = _selectedCurrency;
                                   await _showRegisterRateDialog(value);
-                                  // Si después de registrar, sigue sin tasa (usuario canceló), no cambiar
+                                  // Si después de registrar, sigue sin tasa (usuario canceló), no cambiar.
                                   if (!_hasRateForCurrency(value)) {
-                                    // Forzar a que el Dropdown vuelva al valor anterior
                                     setState(() {
                                       _selectedCurrency = prevCurrency;
                                     });
                                     return;
                                   }
                                 }
+
+                                // Si la moneda tiene tasa (o se acaba de registrar), actualizar.
                                 setState(() {
                                   _selectedCurrency = value;
                                 });

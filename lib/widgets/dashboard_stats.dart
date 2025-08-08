@@ -33,41 +33,48 @@ class DashboardStats extends StatelessWidget {
       context,
       value,
     ); // Formatea números de moneda
-    // Calcular totales
-    // Deuda total: suma de los balances negativos de los clientes (deuda real pendiente)
-    double totalDeuda = 0;
-    for (final c in clients) {
-      debugPrint(
-        '[DashboardStats][DEBUG] Cliente: ${c.name}, Balance: ${c.balance}',
-      );
-      if (c.balance < 0) totalDeuda += -c.balance;
-    }
-    debugPrint('[DashboardStats][DEBUG] Deuda total calculada: $totalDeuda');
-    debugPrint('[DashboardStats][DEBUG][TRANS] Transacciones actuales:');
+
+    // --- INICIO: Cálculo de estadísticas basado en anchorUsdValue ---
+    // Se calculan todos los valores desde la lista de transacciones para asegurar consistencia.
+
+    // 1. Calcular el balance individual de cada cliente en USD
+    final Map<String, double> clientBalances = {
+      for (var c in clients) c.id: 0.0,
+    };
     for (final t in transactions) {
-      debugPrint(
-        '[DashboardStats][DEBUG][TRANS] id: ${t.id}, desc: ${t.description}, amount: ${t.amount}, type: ${t.type}, clientId: ${t.clientId}, pendingDelete: ${t.pendingDelete}',
-      );
+      final value = t.anchorUsdValue ?? 0.0;
+      if (clientBalances.containsKey(t.clientId)) {
+        if (t.type == 'payment') {
+          clientBalances[t.clientId] = clientBalances[t.clientId]! + value;
+        } else if (t.type == 'debt') {
+          clientBalances[t.clientId] = clientBalances[t.clientId]! - value;
+        }
+      }
     }
-    debugPrint(
-      '[DashboardStats][DEBUG][EVENT] --- FIN DEUDA TOTAL, tras posible eliminación de transacción ---',
-    );
-    // Total abonado y saldo neto siguen calculados desde transacciones
-    double totalAbonado = 0;
-    double totalSaldo = 0;
-    if (transactions.isNotEmpty) {
-      totalAbonado = transactions
-          .where((t) => t.type == 'payment')
-          .fold<double>(0, (sum, t) => sum + t.amount);
-      // El saldo neto puede calcularse como suma de balances de todos los clientes
-      totalSaldo = clients.fold<double>(0, (sum, c) => sum + c.balance);
-    }
+
+    // 2. Calcular las estadísticas globales usando los balances y transacciones
+    // Deuda total: suma de los balances negativos de los clientes (deuda real pendiente)
+    final totalDeuda = clientBalances.values
+        .where((balance) => balance < 0)
+        .fold<double>(0, (sum, balance) => sum + balance.abs());
+
+    // Total abonado: suma de todas las transacciones de tipo 'payment' en USD
+    final totalAbonado = transactions
+        .where((t) => t.type == 'payment')
+        .fold<double>(0, (sum, t) => sum + (t.anchorUsdValue ?? 0.0));
+
+    // Clientes con deudas: cuenta de clientes con balance negativo
+    final clientesConDeuda = clientBalances.values.where((b) => b < 0).length;
+
+    // --- FIN: Cálculo de estadísticas ---
+
     // LOGS TEMPORALES PARA DEPURACIÓN
+    final totalSaldo = totalAbonado - totalDeuda; // <-- CÁLCULO AÑADIDO
     debugPrint(
-      '[DashboardStats] Clientes: \\${clients.length}',
+      '[DashboardStats] Clientes: ${clients.length}',
     ); // Muestra en consola la cantidad de clientes
     debugPrint(
-      '[DashboardStats] Transacciones: \\${transactions.length}',
+      '[DashboardStats] Transacciones: ${transactions.length}',
     ); // Muestra en consola la cantidad de transacciones
     debugPrint(
       '[DashboardStats] totalDeuda: $totalDeuda',
@@ -131,9 +138,6 @@ class DashboardStats extends StatelessWidget {
       onTap: goToAbonoTab, // Acción al pulsar
     );
     // StatCard Clientes con deudas (balance < 0)
-    final clientesConDeuda = clients
-        .where((c) => c.balance < 0)
-        .length; // Cuenta clientes con balance negativo (deuda)
     final statClientesConDeuda = _StatCard(
       label: 'Clientes con deudas', // Título del statcard
       value: clientesConDeuda

@@ -457,7 +457,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 100), // Aumenta el padding inferior
+                        padding: const EdgeInsets.fromLTRB(
+                          16,
+                          0,
+                          16,
+                          100,
+                        ), // Aumenta el padding inferior
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -524,16 +529,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       final clientName = client.name.isNotEmpty
                                           ? client.name
                                           : 'Desconocido';
-                                      final symbol = CurrencyUtils.symbol(
-                                        context,
-                                      );
-                                      final formatted = CurrencyUtils.format(
-                                        context,
-                                        tx.amount,
-                                      );
+
+                                      // --- Lógica de balance corregida ---
+                                      final valueInUsd =
+                                          tx.anchorUsdValue ?? tx.amount ?? 0.0;
+                                      final formattedAmount =
+                                          CurrencyUtils.format(
+                                            context,
+                                            valueInUsd,
+                                          );
                                       final amountText = tx.type == 'debt'
-                                          ? '-$symbol$formatted'
-                                          : '+$symbol$formatted';
+                                          ? '-$formattedAmount'
+                                          : '+$formattedAmount';
+                                      // --- Fin de la corrección ---
+
                                       // El degradado se ajusta según la posición: el primer card es más blanco
                                       return Builder(
                                         builder: (context) => Container(

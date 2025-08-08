@@ -77,3 +77,20 @@ Resultado: Ahora los filtros de la pantalla de movimientos están 100% sincroniz
    - Resultado: El usuario percibe claramente el estado de sincronización y eliminación de cada cliente, tanto online como offline, y la UI es consistente y profesional. El flujo cumple con el UX solicitado y la lógica es más mantenible.
 Fecha: 2025-07-29
 
+15. Error: Corrección de Conversión de Moneda en Múltiples Pantallas.
+   - Problema: Varios componentes de la UI (recibos, stats del dashboard, lista de movimientos recientes, totales de transacciones) no aplicaban la conversión de moneda correctamente. Solo cambiaban el símbolo (ej. de VES a COP), pero el monto seguía calculándose con una tasa incorrecta, generando confusión.
+   - Solución: Se estandarizó el acceso a la tasa de cambio. Se añadió el método `getRateFor(String currencyCode)` al `CurrencyProvider` para obtener la tasa específica de la moneda seleccionada. Se refactorizaron todos los widgets afectados (`general_receipt_modal`, `dashboard_stats`, `dashboard_screen`, `transactions_screen`) para que usen este método, asegurando que la conversión siempre sea la correcta.
+   - Resultado: La conversión de moneda ahora funciona de manera consistente y precisa en toda la aplicación. Los montos en la moneda secundaria seleccionada se calculan y muestran correctamente, eliminando la inconsistencia y mejorando la confianza del usuario en los datos.
+
+16. Mejora: Rediseño y Optimización de Recibos PDF.
+   - Problema: Los recibos en PDF tenían un formato simple que no era claro con múltiples monedas. La tabla de transacciones y los totales no separaban los montos en USD de la moneda secundaria, y el diseño general era poco flexible para montos largos. Además, existían errores de formato numérico y de renderizado de iconos.
+   - Solución: Se realizó una reestructuración completa de la generación de PDFs (`pdf_utils.dart`):
+     - La tabla de transacciones ahora tiene columnas separadas: "Monto USD" y "Monto [Moneda Secundaria]".
+     - Los montos en la tabla están alineados a la derecha y no incluyen el símbolo de moneda para ahorrar espacio.
+     - Los totales (por cliente y generales) se muestran en un formato de dos columnas ("Total Deuda" y "Total Abono"), alineados a la derecha, con los montos en USD y en la moneda secundaria en líneas separadas para mayor claridad.
+     - Se corrigió la etiqueta "Correo" por "Dirección" en los datos del cliente.
+     - Se estandarizó el formato de números a `1.234,56` (punto para miles, coma para decimales).
+     - Se eliminaron los iconos emoji del pie de página para evitar errores de renderizado de fuentes.
+   - Resultado: Los recibos en PDF ahora son mucho más profesionales, claros y consistentes con la UI de la aplicación. La información es fácil de leer, incluso con números grandes, y la presentación de múltiples monedas es explícita y correcta.
+
+Fecha: 2025-08-08

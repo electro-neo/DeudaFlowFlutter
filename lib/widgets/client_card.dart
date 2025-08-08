@@ -262,8 +262,8 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Datos cliente (izquierda)
-                  IntrinsicWidth(
+                  // Datos cliente (izquierda) - Se reemplaza IntrinsicWidth por Expanded
+                  Expanded(
                     child: Container(
                       margin: const EdgeInsets.only(
                         left: 16,

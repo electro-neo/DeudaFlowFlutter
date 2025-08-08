@@ -580,10 +580,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             double totalAbono = 0;
             double totalDeuda = 0;
             for (var tx in transactions) {
+              final valueInUsd = tx.anchorUsdValue ?? tx.amount ?? 0.0;
               if (tx.type == 'payment') {
-                totalAbono += tx.amount;
+                totalAbono += valueInUsd;
               } else if (tx.type == 'debt') {
-                totalDeuda += tx.amount;
+                totalDeuda += valueInUsd;
               }
             }
             final showAbono = selectedType == null || selectedType == 'payment';
@@ -660,7 +661,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  format(totalAbono),
+                                  (currencyProvider.currency == 'USD'
+                                      ? totalAbono.toStringAsFixed(2)
+                                      : (totalAbono *
+                                                (currencyProvider.rate > 0
+                                                    ? currencyProvider.rate
+                                                    : 1.0))
+                                            .toStringAsFixed(2)),
                                   style: TextStyle(
                                     color: Colors.green[700],
                                     fontWeight: FontWeight.bold,
@@ -705,7 +712,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  format(totalDeuda),
+                                  (currencyProvider.currency == 'USD'
+                                      ? totalDeuda.toStringAsFixed(2)
+                                      : (totalDeuda *
+                                                (currencyProvider.rate > 0
+                                                    ? currencyProvider.rate
+                                                    : 1.0))
+                                            .toStringAsFixed(2)),
                                   style: TextStyle(
                                     color: Colors.red[700],
                                     fontWeight: FontWeight.bold,

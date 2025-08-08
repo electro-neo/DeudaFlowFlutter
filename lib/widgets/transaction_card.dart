@@ -107,7 +107,7 @@ class TransactionCard extends StatelessWidget {
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
                               ),
-                              overflow: TextOverflow.ellipsis,
+                              // Se elimina 'overflow' para permitir el salto de línea
                             ),
                             const SizedBox(height: 4),
                             // Row 2: Nombre Cliente
@@ -117,8 +117,7 @@ class TransactionCard extends StatelessWidget {
                                 fontSize: 13.5,
                                 color: Colors.black54,
                               ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
+                              // Se eliminan 'overflow' y 'maxLines' para permitir el salto de línea
                             ),
                           ],
                         ),

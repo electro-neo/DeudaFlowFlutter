@@ -133,7 +133,7 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                   text: pw.TextSpan(
                     children: [
                       pw.TextSpan(
-                        text: 'Correo: ',
+                        text: 'Dirección: ', // <-- CAMBIO DE ETIQUETA
                         style: pw.TextStyle(
                           fontWeight: pw.FontWeight.bold,
                           fontSize: 10,
@@ -190,20 +190,27 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                 ),
                 headerDecoration: pw.BoxDecoration(color: PdfColors.blue),
                 cellStyle: pw.TextStyle(fontSize: 10),
+                cellAlignments: {
+                  3: pw
+                      .Alignment
+                      .centerRight, // Alinea la columna 'Monto USD' a la derecha
+                  4: pw
+                      .Alignment
+                      .centerRight, // Alinea la columna de moneda secundaria a la derecha
+                },
                 data: txs.map((tx) {
                   final usdValue = (tx.anchorUsdValue ?? tx.amount) as num;
                   final row = [
                     tx.date.toLocal().toString().split(' ')[0],
                     tx.description,
                     tx.type == 'deuda' || tx.type == 'debt' ? 'Deuda' : 'Abono',
-                    formatAmount(usdValue, symbol: 'USD'),
+                    formatAmount(usdValue), // Símbolo de moneda eliminado
                   ];
                   if (convertCurrency) {
                     row.add(
                       formatAmount(
                         usdValue * conversionRate!,
-                        symbol: currencySymbol,
-                      ),
+                      ), // Símbolo de moneda eliminado
                     );
                   }
                   return row;

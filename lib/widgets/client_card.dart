@@ -132,7 +132,7 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
       balanceMessage = 'Deuda del cliente';
     } else if (usdBalance > 0) {
       balanceColor = Colors.green;
-      balanceMessage = 'Saldo a favor';
+      balanceMessage = 'Saldo a favor del cliente';
     } else {
       balanceColor = Colors.black87;
       balanceMessage = 'Sin movimientos';

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart'; // Importa los widgets principales de Flutter
+import 'package:intl/intl.dart'; // Importar para formateo de números
 import 'scale_on_tap.dart';
 import 'package:provider/provider.dart'; // Importa Provider para manejo de estado global
 import '../providers/client_provider.dart'; // Proveedor de clientes
@@ -20,19 +21,29 @@ class DashboardStats extends StatelessWidget {
   //
   @override
   Widget build(BuildContext context) {
-    // Escuchar cambios de moneda/tasa
-    context.watch<CurrencyProvider>(); // Escucha cambios en la moneda/tasa
-    final clients = context
-        .watch<ClientProvider>()
-        .clients; // Obtiene la lista de clientes
-    final transactions = context
-        .watch<TransactionProvider>()
-        .transactions; // Obtiene la lista de transacciones
-    final totalClients = clients.length; // Total de clientes
-    String format(num value) => CurrencyUtils.formatCompact(
-      context,
-      value,
-    ); // Formatea números de moneda
+    // 1. Escuchar y obtener la instancia del provider
+    final currencyProvider = context.watch<CurrencyProvider>();
+    final clients = context.watch<ClientProvider>().clients;
+    final transactions = context.watch<TransactionProvider>().transactions;
+    final totalClients = clients.length;
+
+    // 2. Lógica de formato y conversión explícita DENTRO del widget
+    // Nueva función para obtener solo el monto formateado
+    String getFormattedAmount(num value) {
+      final selectedCurrency = currencyProvider.currency;
+      final rate = currencyProvider.rate;
+      num displayValue = value;
+
+      if (selectedCurrency != 'USD' && rate > 0) {
+        displayValue = value * rate;
+      }
+      return NumberFormat("#,##0.00", "en_US").format(displayValue);
+    }
+
+    // Nueva función para obtener solo el símbolo de la moneda
+    String getCurrencySymbol() {
+      return currencyProvider.currency;
+    }
 
     // --- INICIO: Cálculo de estadísticas basado en anchorUsdValue ---
     // Se calculan todos los valores desde la lista de transacciones para asegurar consistencia.
@@ -119,23 +130,33 @@ class DashboardStats extends StatelessWidget {
       value: totalClients.toString(), // Valor: cantidad de clientes
       icon: Icons.people, // Icono de personas
       isButton: true, // Es un botón
-      onTap: goToClientsTab, // Acción al pulsar
+      onTap: goToClientsTab, // CORREGIDO: de onTab a onTap
     );
     final statDeuda = _StatCard(
       label: 'Deuda total', // Título del statcard
-      value: format(totalDeuda), // Valor: total de deuda
+      value: getFormattedAmount(totalDeuda), // Valor: total de deuda
+      subValue: getCurrencySymbol(), // Símbolo de moneda en línea aparte
       icon: Icons.trending_up, // Icono de tendencia hacia arriba
       color: Colors.red, // Color rojo
       isButton: true, // Es un botón
       onTap: goToDeudaTab, // Acción al pulsar
+      contentPadding: const EdgeInsets.symmetric(
+        vertical: 12.0,
+        horizontal: 16.0,
+      ), // Padding reducido
     );
     final statAbonado = _StatCard(
       label: 'Total abonado', // Título del statcard
-      value: format(totalAbonado), // Valor: total abonado
+      value: getFormattedAmount(totalAbonado), // Valor: total abonado
+      subValue: getCurrencySymbol(), // Símbolo de moneda en línea aparte
       icon: Icons.trending_down, // Icono de tendencia hacia abajo
       color: Colors.green, // Color verde
       isButton: true, // Es un botón
       onTap: goToAbonoTab, // Acción al pulsar
+      contentPadding: const EdgeInsets.symmetric(
+        vertical: 12.0,
+        horizontal: 16.0,
+      ), // Padding reducido
     );
     // StatCard Clientes con deudas (balance < 0)
     final statClientesConDeuda = _StatCard(
@@ -289,17 +310,21 @@ class DashboardStats extends StatelessWidget {
 class _StatCard extends StatelessWidget {
   final String label;
   final String value;
+  final String? subValue;
   final IconData icon;
   final Color? color;
   final bool isButton;
   final VoidCallback? onTap;
+  final EdgeInsets? contentPadding;
   const _StatCard({
     required this.label,
     required this.value,
+    this.subValue,
     required this.icon,
     this.color,
     this.isButton = false,
     this.onTap,
+    this.contentPadding,
   });
 
   @override
@@ -323,7 +348,9 @@ class _StatCard extends StatelessWidget {
     // - El label se ajusta a una sola línea si cabe, o máximo dos líneas sin cortar palabras
     // - El ancho máximo del label depende del ancho real del statcard
     final cardContent = Padding(
-      padding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 16.0),
+      padding:
+          contentPadding ??
+          const EdgeInsets.symmetric(vertical: 15.0, horizontal: 16.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -358,29 +385,50 @@ class _StatCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              value,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 28,
-                letterSpacing: 0.5,
-                color: Colors.white,
-                shadows: [
-                  Shadow(
-                    color: Colors.black26,
-                    offset: Offset(0, 2),
-                    blurRadius: 8,
+          // Columna para el valor principal y el símbolo de la moneda
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  value,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 28,
+                    letterSpacing: 0.5,
+                    color: Colors.white,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black26,
+                        offset: Offset(0, 2),
+                        blurRadius: 8,
+                      ),
+                    ],
                   ),
-                ],
+                  softWrap: false,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
               ),
-              softWrap: false,
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-            ),
+              if (subValue != null)
+                Padding(
+                  padding: const EdgeInsets.only(
+                    top: 0,
+                  ), // Padding superior eliminado para juntar el símbolo al monto
+                  child: Text(
+                    subValue!,
+                    style: TextStyle(
+                      fontSize: 13, // Tamaño de fuente reducido
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white.withOpacity(0.8),
+                    ),
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(height: 4),
+          // SizedBox eliminado para juntar el título al símbolo
           LayoutBuilder(
             builder: (context, constraints) {
               final maxLabelWidth = constraints.maxWidth;
@@ -388,7 +436,7 @@ class _StatCard extends StatelessWidget {
                 width: double.infinity,
                 alignment: Alignment.center,
                 constraints: BoxConstraints(
-                  minHeight: 36,
+                  minHeight: 28, // Altura mínima reducida para el label
                   minWidth: 0,
                   maxWidth: maxLabelWidth,
                 ),

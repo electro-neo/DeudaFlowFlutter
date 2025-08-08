@@ -66,35 +66,37 @@ class TransactionCard extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        child: Column(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                CircleAvatar(
-                  backgroundColor: t.type == 'debt'
-                      ? const Color(0xFFFFE5E5)
-                      : const Color(0xFFE5FFE8),
-                  radius: 16, // reducido de 22
-                  child: Icon(
-                    t.type == 'debt'
-                        ? Icons.arrow_downward
-                        : Icons.arrow_upward,
-                    color: t.type == 'debt' ? Colors.red : Colors.green,
-                    size: 16, // reducido de 24
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
+            // --- ICONO IZQUIERDA ---
+            CircleAvatar(
+              backgroundColor: t.type == 'debt'
+                  ? const Color(0xFFFFE5E5)
+                  : const Color(0xFFE5FFE8),
+              radius: 16,
+              child: Icon(
+                t.type == 'debt' ? Icons.arrow_downward : Icons.arrow_upward,
+                color: t.type == 'debt' ? Colors.red : Colors.green,
+                size: 16,
+              ),
+            ),
+            const SizedBox(width: 10),
+
+            // --- CONTENIDO PRINCIPAL ---
+            Expanded(
+              child: Column(
+                children: [
+                  Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Expanded(
-                            child: Text(
+                      // --- COLUMNA 1 (IZQUIERDA) ---
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Row 1: Descripción
+                            Text(
                               t.description != null &&
                                       t.description is String &&
                                       t.description.isNotEmpty
@@ -107,123 +109,118 @@ class TransactionCard extends StatelessWidget {
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                          const Spacer(),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              // --- Monto Principal (Dinámico) ---
-                              Text(
-                                () {
-                                  final usdValue =
-                                      t.anchorUsdValue ?? t.amount ?? 0.0;
-                                  if (selectedCurrency == 'USD') {
-                                    return 'USD ${usdValue.toStringAsFixed(2)}';
-                                  } else {
-                                    final rate =
-                                        exchangeRates[selectedCurrency] ?? 1.0;
-                                    final convertedValue = usdValue * rate;
-                                    return '${convertedValue.toStringAsFixed(2)} $selectedCurrency';
-                                  }
-                                }(),
-                                style: TextStyle(
-                                  color: t.type == 'payment'
-                                      ? Colors.green
-                                      : Colors.red,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.right,
+                            const SizedBox(height: 4),
+                            // Row 2: Nombre Cliente
+                            Text(
+                              client.name,
+                              style: const TextStyle(
+                                fontSize: 13.5,
+                                color: Colors.black54,
                               ),
-                              // --- Monto Secundario (USD, si aplica) ---
-                              if (selectedCurrency != 'USD')
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 2),
-                                  child: Text(
-                                    'USD ${(t.anchorUsdValue ?? t.amount ?? 0.0).toStringAsFixed(2)}',
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.black54,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    textAlign: TextAlign.right,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      // Cliente y fecha en columna
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            client.name,
-                            style: const TextStyle(
-                              fontSize: 13.5,
-                              color: Colors.black54,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
                             ),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
-                          const SizedBox(height: 2),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+
+                      // --- COLUMNA 2 (DERECHA) ---
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          // Row 1: Fecha
                           Text(
                             '${t.date.year}-${t.date.month.toString().padLeft(2, '0')}-${t.date.day.toString().padLeft(2, '0')}',
                             style: const TextStyle(
                               fontSize: 12.5,
                               color: Colors.black45,
                             ),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
+                          ),
+                          const SizedBox(height: 4),
+                          // Row 2: Balance
+                          Text(
+                            () {
+                              final usdValue =
+                                  t.anchorUsdValue ?? t.amount ?? 0.0;
+                              if (selectedCurrency == 'USD') {
+                                return 'USD ${usdValue.toStringAsFixed(2)}';
+                              } else {
+                                final rate =
+                                    exchangeRates[selectedCurrency] ?? 1.0;
+                                final convertedValue = usdValue * rate;
+                                return '${convertedValue.toStringAsFixed(2)} $selectedCurrency';
+                              }
+                            }(),
+                            style: TextStyle(
+                              color: t.type == 'payment'
+                                  ? Colors.green
+                                  : Colors.red,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
+                          // Monto secundario (si aplica)
+                          if (selectedCurrency != 'USD')
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                'USD ${(t.anchorUsdValue ?? t.amount ?? 0.0).toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.black54,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+
+                  // --- MENSAJE DE SINCRONIZACIÓN (ABAJO) ---
+                  if (syncMsg != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8, bottom: 1),
+                      child: Row(
+                        children: [
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: syncMsg.color.withAlpha(
+                                (0.09 * 255).toInt(),
+                              ),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  syncMsg.icon,
+                                  size: 12,
+                                  color: syncMsg.color,
+                                ),
+                                const SizedBox(width: 2),
+                                Text(
+                                  syncMsg.message,
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    color: syncMsg.color,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
-                      if (syncMsg != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2, bottom: 1),
-                          child: Row(
-                            children: [
-                              const Spacer(),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 7,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: syncMsg.color.withAlpha(
-                                    (0.09 * 255).toInt(),
-                                  ),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      syncMsg.icon,
-                                      size: 12,
-                                      color: syncMsg.color,
-                                    ),
-                                    const SizedBox(width: 2),
-                                    Text(
-                                      syncMsg.message,
-                                      style: TextStyle(
-                                        fontSize: 9,
-                                        color: syncMsg.color,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
+                    ),
+                ],
+              ),
             ),
           ],
         ),

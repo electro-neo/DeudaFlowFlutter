@@ -95,6 +95,12 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
 
   @override
   Widget build(BuildContext context) {
+    final currencyProvider = Provider.of<CurrencyProvider>(
+      context,
+      listen: false,
+    );
+    final selectedCurrency = currencyProvider.currency;
+    final conversionRate = currencyProvider.rate;
     final filtered = filteredClientBalances();
     String title;
     if (widget.clientData.length == 1 &&
@@ -250,28 +256,57 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                             } else if (tipo == 'debt') {
                               tipo = 'Deuda';
                             }
-                            // Se usa CurrencyUtils.format que ya se encarga de la conversión
-                            final rawMonto = CurrencyUtils.format(
+
+                            final usdValue = tx.anchorUsdValue ?? tx.amount;
+                            final formattedDate =
+                                '${tx.date.day.toString().padLeft(2, '0')}/${tx.date.month.toString().padLeft(2, '0')}/${tx.date.year}';
+                            final usdString = CurrencyUtils.format(
                               context,
-                              tx.amount,
+                              usdValue,
+                              currencyCode: 'USD',
                             );
-                            // Obtener símbolo de moneda si es USD
-                            final currencySymbol = CurrencyUtils.symbol(
-                              context,
-                            );
-                            // Asegurar que el símbolo esté al inicio si es USD
-                            final monto =
-                                currencySymbol.isNotEmpty &&
-                                    !rawMonto.trim().startsWith(currencySymbol)
-                                ? '$currencySymbol$rawMonto'
-                                : rawMonto;
+
                             return Padding(
                               padding: const EdgeInsets.symmetric(
-                                vertical: 2.0,
+                                vertical: 6.0,
                               ),
-                              child: Text(
-                                '• $tipo - $monto - ${tx.date.day.toString().padLeft(2, '0')}/${tx.date.month.toString().padLeft(2, '0')}/${tx.date.year}',
-                                style: const TextStyle(fontSize: 14),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '$tipo:',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Fecha: $formattedDate',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.black54,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    usdString,
+                                    style: const TextStyle(fontSize: 14),
+                                  ),
+                                  if (selectedCurrency != 'USD' &&
+                                      conversionRate > 0) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      CurrencyUtils.format(
+                                        context,
+                                        usdValue * conversionRate,
+                                        currencyCode: selectedCurrency,
+                                      ),
+                                      style: const TextStyle(fontSize: 14),
+                                    ),
+                                  ],
+                                  const Divider(height: 16),
+                                ],
                               ),
                             );
                           }),

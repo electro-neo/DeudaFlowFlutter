@@ -578,6 +578,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         // ...existing code for stats, list, etc...
         Builder(
           builder: (context) {
+            final selectedCurrency = currencyProvider.currency;
+            final rate = currencyProvider.getRateFor(selectedCurrency) ?? 1.0;
+
             double totalAbono = 0;
             double totalDeuda = 0;
             for (var tx in transactions) {
@@ -588,6 +591,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 totalDeuda += valueInUsd;
               }
             }
+
+            final displayAbono = selectedCurrency == 'USD'
+                ? totalAbono
+                : totalAbono * rate;
+            final displayDeuda = selectedCurrency == 'USD'
+                ? totalDeuda
+                : totalDeuda * rate;
+
             final showAbono = selectedType == null || selectedType == 'payment';
             final showDeuda = selectedType == null || selectedType == 'debt';
             if (!showAbono && !showDeuda) return const SizedBox.shrink();
@@ -662,9 +673,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  CurrencyUtils.formatNumber(
-                                    CurrencyUtils.convert(context, totalAbono),
-                                  ),
+                                  CurrencyUtils.formatNumber(displayAbono),
                                   style: TextStyle(
                                     color: Colors.green[700],
                                     fontWeight: FontWeight.bold,
@@ -709,9 +718,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  CurrencyUtils.formatNumber(
-                                    CurrencyUtils.convert(context, totalDeuda),
-                                  ),
+                                  CurrencyUtils.formatNumber(displayDeuda),
                                   style: TextStyle(
                                     color: Colors.red[700],
                                     fontWeight: FontWeight.bold,

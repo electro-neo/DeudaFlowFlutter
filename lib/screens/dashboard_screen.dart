@@ -537,7 +537,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       // Lógica de conversión explícita para reaccionar a la moneda seleccionada
                                       final selectedCurrency =
                                           currencyProvider.currency;
-                                      final rate = currencyProvider.rate;
+                                      // FIX: Se usa getRateFor para obtener la tasa correcta.
+                                      final rate =
+                                          currencyProvider.getRateFor(
+                                            selectedCurrency,
+                                          ) ??
+                                          1.0;
                                       num displayValue = valueInUsd;
 
                                       if (selectedCurrency != 'USD' &&

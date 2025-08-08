@@ -31,7 +31,8 @@ class DashboardStats extends StatelessWidget {
     // Nueva función para obtener solo el monto formateado
     String getFormattedAmount(num value) {
       final selectedCurrency = currencyProvider.currency;
-      final rate = currencyProvider.rate;
+      // FIX: Se usa getRateFor para obtener la tasa correcta de la moneda seleccionada.
+      final rate = currencyProvider.getRateFor(selectedCurrency) ?? 1.0;
       num displayValue = value;
 
       if (selectedCurrency != 'USD' && rate > 0) {

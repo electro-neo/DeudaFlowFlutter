@@ -190,13 +190,14 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                     ? client.phone.toString()
                     : 'Sin Información';
                 final filteredTxs = e['filteredTxs'] as List<dynamic>;
+                final baseTextStyle = Theme.of(context).textTheme.bodyMedium;
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     RichText(
                       text: TextSpan(
-                        style: DefaultTextStyle.of(context).style,
+                        style: baseTextStyle,
                         children: [
                           const TextSpan(
                             text: 'Nombre: ',
@@ -208,7 +209,7 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                     ),
                     RichText(
                       text: TextSpan(
-                        style: DefaultTextStyle.of(context).style,
+                        style: baseTextStyle,
                         children: [
                           const TextSpan(
                             text: 'Teléfono: ',
@@ -220,7 +221,7 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                     ),
                     RichText(
                       text: TextSpan(
-                        style: DefaultTextStyle.of(context).style,
+                        style: baseTextStyle,
                         children: [
                           const TextSpan(
                             text: 'ID: ',

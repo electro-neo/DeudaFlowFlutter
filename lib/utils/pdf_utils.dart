@@ -212,22 +212,61 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
             );
 
             // --- TOTALES POR CLIENTE ---
-            widgets.add(pw.SizedBox(height: 5));
+            widgets.add(pw.SizedBox(height: 8));
             widgets.add(
               pw.Container(
                 alignment: pw.Alignment.centerRight,
                 child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
+                    // --- Total Deuda por Cliente ---
                     pw.Text(
-                      'Total Deuda: ${formatAmount(totalDeudaUSD, symbol: 'USD')}   /   Total Abono: ${formatAmount(totalAbonoUSD, symbol: 'USD')}',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                    ),
-                    if (convertCurrency)
-                      pw.Text(
-                        'Total Deuda: ${formatAmount(totalDeudaUSD * conversionRate!, symbol: currencySymbol)}   /   Total Abono: ${formatAmount(totalAbonoUSD * conversionRate, symbol: currencySymbol)}',
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      'Total Deuda:',
+                      style: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold,
+                        fontSize: 12,
                       ),
+                    ),
+                    pw.SizedBox(height: 2),
+                    pw.Text(
+                      formatAmount(totalDeudaUSD, symbol: 'USD'),
+                      style: const pw.TextStyle(fontSize: 11),
+                    ),
+                    if (convertCurrency) ...[
+                      pw.SizedBox(height: 1),
+                      pw.Text(
+                        formatAmount(
+                          totalDeudaUSD * conversionRate!,
+                          symbol: currencySymbol,
+                        ),
+                        style: const pw.TextStyle(fontSize: 11),
+                      ),
+                    ],
+                    pw.SizedBox(height: 8),
+
+                    // --- Total Abono por Cliente ---
+                    pw.Text(
+                      'Total Abono:',
+                      style: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                    pw.SizedBox(height: 2),
+                    pw.Text(
+                      formatAmount(totalAbonoUSD, symbol: 'USD'),
+                      style: const pw.TextStyle(fontSize: 11),
+                    ),
+                    if (convertCurrency) ...[
+                      pw.SizedBox(height: 1),
+                      pw.Text(
+                        formatAmount(
+                          totalAbonoUSD * conversionRate!,
+                          symbol: currencySymbol,
+                        ),
+                        style: const pw.TextStyle(fontSize: 11),
+                      ),
+                    ],
                   ],
                 ),
               ),

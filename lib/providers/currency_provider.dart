@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class CurrencyProvider extends ChangeNotifier {
+class CurrencyProvider with ChangeNotifier {
   // Listado global de monedas permitidas para toda la app
   static const List<String> allowedCurrencies = [
     'USD',
@@ -384,5 +384,13 @@ class CurrencyProvider extends ChangeNotifier {
     // Eliminar el límite de solo 2 monedas adicionales a USD
     _exchangeRates[upper] = rate;
     notifyListeners();
+  }
+
+  /// Devuelve la tasa de cambio para un código de moneda específico.
+  double? getRateFor(String currencyCode) {
+    if (currencyCode == 'USD') {
+      return 1.0; // La tasa para USD es siempre 1
+    }
+    return _exchangeRates[currencyCode];
   }
 }

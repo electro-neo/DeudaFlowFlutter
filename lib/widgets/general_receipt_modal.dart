@@ -100,7 +100,8 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
       listen: false,
     );
     final selectedCurrency = currencyProvider.currency;
-    final conversionRate = currencyProvider.rate;
+    // FIX: Se usa el método getRateFor para obtener la tasa correcta.
+    final conversionRate = currencyProvider.getRateFor(selectedCurrency) ?? 1.0;
     final filtered = filteredClientBalances();
     String title;
     if (widget.clientData.length == 1 &&
@@ -235,6 +236,9 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                           ),
                           TextSpan(
                             text: client.id != null ? client.id.toString() : '',
+                            style: const TextStyle(
+                              fontSize: 11,  // <-- AQUÍ: Letra más pequeña para el ID
+                            ), // <-- AQUÍ: Letra más pequeña para el ID
                           ),
                         ],
                       ),
@@ -274,18 +278,18 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    '$tipo:',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
                                     'Fecha: $formattedDate',
                                     style: const TextStyle(
                                       fontSize: 13,
                                       color: Colors.black54,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Tipo: $tipo',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
@@ -360,24 +364,27 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                                 context,
                                 listen: false,
                               );
-                          final convertCurrency =
-                              currencyProvider.currency == 'USD';
-                          final conversionRate = currencyProvider.rate;
-                          // Usar el símbolo de dólar correcto
-                          final currencySymbol = convertCurrency ? '\$' : '';
+                          // Lógica corregida para la exportación a PDF
+                          final selectedCurrency = currencyProvider.currency;
+                          final shouldConvertToSecondary =
+                              selectedCurrency != 'USD';
+                          final conversionRate =
+                              currencyProvider.getRateFor(selectedCurrency) ??
+                              1.0;
+
                           if (isMobile) {
                             await exportAndShareGeneralReceiptWithMovementsPDF(
                               filtered,
-                              convertCurrency: convertCurrency,
+                              convertCurrency: shouldConvertToSecondary,
                               conversionRate: conversionRate,
-                              currencySymbol: currencySymbol,
+                              currencySymbol: selectedCurrency,
                             );
                           } else {
                             await exportGeneralReceiptWithMovementsPDF(
                               filtered,
-                              convertCurrency: convertCurrency,
+                              convertCurrency: shouldConvertToSecondary,
                               conversionRate: conversionRate,
-                              currencySymbol: currencySymbol,
+                              currencySymbol: selectedCurrency,
                             );
                           }
                         },

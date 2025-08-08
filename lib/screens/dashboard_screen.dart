@@ -9,7 +9,6 @@ import '../providers/client_provider.dart';
 import '../providers/currency_provider.dart';
 import '../providers/sync_provider.dart';
 import '../providers/transaction_provider.dart';
-import '../utils/currency_utils.dart';
 import '../utils/no_scrollbar_behavior.dart';
 import '../widgets/cyclic_animated_fade_list.dart';
 import '../widgets/dashboard_stats.dart';

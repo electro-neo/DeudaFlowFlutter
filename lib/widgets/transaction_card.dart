@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../models/client.dart';
-import '../models/transaction.dart';
-import '../providers/currency_provider.dart';
 import '../utils/currency_utils.dart'; // Importar la utilidad
 import 'sync_message_state.dart';
 

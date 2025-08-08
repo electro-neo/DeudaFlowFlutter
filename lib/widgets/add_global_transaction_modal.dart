@@ -338,6 +338,8 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
               ).unfocus(); // Oculta el teclado al seleccionar un cliente
             },
             optionsViewBuilder: (context, onSelected, options) {
+              // Se crea un ScrollController para vincularlo con el Scrollbar y el ListView
+              final scrollController = ScrollController();
               return Align(
                 alignment: Alignment.topLeft,
                 child: Material(
@@ -346,45 +348,37 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
                     constraints: BoxConstraints(
                       maxHeight: (options.length * 44.0).clamp(44.0, 200.0),
                     ),
-                    child: ListView.builder(
-                      padding: EdgeInsets.zero,
-                      shrinkWrap: true,
-                      itemCount: options.length,
-                      itemBuilder: (context, index) {
-                        final Client c = options.elementAt(index);
-                        return InkWell(
-                          onTap: () => onSelected(c),
-                          child: Container(
-                            height: 33, // Menos alto, menos espacio entre ítems
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            alignment: Alignment.centerLeft,
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    c.name,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                    ), // Ajusta el tamaño aquí
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                if (c.address != null)
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 8),
-                                    child: Text(
-                                      c.address!,
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodySmall,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                              ],
+                    // Se añade un Scrollbar explícito con el controlador
+                    child: Scrollbar(
+                      controller: scrollController,
+                      thumbVisibility: true,
+                      child: ListView.builder(
+                        controller:
+                            scrollController, // Se asigna el controlador a la lista
+                        padding: EdgeInsets.zero,
+                        shrinkWrap: true,
+                        itemCount: options.length,
+                        itemBuilder: (context, index) {
+                          final Client c = options.elementAt(index);
+                          return InkWell(
+                            onTap: () => onSelected(c),
+                            child: Container(
+                              height:
+                                  33, // Menos alto, menos espacio entre ítems
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              alignment: Alignment.centerLeft,
+                              // Se reemplaza la Row por un único Text para mostrar solo el nombre
+                              child: Text(
+                                c.name,
+                                style: const TextStyle(fontSize: 16),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ),

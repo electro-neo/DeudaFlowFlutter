@@ -87,57 +87,60 @@ class TransactionCard extends StatelessWidget {
             Expanded(
               child: Column(
                 children: [
+                  // --- ROW 1: NOMBRE CLIENTE ---
+                  SizedBox(
+                    width: double.infinity,
+                    child: Text(
+                      client.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                      textAlign: TextAlign.left,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+
+                  // --- ROW 2: DESCRIPCIÓN Y FECHA ---
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // --- COLUMNA 1 (IZQUIERDA) ---
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Row 1: Descripción
-                            Text(
-                              t.description != null &&
-                                      t.description is String &&
-                                      t.description.isNotEmpty
-                                  ? t.description[0].toUpperCase() +
-                                        t.description.substring(1)
-                                  : '',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                              // Se elimina 'overflow' para permitir el salto de línea
-                            ),
-                            const SizedBox(height: 4),
-                            // Row 2: Nombre Cliente
-                            Text(
-                              client.name,
-                              style: const TextStyle(
-                                fontSize: 13.5,
-                                color: Colors.black54,
-                              ),
-                              // Se eliminan 'overflow' y 'maxLines' para permitir el salto de línea
-                            ),
-                          ],
+                        child: Text(
+                          t.description != null &&
+                                  t.description is String &&
+                                  t.description.isNotEmpty
+                              ? t.description[0].toUpperCase() +
+                                    t.description.substring(1)
+                              : 'Sin descripción',
+                          style: const TextStyle(
+                            fontSize: 13.5,
+                            color: Colors.black54,
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${t.date.year}-${t.date.month.toString().padLeft(2, '0')}-${t.date.day.toString().padLeft(2, '0')}',
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          color: Colors.black45,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
 
-                      // --- COLUMNA 2 (DERECHA) ---
+                  // --- ROW 3: MONTO / BALANCE ---
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          // Row 1: Fecha
-                          Text(
-                            '${t.date.year}-${t.date.month.toString().padLeft(2, '0')}-${t.date.day.toString().padLeft(2, '0')}',
-                            style: const TextStyle(
-                              fontSize: 12.5,
-                              color: Colors.black45,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          // Row 2: Balance
                           Text(
                             () {
                               final usdValue =
@@ -159,7 +162,6 @@ class TransactionCard extends StatelessWidget {
                               fontSize: 18,
                             ),
                           ),
-                          // Monto secundario (si aplica)
                           if (selectedCurrency != 'USD')
                             Padding(
                               padding: const EdgeInsets.only(top: 2),

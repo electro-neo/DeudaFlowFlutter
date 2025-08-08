@@ -174,7 +174,9 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                       ],
                     ),
                     child: CircleAvatar(
-                      backgroundColor: Colors.indigo.shade50,
+                      backgroundColor: Colors
+                          .indigo
+                          .shade100, // Tono más oscuro para mejor contraste
                       child: Text(
                         firstLetter,
                         style: const TextStyle(

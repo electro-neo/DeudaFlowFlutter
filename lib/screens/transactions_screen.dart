@@ -11,6 +11,7 @@ import '../providers/client_provider.dart';
 import '../providers/sync_provider.dart';
 import '../utils/no_scrollbar_behavior.dart';
 import '../widgets/transaction_card.dart';
+import '../widgets/sync_message_state.dart';
 
 class TransactionsScreen extends StatefulWidget {
   final String userId;
@@ -26,6 +27,9 @@ class TransactionsScreen extends StatefulWidget {
 }
 
 class _TransactionsScreenState extends State<TransactionsScreen> {
+  // Estado de mensajes de sincronización por transacción
+  final Map<String, SyncMessageStateTX> _txSyncStates = {};
+
   // Permite limpiar el buscador desde fuera usando GlobalKey
   final TextEditingController _searchController = TextEditingController();
   void resetSearchState() {
@@ -61,12 +65,20 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   Future<void> _loadTransactions() async {
     if (!mounted) return;
     debugPrint(
-      '[TRANSACTIONS_SCREEN][_loadTransactions] INICIO. userId: ${widget.userId}',
+      '[TRANSACTIONS_SCREEN][_loadTransactions] INICIO. userId: \\${widget.userId}',
     );
     setState(() => _loading = true);
     final txProvider = Provider.of<TransactionProvider>(context, listen: false);
     await txProvider.loadTransactions(widget.userId);
     setState(() => _loading = false);
+
+    // Mostrar mensaje temporal 'Sincronizado' para transacciones que acaban de sincronizarse
+    final txs = txProvider.transactions;
+    for (final tx in txs) {
+      if (tx.synced == true && !_txSyncStates.containsKey(tx.id)) {
+        showTransactionSyncMessage(tx.id, SyncMessageStateTX.synced());
+      }
+    }
   }
 
   @override
@@ -254,6 +266,23 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               ),
             ),
     );
+  }
+
+  void showTransactionSyncMessage(
+    String txId,
+    SyncMessageStateTX message, {
+    int durationSeconds = 3,
+  }) {
+    setState(() {
+      _txSyncStates[txId] = message;
+    });
+    Future.delayed(Duration(seconds: durationSeconds), () {
+      if (mounted) {
+        setState(() {
+          _txSyncStates.remove(txId);
+        });
+      }
+    });
   }
 
   Widget _buildTransactionColumn(
@@ -540,8 +569,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         ),
                       ),
                     );
-                  })
-                  ,
+                  }),
             ],
           ),
         ),
@@ -729,7 +757,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 ),
               )
             : Container(
-                // Elimina el borde de depuración
                 decoration: BoxDecoration(),
                 child: ListView.separated(
                   shrinkWrap: true,
@@ -737,7 +764,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   padding: EdgeInsets.only(
                     top: listViewTopPadding,
                     bottom: listViewBottomPadding,
-                  ), // Ajuste manual
+                  ),
                   itemCount: transactions.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 6),
                   itemBuilder: (context, i) {
@@ -750,6 +777,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       context,
                       listen: false,
                     );
+
+                    // Buscar mensaje temporal de sincronización solo por id real
+                    SyncMessageStateTX? syncMsg = _txSyncStates[t.id];
+
                     return Dismissible(
                       key: ValueKey(t.id),
                       direction: DismissDirection.endToStart,
@@ -858,6 +889,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         onCurrencySelected: (currency) {
                           currencyProvider.setCurrency(currency);
                         },
+                        syncMessage: syncMsg,
                       ),
                     );
                   },
@@ -865,6 +897,76 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               ), // End of ListView Container
       ],
     );
+  }
+
+  // Ejemplo de función para agregar una transacción
+  Future<void> addTransaction(dynamic tx) async {
+    final txProvider = Provider.of<TransactionProvider>(context, listen: false);
+    final syncProvider = Provider.of<SyncProvider?>(context, listen: false);
+    final isOffline = syncProvider != null ? !syncProvider.isOnline : false;
+    String? tempId = tx.id;
+
+    // --- CAMBIO 1: Mostrar mensaje "Sincronizando" ---
+    // Se muestra el mensaje ANTES de la operación asíncrona.
+    if (!isOffline && tempId != null) {
+      setState(() {
+        _txSyncStates[tempId] = SyncMessageStateTX.syncing();
+      });
+    }
+
+    // --- CAMBIO 2: Ejecutar addTransaction y forzar reconstrucción ---
+    // Se agrega la transacción y se llama a setState para que la UI se actualice
+    // y muestre la nueva transacción con su mensaje "Sincronizando".
+    await txProvider.addTransaction(tx, widget.userId, tx.clientId);
+    if (mounted) {
+      setState(() {});
+    }
+
+    // --- CAMBIO 3: Lógica post-sincronización ---
+    // El resto del código busca el ID real y actualiza el mensaje a "Sincronizado".
+    // Esta parte ya era correcta.
+    String? realId;
+    final txs = txProvider.transactions;
+    if (txs.isNotEmpty) {
+      realId = txs
+          .firstWhere(
+            (t) =>
+                t.amount == tx.amount &&
+                t.clientId == tx.clientId &&
+                t.date == tx.date,
+            orElse: () =>
+                tx, // Fallback a la transacción original si no se encuentra
+          )
+          .id;
+    }
+
+    final syncId = realId ?? tempId;
+    final isUUID = syncId != null && syncId.length == 36;
+
+    if (!isOffline && isUUID) {
+      if (mounted) {
+        setState(() {
+          if (tempId != null && tempId != syncId) {
+            _txSyncStates.remove(tempId);
+          }
+          _txSyncStates[syncId] = SyncMessageStateTX.synced();
+        });
+      }
+
+      await Future.delayed(const Duration(seconds: 3));
+
+      if (mounted) {
+        setState(() {
+          _txSyncStates.remove(syncId);
+        });
+      }
+    } else if (!isOffline) {
+      if (mounted) {
+        setState(() {
+          if (tempId != null) _txSyncStates.remove(tempId);
+        });
+      }
+    }
   }
 }
 

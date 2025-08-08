@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+
 import '../models/client.dart';
+import 'sync_message_state.dart';
 
 class TransactionCard extends StatelessWidget {
   final dynamic transaction;
@@ -11,6 +13,7 @@ class TransactionCard extends StatelessWidget {
   final Map<String, double> exchangeRates;
   final String selectedCurrency;
   final void Function(String) onCurrencySelected;
+  final SyncMessageStateTX? syncMessage;
 
   const TransactionCard({
     super.key,
@@ -23,11 +26,27 @@ class TransactionCard extends StatelessWidget {
     required this.exchangeRates,
     required this.selectedCurrency,
     required this.onCurrencySelected,
+    this.syncMessage,
   });
 
   @override
   Widget build(BuildContext context) {
     final t = transaction;
+    // Lógica corregida:
+    // 1. Prioriza el mensaje temporal (ej. "Sincronizando", "Sincronizado").
+    // 2. Si no hay mensaje temporal, calcula el mensaje por defecto basado en el estado de la transacción.
+    final SyncMessageStateTX? syncMsg;
+    if (syncMessage != null) {
+      // Si hay un mensaje temporal proporcionado, úsalo siempre.
+      syncMsg = syncMessage;
+    } else {
+      // Si no hay mensaje temporal, determina el mensaje por defecto.
+      syncMsg = SyncMessageStateTX.fromTransaction(
+        t,
+        clientPendingDelete: clientPendingDelete,
+        isOffline: isOffline,
+      );
+    }
     return Container(
       decoration: BoxDecoration(
         color: const Color.fromARGB(255, 255, 255, 255),
@@ -93,12 +112,20 @@ class TransactionCard extends StatelessWidget {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              // Siempre mostrar el valor USD fijo
+                              // --- Monto Principal (Dinámico) ---
                               Text(
-                                'USD ' +
-                                    ((t.anchorUsdValue ?? t.amount)
-                                            ?.toStringAsFixed(2) ??
-                                        '0.00'),
+                                () {
+                                  final usdValue =
+                                      t.anchorUsdValue ?? t.amount ?? 0.0;
+                                  if (selectedCurrency == 'USD') {
+                                    return 'USD ${usdValue.toStringAsFixed(2)}';
+                                  } else {
+                                    final rate =
+                                        exchangeRates[selectedCurrency] ?? 1.0;
+                                    final convertedValue = usdValue * rate;
+                                    return '${convertedValue.toStringAsFixed(2)} $selectedCurrency';
+                                  }
+                                }(),
                                 style: TextStyle(
                                   color: t.type == 'payment'
                                       ? Colors.green
@@ -109,19 +136,12 @@ class TransactionCard extends StatelessWidget {
                                 overflow: TextOverflow.ellipsis,
                                 textAlign: TextAlign.right,
                               ),
-                              // Valor convertido a moneda local (solo si no es USD)
+                              // --- Monto Secundario (USD, si aplica) ---
                               if (selectedCurrency != 'USD')
                                 Padding(
                                   padding: const EdgeInsets.only(top: 2),
                                   child: Text(
-                                    () {
-                                      final usd = t.anchorUsdValue ?? t.amount;
-                                      final rate =
-                                          exchangeRates[selectedCurrency] ??
-                                          1.0;
-                                      final converted = usd * rate;
-                                      return '${converted.toStringAsFixed(2)} $selectedCurrency';
-                                    }(),
+                                    'USD ${(t.anchorUsdValue ?? t.amount ?? 0.0).toStringAsFixed(2)}',
                                     style: const TextStyle(
                                       fontSize: 13,
                                       color: Colors.black54,
@@ -160,7 +180,7 @@ class TransactionCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      if (clientPendingDelete && isOffline)
+                      if (syncMsg != null)
                         Padding(
                           padding: const EdgeInsets.only(top: 2, bottom: 1),
                           child: Row(
@@ -172,65 +192,25 @@ class TransactionCard extends StatelessWidget {
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.red.withAlpha(
+                                  color: syncMsg.color.withAlpha(
                                     (0.09 * 255).toInt(),
                                   ),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: const Row(
+                                child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(
-                                      Icons.delete_forever,
+                                      syncMsg.icon,
                                       size: 12,
-                                      color: Colors.red,
+                                      color: syncMsg.color,
                                     ),
-                                    SizedBox(width: 2),
+                                    const SizedBox(width: 2),
                                     Text(
-                                      'Pendiente por eliminar',
+                                      syncMsg.message,
                                       style: TextStyle(
                                         fontSize: 9,
-                                        color: Colors.red,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      else if (t.synced == false)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2, bottom: 1),
-                          child: Row(
-                            children: [
-                              const Spacer(),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 7,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.orange.withAlpha(
-                                    (0.09 * 255).toInt(),
-                                  ),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.sync,
-                                      size: 10,
-                                      color: Colors.orange,
-                                    ),
-                                    SizedBox(width: 2),
-                                    Text(
-                                      'Pendiente por sincronizar',
-                                      style: TextStyle(
-                                        fontSize: 9,
-                                        color: Colors.orange,
+                                        color: syncMsg.color,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -245,38 +225,6 @@ class TransactionCard extends StatelessWidget {
                 ),
               ],
             ),
-            // Centered Sincronizado message at the bottom
-            if (t.synced == true)
-              Padding(
-                padding: const EdgeInsets.only(top: 8, bottom: 0),
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withAlpha((0.09 * 255).toInt()),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Icon(Icons.cloud_done, size: 14, color: Colors.green),
-                        SizedBox(width: 4),
-                        Text(
-                          'Sincronizado',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.green,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
           ],
         ),
       ),

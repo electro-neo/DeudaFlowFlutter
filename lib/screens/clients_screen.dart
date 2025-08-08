@@ -1108,8 +1108,9 @@ class ClientsScreenState extends State<ClientsScreen>
                                                     await provider.loadClients(
                                                       widget.userId,
                                                     );
-                                                    if (mounted)
+                                                    if (mounted) {
                                                       setState(() {});
+                                                    }
                                                     // El resto de la sync y feedback visual
                                                     await provider
                                                         .cleanLocalPendingDeletedClients();

@@ -1,5 +1,4 @@
 import 'package:hive/hive.dart';
-import 'package:flutter/foundation.dart';
 part 'transaction_hive.g.dart';
 
 @HiveType(typeId: 1)
@@ -42,17 +41,9 @@ class TransactionHive extends HiveObject {
     this.currencyCode = 'VES', // Valor por defecto para datos antiguos
     this.localId,
     this.anchorUsdValue,
-  }) {
-    // Debug: Rastreo de anchorUsdValue en creación de TransactionHive
-    debugPrint(
-      '\u001b[33m[HIVE][CREACION] id=$id, anchorUsdValue=${anchorUsdValue?.toString() ?? 'null'}\u001b[0m',
-    );
-  }
+  });
 
   factory TransactionHive.fromMap(Map<String, dynamic> map) {
-    debugPrint(
-      '\u001b[34m[HIVE][fromMap] id=${map['id']}, anchorUsdValue=${map['anchor_usd_value']?.toString() ?? 'null'}\u001b[0m',
-    );
     final idValue = map['id'];
     final clientIdValue = map['clientId'];
     final typeValue = map['type'];
@@ -117,29 +108,24 @@ class TransactionHive extends HiveObject {
           ? (map['anchor_usd_value'] as num).toDouble()
           : double.tryParse(map['anchor_usd_value']?.toString() ?? ''),
     );
-    debugPrint(
-      '\u001b[32m[HIVE][fromMap->CREADO] id=${tx.id}, anchorUsdValue=${tx.anchorUsdValue?.toString() ?? 'null'}\u001b[0m',
-    );
+    //
     return tx;
   }
 
   Map<String, dynamic> toMap() {
-    debugPrint(
-      '\u001b[36m[HIVE][toMap] id=$id, anchorUsdValue=${anchorUsdValue?.toString() ?? 'null'}\u001b[0m',
-    );
     return {
-    'id': id,
-    'clientId': clientId,
-    'type': type,
-    'amount': amount,
-    'date': date.toIso8601String(),
-    'description': description,
-    'synced': synced,
-    'pendingDelete': pendingDelete,
-    'userId': userId,
-    'currency_code': currencyCode,
-    'local_id': localId,
-    'anchor_usd_value': anchorUsdValue,
-  };
+      'id': id,
+      'clientId': clientId,
+      'type': type,
+      'amount': amount,
+      'date': date.toIso8601String(),
+      'description': description,
+      'synced': synced,
+      'pendingDelete': pendingDelete,
+      'userId': userId,
+      'currency_code': currencyCode,
+      'local_id': localId,
+      'anchor_usd_value': anchorUsdValue,
+    };
   }
 }

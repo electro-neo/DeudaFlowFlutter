@@ -31,6 +31,9 @@ class ClientDetailsModal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rootContext = Navigator.of(context, rootNavigator: true).context;
+    final firstLetter = client.name.isNotEmpty
+        ? client.name[0].toUpperCase()
+        : '?';
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
@@ -42,7 +45,16 @@ class ClientDetailsModal extends StatelessWidget {
             // Información del cliente
             Row(
               children: [
-                const CircleAvatar(child: Icon(Icons.person)),
+                CircleAvatar(
+                  backgroundColor: Colors.indigo.shade50,
+                  child: Text(
+                    firstLetter,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.indigo,
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -56,52 +68,55 @@ class ClientDetailsModal extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
+            // Teléfono
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Icon(Icons.phone, size: 16, color: Colors.black45),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: Row(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Teléfono: ',
+                        'Teléfono:',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      Expanded(
-                        child: SelectableText(
-                          (client.phone != null && client.phone!.isNotEmpty)
-                              ? client.phone!
-                              : 'Sin información',
-                          style: const TextStyle(fontSize: 16),
-                          enableInteractiveSelection: true,
-                        ),
+                      const SizedBox(height: 2),
+                      SelectableText(
+                        (client.phone != null && client.phone!.isNotEmpty)
+                            ? client.phone!
+                            : 'Sin información',
+                        style: const TextStyle(fontSize: 16),
+                        enableInteractiveSelection: true,
                       ),
                     ],
                   ),
                 ),
               ],
             ),
+            const SizedBox(height: 8),
+            // Dirección
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Icon(Icons.home, size: 16, color: Colors.black45),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: Row(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Dirección: ',
+                        'Dirección:',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      Expanded(
-                        child: SelectableText(
-                          (client.address != null && client.address!.isNotEmpty)
-                              ? client.address!
-                              : 'Sin información',
-                          style: const TextStyle(fontSize: 16),
-                          enableInteractiveSelection: true,
-                        ),
+                      const SizedBox(height: 2),
+                      SelectableText(
+                        (client.address != null && client.address!.isNotEmpty)
+                            ? client.address!
+                            : 'Sin información',
+                        style: const TextStyle(fontSize: 16),
+                        enableInteractiveSelection: true,
                       ),
                     ],
                   ),

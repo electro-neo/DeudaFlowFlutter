@@ -7,30 +7,21 @@ import '../models/client.dart';
 import '../models/transaction.dart';
 import 'package:pdf/pdf.dart';
 
-// --- Utilidad para conversión y formateo de moneda en PDF ---
-double convertAmount(num value, bool convert, double? rate) {
-  if (convert && rate != null && rate > 0) {
-    return value.toDouble() / rate;
-  }
-  return value.toDouble();
-}
+// --- Constantes de la aplicación para el PDF ---
+const String appName = 'DeudaFlow';
+const String appVersion = '1.0.0'; // Puedes cambiar esto por la versión real
 
-String formatAmount(
-  num value,
-  bool convert,
-  double? rate, {
-  String symbol = '',
-  int decimals = 2,
-}) {
-  final converted = convertAmount(value, convert, rate);
-  final parts = converted.toStringAsFixed(decimals).split('.');
+// --- Utilidad para formateo de moneda en PDF ---
+// Se simplifica para solo formatear. La conversión se hace antes de llamar.
+String formatAmount(num value, {String symbol = '', int decimals = 2}) {
+  final parts = value.toStringAsFixed(decimals).split('.');
+  // FIX: Formato con punto para miles y coma para decimales (estándar LATAM/España)
   final intPart = parts[0].replaceAllMapped(
     RegExp(r'\B(?=(\d{3})+(?!\d))'),
-    (match) => '.',
+    (match) => '.', // Cambiado a punto
   );
-  final decPart = parts.length > 1 ? ',${parts[1]}' : '';
-  // Usar el símbolo proporcionado (puede estar vacío para moneda local)
-  final safeSymbol = symbol;
+  final decPart = parts.length > 1 ? ',${parts[1]}' : ''; // Cambiado a coma
+  final safeSymbol = symbol.isNotEmpty ? '$symbol ' : '';
   return '$safeSymbol$intPart$decPart';
 }
 
@@ -42,8 +33,10 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
   String currencySymbol = '',
 }) {
   final pdf = pw.Document();
-  double totalDeudaGeneral = 0;
-  double totalAbonoGeneral = 0;
+  // Totales generales siempre en USD
+  double totalDeudaGeneralUSD = 0;
+  double totalAbonoGeneralUSD = 0;
+
   final now = DateTime.now();
   final fechaRecibo =
       'Fecha del recibo: '
@@ -52,13 +45,7 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
       '${now.year} '
       '${now.hour.toString().padLeft(2, '0')}:'
       '${now.minute.toString().padLeft(2, '0')}';
-  const appName = 'Deuda Flow';
-  const appVersion = '1.0.0'; // Cambia aquí si la versión cambia
-  // Puedes cambiar la ruta del ícono si tienes un asset local, aquí se usa emoji como ejemplo
-  const appIcon =
-      ' '; // Emoji de teléfono, puedes cambiarlo por un asset si lo tienes
-  const playStoreIcon =
-      ''; // Emoji Play Store, puedes cambiarlo por un asset si lo tienes
+
   pdf.addPage(
     pw.MultiPage(
       header: (context) => pw.Row(
@@ -66,7 +53,7 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
         children: [
           pw.Text(
             filtered.length == 1
-                ? 'Recibo general de ${(filtered[0]['client'] as Client).name}'
+                ? 'Recibo de ${(filtered[0]['client'] as Client).name}'
                 : 'Recibo General de Clientes',
             style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
           ),
@@ -80,181 +67,232 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
         List<pw.Widget> widgets = [
           if (convertCurrency && conversionRate != null && conversionRate > 0)
             pw.Text(
-              'Nota: Todos los montos han sido convertidos a la tasa $conversionRate.',
+              'Nota: Los montos en $currencySymbol son calculados a una tasa de $conversionRate.',
               style: pw.TextStyle(fontSize: 10, fontStyle: pw.FontStyle.italic),
             ),
           pw.SizedBox(height: 10),
         ];
+
         for (final e in filtered) {
           final client = e['client'] as Client;
           final txs = e['filteredTxs'] as List<dynamic>;
-          double totalDeuda = 0;
-          double totalAbono = 0;
+          // Totales por cliente en USD
+          double totalDeudaUSD = 0;
+          double totalAbonoUSD = 0;
+
           for (final tx in txs) {
+            final usdValue = (tx.anchorUsdValue ?? tx.amount) as num;
             if (tx.type == 'deuda' || tx.type == 'debt') {
-              totalDeuda += convertAmount(
-                tx.amount as num,
-                convertCurrency,
-                conversionRate,
-              );
-              totalDeudaGeneral += convertAmount(
-                tx.amount as num,
-                convertCurrency,
-                conversionRate,
-              );
+              totalDeudaUSD += usdValue;
             } else if (tx.type == 'abono' || tx.type == 'payment') {
-              totalAbono += convertAmount(
-                tx.amount as num,
-                convertCurrency,
-                conversionRate,
-              );
-              totalAbonoGeneral += convertAmount(
-                tx.amount as num,
-                convertCurrency,
-                conversionRate,
-              );
+              totalAbonoUSD += usdValue;
             }
           }
+
+          totalDeudaGeneralUSD += totalDeudaUSD;
+          totalAbonoGeneralUSD += totalAbonoUSD;
+
           // --- BLOQUE DE INFORMACIÓN DEL CLIENTE ---
           widgets.add(
-            pw.Wrap(
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.RichText(
-                      text: pw.TextSpan(
-                        children: [
-                          pw.TextSpan(
-                            text: 'Nombre Cliente: ',
-                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                          ),
-                          pw.TextSpan(text: client.name),
-                        ],
+                pw.RichText(
+                  text: pw.TextSpan(
+                    children: [
+                      pw.TextSpan(
+                        text: 'Nombre Cliente: ',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                       ),
-                    ),
-                    pw.RichText(
-                      text: pw.TextSpan(
-                        children: [
-                          pw.TextSpan(
-                            text: 'Teléfono: ',
-                            style: pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold,
-                              fontSize: 10,
-                            ),
-                          ),
-                          pw.TextSpan(
-                            text:
-                                (client.phone != null &&
-                                    client.phone.toString().trim().isNotEmpty)
-                                ? client.phone.toString()
-                                : 'Sin Información',
-                            style: pw.TextStyle(fontSize: 10),
-                          ),
-                        ],
-                      ),
-                    ),
-                    pw.RichText(
-                      text: pw.TextSpan(
-                        children: [
-                          pw.TextSpan(
-                            text: 'Correo: ',
-                            style: pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold,
-                              fontSize: 10,
-                            ),
-                          ),
-                          pw.TextSpan(
-                            text:
-                                (client.address != null &&
-                                    client.address.toString().trim().isNotEmpty)
-                                ? client.address.toString()
-                                : 'Sin Información',
-                            style: pw.TextStyle(fontSize: 10),
-                          ),
-                        ],
-                      ),
-                    ),
-                    pw.RichText(
-                      text: pw.TextSpan(
-                        children: [
-                          pw.TextSpan(
-                            text: 'ID Cliente: ',
-                            style: pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold,
-                              fontSize: 10,
-                            ),
-                          ),
-                          pw.TextSpan(
-                            text: client.id,
-                            style: pw.TextStyle(fontSize: 10),
-                          ),
-                        ],
-                      ),
-                    ),
-                    pw.SizedBox(height: 4),
-                  ],
+                      pw.TextSpan(text: client.name),
+                    ],
+                  ),
                 ),
+                pw.RichText(
+                  text: pw.TextSpan(
+                    children: [
+                      pw.TextSpan(
+                        text: 'Teléfono: ',
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 10,
+                        ),
+                      ),
+                      pw.TextSpan(
+                        text:
+                            (client.phone != null &&
+                                client.phone.toString().trim().isNotEmpty)
+                            ? client.phone.toString()
+                            : 'Sin Información',
+                        style: pw.TextStyle(fontSize: 10),
+                      ),
+                    ],
+                  ),
+                ),
+                pw.RichText(
+                  text: pw.TextSpan(
+                    children: [
+                      pw.TextSpan(
+                        text: 'Correo: ',
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 10,
+                        ),
+                      ),
+                      pw.TextSpan(
+                        text:
+                            (client.address != null &&
+                                client.address.toString().trim().isNotEmpty)
+                            ? client.address.toString()
+                            : 'Sin Información',
+                        style: pw.TextStyle(fontSize: 10),
+                      ),
+                    ],
+                  ),
+                ),
+                pw.RichText(
+                  text: pw.TextSpan(
+                    children: [
+                      pw.TextSpan(
+                        text: 'ID Cliente: ',
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 10,
+                        ),
+                      ),
+                      pw.TextSpan(
+                        text: client.id,
+                        style: pw.TextStyle(fontSize: 10),
+                      ),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(height: 4),
               ],
-              runSpacing: 0,
-              spacing: 0,
-              alignment: pw.WrapAlignment.start,
-              crossAxisAlignment: pw.WrapCrossAlignment.start,
-              // --- Salto de página manual si no cabe el bloque ---
-              // El siguiente builder fuerza salto si el bloque no cabe
-              // (esto es un truco: el widget Wrap con un solo hijo nunca parte el bloque)
-              // Si el espacio es insuficiente, el paquete pdf lo mueve a la siguiente página
             ),
           );
           if (txs.isEmpty) {
             widgets.add(pw.Text('Sin movimientos en el rango de fechas.'));
           }
           if (txs.isNotEmpty) {
+            // --- TABLA DE TRANSACCIONES ---
+            final headers = ['Fecha', 'Descripción', 'Tipo', 'Monto USD'];
+            if (convertCurrency) {
+              headers.add('Monto $currencySymbol');
+            }
+
             widgets.add(
               pw.Table.fromTextArray(
-                headers: ['Fecha', 'Descripción', 'Tipo', 'Monto'],
+                headers: headers,
                 headerStyle: pw.TextStyle(
                   fontWeight: pw.FontWeight.bold,
                   color: PdfColors.white,
                 ),
                 headerDecoration: pw.BoxDecoration(color: PdfColors.blue),
                 cellStyle: pw.TextStyle(fontSize: 10),
-                data: txs
-                    .map(
-                      (tx) => [
-                        tx.date.toLocal().toString().split(' ')[0],
-                        tx.description,
-                        tx.type == 'deuda' || tx.type == 'debt'
-                            ? 'Deuda'
-                            : 'Abono',
-                        formatAmount(
-                          tx.amount as num,
-                          convertCurrency,
-                          conversionRate,
-                          symbol: currencySymbol,
-                        ),
-                      ],
-                    )
-                    .toList(),
+                data: txs.map((tx) {
+                  final usdValue = (tx.anchorUsdValue ?? tx.amount) as num;
+                  final row = [
+                    tx.date.toLocal().toString().split(' ')[0],
+                    tx.description,
+                    tx.type == 'deuda' || tx.type == 'debt' ? 'Deuda' : 'Abono',
+                    formatAmount(usdValue, symbol: 'USD'),
+                  ];
+                  if (convertCurrency) {
+                    row.add(
+                      formatAmount(
+                        usdValue * conversionRate!,
+                        symbol: currencySymbol,
+                      ),
+                    );
+                  }
+                  return row;
+                }).toList(),
               ),
             );
+
+            // --- TOTALES POR CLIENTE ---
+            widgets.add(pw.SizedBox(height: 5));
             widgets.add(
               pw.Container(
                 alignment: pw.Alignment.centerRight,
-                child: pw.Text(
-                  'Total Deuda: ${formatAmount(totalDeuda, false, null, symbol: currencySymbol)}   /   Total Abono: ${formatAmount(totalAbono, false, null, symbol: currencySymbol)}',
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                  children: [
+                    pw.Text(
+                      'Total Deuda: ${formatAmount(totalDeudaUSD, symbol: 'USD')}   /   Total Abono: ${formatAmount(totalAbonoUSD, symbol: 'USD')}',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    ),
+                    if (convertCurrency)
+                      pw.Text(
+                        'Total Deuda: ${formatAmount(totalDeudaUSD * conversionRate!, symbol: currencySymbol)}   /   Total Abono: ${formatAmount(totalAbonoUSD * conversionRate, symbol: currencySymbol)}',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                  ],
                 ),
               ),
             );
           }
           widgets.add(pw.SizedBox(height: 12));
         }
+
+        // --- TOTALES GENERALES ---
         if (filtered.length > 1) {
+          widgets.add(pw.Divider());
+          widgets.add(pw.SizedBox(height: 8));
           widgets.add(
-            pw.Text(
-              'Total deuda general: ${formatAmount(totalDeudaGeneral, false, null, symbol: currencySymbol)}   /   Total abono general: ${formatAmount(totalAbonoGeneral, false, null, symbol: currencySymbol)}',
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14),
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                // --- Total Deuda General ---
+                pw.Text(
+                  'Total deuda general:',
+                  style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                pw.SizedBox(height: 2),
+                pw.Text(
+                  formatAmount(totalDeudaGeneralUSD, symbol: 'USD'),
+                  style: const pw.TextStyle(fontSize: 12),
+                ),
+                if (convertCurrency) ...[
+                  pw.SizedBox(height: 1),
+                  pw.Text(
+                    formatAmount(
+                      totalDeudaGeneralUSD * conversionRate!,
+                      symbol: currencySymbol,
+                    ),
+                    style: const pw.TextStyle(fontSize: 12),
+                  ),
+                ],
+                pw.SizedBox(height: 10),
+
+                // --- Total Abono General ---
+                pw.Text(
+                  'Total abono general:',
+                  style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                pw.SizedBox(height: 2),
+                pw.Text(
+                  formatAmount(totalAbonoGeneralUSD, symbol: 'USD'),
+                  style: const pw.TextStyle(fontSize: 12),
+                ),
+                if (convertCurrency) ...[
+                  pw.SizedBox(height: 1),
+                  pw.Text(
+                    formatAmount(
+                      totalAbonoGeneralUSD * conversionRate!,
+                      symbol: currencySymbol,
+                    ),
+                    style: const pw.TextStyle(fontSize: 12),
+                  ),
+                ],
+              ],
             ),
           );
         }
@@ -271,7 +309,6 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
               'Comienza a gestionar tus deudas y clientes aquí con ',
               style: pw.TextStyle(fontSize: 9),
             ),
-            pw.Text(appIcon, style: pw.TextStyle(fontSize: 11)),
             pw.SizedBox(width: 2),
             pw.Text(
               '$appName v$appVersion',
@@ -279,7 +316,6 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
             ),
             pw.SizedBox(width: 6),
             pw.Text('puedes descargarla en ', style: pw.TextStyle(fontSize: 9)),
-            pw.Text(playStoreIcon, style: pw.TextStyle(fontSize: 11)),
             pw.SizedBox(width: 2),
             pw.Text(
               'Play Store',
@@ -481,20 +517,4 @@ Future<void> exportClientReceiptToPDF(
     ),
   );
   await Printing.layoutPdf(onLayout: (format) async => pdf.save());
-}
-
-Future<void> exportGeneralReceiptToPDF(List<Client> clients) async {
-  final pdf = buildGeneralReceiptPDF(clients);
-  await Printing.layoutPdf(onLayout: (format) async => pdf.save());
-}
-
-Future<void> exportAndShareGeneralReceiptPDF(List<Client> clients) async {
-  final pdf = buildGeneralReceiptPDF(clients);
-  final bytes = await pdf.save();
-  final dir = await getTemporaryDirectory();
-  final file = File('${dir.path}/recibo_general.pdf');
-  await file.writeAsBytes(bytes);
-  await SharePlus.instance.share(
-    ShareParams(files: [XFile(file.path)], text: 'Recibo General de Clientes'),
-  );
 }

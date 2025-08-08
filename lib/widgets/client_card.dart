@@ -7,6 +7,7 @@ import '../providers/currency_provider.dart';
 import '../providers/transaction_provider.dart';
 import 'client_details_modal.dart';
 import 'sync_message_state.dart';
+import 'scale_on_tap.dart'; // Importar el widget de animación
 
 // --- ExpandableClientCard y su estado deben estar al tope del archivo para evitar errores de anidación ---
 class ExpandableClientCard extends StatefulWidget {
@@ -121,14 +122,18 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
         usdBalance += value;
       }
     }
-    // Color según balance USD
+    // Color y mensaje según balance USD
     Color balanceColor;
+    String balanceMessage;
     if (usdBalance < 0) {
       balanceColor = Colors.red;
+      balanceMessage = 'Deuda del cliente';
     } else if (usdBalance > 0) {
       balanceColor = Colors.green;
+      balanceMessage = 'Saldo a favor';
     } else {
       balanceColor = Colors.black87;
+      balanceMessage = 'Sin movimientos';
     }
     // Siempre muestra USD primero, luego los equivalentes
     final List<MapEntry<String, double>> balancesList = [
@@ -153,15 +158,27 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               children: [
-                GestureDetector(
+                ScaleOnTap(
                   onTap: _openModal,
-                  child: CircleAvatar(
-                    backgroundColor: Colors.indigo.shade50,
-                    child: Text(
-                      firstLetter,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.indigo,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    child: CircleAvatar(
+                      backgroundColor: Colors.indigo.shade50,
+                      child: Text(
+                        firstLetter,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.indigo,
+                        ),
                       ),
                     ),
                   ),
@@ -259,273 +276,302 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
             secondChild: Padding(
               key: const ValueKey('expanded'),
               padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Column(
                 children: [
-                  // Datos cliente (izquierda) - Se reemplaza IntrinsicWidth por Expanded
-                  Expanded(
-                    child: Container(
-                      margin: const EdgeInsets.only(
-                        left: 16,
-                        top: 8,
-                        bottom: 8,
-                        right: 8,
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.indigo.withOpacity(0.04),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Datos cliente (izquierda) - Se reemplaza IntrinsicWidth por Expanded
+                      Expanded(
+                        child: Container(
+                          margin: const EdgeInsets.only(
+                            left: 16,
+                            top: 8,
+                            bottom: 8,
+                            right: 8,
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.indigo.withOpacity(0.04),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Icon(
-                                Icons.phone,
-                                size: 16,
-                                color: Colors.black45,
-                              ),
-                              const SizedBox(width: 6),
-                              const Text(
-                                'Teléfono',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.only(
-                              left: 22.0,
-                              top: 2,
-                              bottom: 0,
-                            ),
-                            child: Text(
-                              (client.phone != null && client.phone!.isNotEmpty)
-                                  ? client.phone!
-                                  : 'Sin información',
-                              style: const TextStyle(fontSize: 14),
-                              softWrap: true,
-                              overflow: TextOverflow.visible,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Icon(
-                                Icons.home,
-                                size: 16,
-                                color: Colors.black45,
-                              ),
-                              const SizedBox(width: 6),
-                              const Text(
-                                'Dirección',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.only(
-                              left: 22.0,
-                              top: 2,
-                              bottom: 0,
-                            ),
-                            child: Text(
-                              (client.address != null &&
-                                      client.address!.isNotEmpty)
-                                  ? client.address!
-                                  : 'Sin información',
-                              style: const TextStyle(fontSize: 14),
-                              softWrap: true,
-                              overflow: TextOverflow.visible,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // Balance (derecha, ancho fijo, scroll si hay más de 4 monedas)
-                  SizedBox(
-                    width: 190, // Ajusta el ancho según sea necesario
-                    child: Container(
-                      margin: const EdgeInsets.only(
-                        right: 16,
-                        top: 8,
-                        bottom: 8,
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.indigo.withOpacity(0.06),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.max,
-                          children: [
-                            Container(
-                              width: double.infinity,
-                              height: 22,
-                              decoration: BoxDecoration(
-                                color: Colors.indigo.withOpacity(0.08),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              padding: const EdgeInsets.only(
-                                right: 0,
-                                left: 0,
-                                top: 0,
-                                bottom: 0,
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    'Balance',
+                                  const Icon(
+                                    Icons.phone,
+                                    size: 16,
+                                    color: Colors.black45,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  const Text(
+                                    'Teléfono',
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 15,
-                                      letterSpacing: 0.5,
-                                      color: Colors.indigo,
                                     ),
-                                    textAlign: TextAlign.left,
                                   ),
                                 ],
                               ),
-                            ),
-                            if (balancesList.length > 3)
-                              SizedBox(
-                                height:
-                                    4 *
-                                    18.0, // USD + 3 monedas visibles, luego scroll
-                                child: Scrollbar(
-                                  thumbVisibility: true,
-                                  child: SingleChildScrollView(
-                                    child: Table(
-                                      columnWidths: const {
-                                        0: IntrinsicColumnWidth(),
-                                        1: FlexColumnWidth(),
-                                      },
-                                      defaultVerticalAlignment:
-                                          TableCellVerticalAlignment.middle,
-                                      children: [
-                                        ...balancesList.map(
-                                          (e) => TableRow(
-                                            children: [
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                  bottom: 2,
-                                                  right: 8,
-                                                ),
-                                                child: Align(
-                                                  alignment:
-                                                      Alignment.centerRight,
-                                                  child: Text(
-                                                    e.key,
-                                                    style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                      fontSize: 13,
-                                                      color: Colors.indigo,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                  bottom: 2,
-                                                ),
-                                                child: Align(
-                                                  alignment:
-                                                      Alignment.centerRight,
-                                                  child: Text(
-                                                    CurrencyUtils.format(
-                                                      context,
-                                                      e.value.abs(),
-                                                    ),
-                                                    style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize: 15,
-                                                      color: balanceColor,
-                                                    ),
-                                                    textAlign: TextAlign.right,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  left: 22.0,
+                                  top: 2,
+                                  bottom: 0,
+                                ),
+                                child: Text(
+                                  (client.phone != null &&
+                                          client.phone!.isNotEmpty)
+                                      ? client.phone!
+                                      : 'Sin información',
+                                  style: const TextStyle(fontSize: 14),
+                                  softWrap: true,
+                                  overflow: TextOverflow.visible,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Icon(
+                                    Icons.home,
+                                    size: 16,
+                                    color: Colors.black45,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  const Text(
+                                    'Dirección',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  left: 22.0,
+                                  top: 2,
+                                  bottom: 0,
+                                ),
+                                child: Text(
+                                  (client.address != null &&
+                                          client.address!.isNotEmpty)
+                                      ? client.address!
+                                      : 'Sin información',
+                                  style: const TextStyle(fontSize: 14),
+                                  softWrap: true,
+                                  overflow: TextOverflow.visible,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      // Balance (derecha, ancho fijo, scroll si hay más de 4 monedas)
+                      SizedBox(
+                        width: 190, // Ajusta el ancho según sea necesario
+                        child: Container(
+                          margin: const EdgeInsets.only(
+                            right: 16,
+                            top: 8,
+                            bottom: 8,
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.indigo.withOpacity(0.06),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.max,
+                              children: [
+                                Container(
+                                  width: double.infinity,
+                                  height: 22,
+                                  decoration: BoxDecoration(
+                                    color: Colors.indigo.withOpacity(0.08),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  padding: const EdgeInsets.only(
+                                    right: 0,
+                                    left: 0,
+                                    top: 0,
+                                    bottom: 0,
+                                  ),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'Balance',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                          letterSpacing: 0.5,
+                                          color: Colors.indigo,
                                         ),
-                                      ],
+                                        textAlign: TextAlign.left,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (balancesList.length > 3)
+                                  SizedBox(
+                                    height:
+                                        4 *
+                                        18.0, // USD + 3 monedas visibles, luego scroll
+                                    child: Scrollbar(
+                                      thumbVisibility: true,
+                                      child: SingleChildScrollView(
+                                        child: Table(
+                                          columnWidths: const {
+                                            0: IntrinsicColumnWidth(),
+                                            1: FlexColumnWidth(),
+                                          },
+                                          defaultVerticalAlignment:
+                                              TableCellVerticalAlignment.middle,
+                                          children: [
+                                            ...balancesList.map(
+                                              (e) => TableRow(
+                                                children: [
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                          bottom: 2,
+                                                          right: 8,
+                                                        ),
+                                                    child: Align(
+                                                      alignment:
+                                                          Alignment.centerRight,
+                                                      child: Text(
+                                                        e.key,
+                                                        style: const TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          fontSize: 13,
+                                                          color: Colors.indigo,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                          bottom: 2,
+                                                        ),
+                                                    child: Align(
+                                                      alignment:
+                                                          Alignment.centerRight,
+                                                      child: Text(
+                                                        CurrencyUtils.format(
+                                                          context,
+                                                          e.value.abs(),
+                                                        ),
+                                                        style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          fontSize: 15,
+                                                          color: balanceColor,
+                                                        ),
+                                                        textAlign:
+                                                            TextAlign.right,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  Table(
+                                    columnWidths: const {
+                                      0: IntrinsicColumnWidth(),
+                                      1: FlexColumnWidth(),
+                                    },
+                                    defaultVerticalAlignment:
+                                        TableCellVerticalAlignment.middle,
+                                    children: [
+                                      ...balancesList.map(
+                                        (e) => TableRow(
+                                          children: [
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                bottom: 2,
+                                                right: 8,
+                                              ),
+                                              child: Align(
+                                                alignment:
+                                                    Alignment.centerRight,
+                                                child: Text(
+                                                  e.key,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 13,
+                                                    color: Colors.indigo,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                bottom: 2,
+                                              ),
+                                              child: Align(
+                                                alignment:
+                                                    Alignment.centerRight,
+                                                child: Text(
+                                                  CurrencyUtils.format(
+                                                    context,
+                                                    e.value.abs(),
+                                                  ),
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 15,
+                                                    color: balanceColor,
+                                                  ),
+                                                  textAlign: TextAlign.right,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                // Mensaje de balance movido aquí
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Center(
+                                    child: Text(
+                                      balanceMessage,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontStyle: FontStyle.italic,
+                                        color: Colors.black54,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              )
-                            else
-                              Table(
-                                columnWidths: const {
-                                  0: IntrinsicColumnWidth(),
-                                  1: FlexColumnWidth(),
-                                },
-                                defaultVerticalAlignment:
-                                    TableCellVerticalAlignment.middle,
-                                children: [
-                                  ...balancesList.map(
-                                    (e) => TableRow(
-                                      children: [
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                            bottom: 2,
-                                            right: 8,
-                                          ),
-                                          child: Align(
-                                            alignment: Alignment.centerRight,
-                                            child: Text(
-                                              e.key,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 13,
-                                                color: Colors.indigo,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                            bottom: 2,
-                                          ),
-                                          child: Align(
-                                            alignment: Alignment.centerRight,
-                                            child: Text(
-                                              CurrencyUtils.format(
-                                                context,
-                                                e.value.abs(),
-                                              ),
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 15,
-                                                color: balanceColor,
-                                              ),
-                                              textAlign: TextAlign.right,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                          ],
+                              ],
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),

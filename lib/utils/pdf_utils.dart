@@ -216,57 +216,67 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
             widgets.add(
               pw.Container(
                 alignment: pw.Alignment.centerRight,
-                child: pw.Column(
+                child: pw.Row(
+                  mainAxisSize: pw.MainAxisSize.min,
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    // --- Total Deuda por Cliente ---
-                    pw.Text(
-                      'Total Deuda:',
-                      style: pw.TextStyle(
-                        fontWeight: pw.FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                    pw.SizedBox(height: 2),
-                    pw.Text(
-                      formatAmount(totalDeudaUSD, symbol: 'USD'),
-                      style: const pw.TextStyle(fontSize: 11),
-                    ),
-                    if (convertCurrency) ...[
-                      pw.SizedBox(height: 1),
-                      pw.Text(
-                        formatAmount(
-                          totalDeudaUSD * conversionRate!,
-                          symbol: currencySymbol,
+                    // --- Columna Total Deuda ---
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          'Total Deuda:',
+                          style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 12,
+                          ),
                         ),
-                        style: const pw.TextStyle(fontSize: 11),
-                      ),
-                    ],
-                    pw.SizedBox(height: 8),
-
-                    // --- Total Abono por Cliente ---
-                    pw.Text(
-                      'Total Abono:',
-                      style: pw.TextStyle(
-                        fontWeight: pw.FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                    pw.SizedBox(height: 2),
-                    pw.Text(
-                      formatAmount(totalAbonoUSD, symbol: 'USD'),
-                      style: const pw.TextStyle(fontSize: 11),
-                    ),
-                    if (convertCurrency) ...[
-                      pw.SizedBox(height: 1),
-                      pw.Text(
-                        formatAmount(
-                          totalAbonoUSD * conversionRate!,
-                          symbol: currencySymbol,
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          formatAmount(totalDeudaUSD, symbol: 'USD'),
+                          style: const pw.TextStyle(fontSize: 11),
                         ),
-                        style: const pw.TextStyle(fontSize: 11),
-                      ),
-                    ],
+                        if (convertCurrency) ...[
+                          pw.SizedBox(height: 1),
+                          pw.Text(
+                            formatAmount(
+                              totalDeudaUSD * conversionRate!,
+                              symbol: currencySymbol,
+                            ),
+                            style: const pw.TextStyle(fontSize: 11),
+                          ),
+                        ],
+                      ],
+                    ),
+                    pw.SizedBox(width: 24), // Espacio entre columnas
+                    // --- Columna Total Abono ---
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          'Total Abono:',
+                          style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          formatAmount(totalAbonoUSD, symbol: 'USD'),
+                          style: const pw.TextStyle(fontSize: 11),
+                        ),
+                        if (convertCurrency) ...[
+                          pw.SizedBox(height: 1),
+                          pw.Text(
+                            formatAmount(
+                              totalAbonoUSD * conversionRate!,
+                              symbol: currencySymbol,
+                            ),
+                            style: const pw.TextStyle(fontSize: 11),
+                          ),
+                        ],
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -280,58 +290,71 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
           widgets.add(pw.Divider());
           widgets.add(pw.SizedBox(height: 8));
           widgets.add(
-            pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                // --- Total Deuda General ---
-                pw.Text(
-                  'Total deuda general:',
-                  style: pw.TextStyle(
-                    fontWeight: pw.FontWeight.bold,
-                    fontSize: 14,
+            pw.Container(
+              alignment: pw.Alignment.centerRight,
+              child: pw.Row(
+                mainAxisSize: pw.MainAxisSize.min,
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  // --- Columna Total Deuda General ---
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'Total deuda general:',
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      pw.SizedBox(height: 2),
+                      pw.Text(
+                        formatAmount(totalDeudaGeneralUSD, symbol: 'USD'),
+                        style: const pw.TextStyle(fontSize: 12),
+                      ),
+                      if (convertCurrency) ...[
+                        pw.SizedBox(height: 1),
+                        pw.Text(
+                          formatAmount(
+                            totalDeudaGeneralUSD * conversionRate!,
+                            symbol: currencySymbol,
+                          ),
+                          style: const pw.TextStyle(fontSize: 12),
+                        ),
+                      ],
+                    ],
                   ),
-                ),
-                pw.SizedBox(height: 2),
-                pw.Text(
-                  formatAmount(totalDeudaGeneralUSD, symbol: 'USD'),
-                  style: const pw.TextStyle(fontSize: 12),
-                ),
-                if (convertCurrency) ...[
-                  pw.SizedBox(height: 1),
-                  pw.Text(
-                    formatAmount(
-                      totalDeudaGeneralUSD * conversionRate!,
-                      symbol: currencySymbol,
-                    ),
-                    style: const pw.TextStyle(fontSize: 12),
+                  pw.SizedBox(width: 24), // Espacio entre columnas
+                  // --- Columna Total Abono General ---
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'Total abono general:',
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      pw.SizedBox(height: 2),
+                      pw.Text(
+                        formatAmount(totalAbonoGeneralUSD, symbol: 'USD'),
+                        style: const pw.TextStyle(fontSize: 12),
+                      ),
+                      if (convertCurrency) ...[
+                        pw.SizedBox(height: 1),
+                        pw.Text(
+                          formatAmount(
+                            totalAbonoGeneralUSD * conversionRate!,
+                            symbol: currencySymbol,
+                          ),
+                          style: const pw.TextStyle(fontSize: 12),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
-                pw.SizedBox(height: 10),
-
-                // --- Total Abono General ---
-                pw.Text(
-                  'Total abono general:',
-                  style: pw.TextStyle(
-                    fontWeight: pw.FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                pw.SizedBox(height: 2),
-                pw.Text(
-                  formatAmount(totalAbonoGeneralUSD, symbol: 'USD'),
-                  style: const pw.TextStyle(fontSize: 12),
-                ),
-                if (convertCurrency) ...[
-                  pw.SizedBox(height: 1),
-                  pw.Text(
-                    formatAmount(
-                      totalAbonoGeneralUSD * conversionRate!,
-                      symbol: currencySymbol,
-                    ),
-                    style: const pw.TextStyle(fontSize: 12),
-                  ),
-                ],
-              ],
+              ),
             ),
           );
         }

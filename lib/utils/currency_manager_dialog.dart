@@ -291,7 +291,7 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
                     bottom: MediaQuery.of(context).viewInsets.bottom,
                   ),
                   child: SizedBox(
-                    width: 340,
+                    width: 400, // Aumentado de 340 para más espacio
                     child: Scrollbar(
                       thumbVisibility: true,
                       controller: scrollController,

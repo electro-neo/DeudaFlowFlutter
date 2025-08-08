@@ -20,6 +20,7 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
   String? addError;
   bool showAddFields = false;
   late ScrollController scrollController;
+  bool _hasChanges = false;
 
   @override
   void initState() {
@@ -242,6 +243,7 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
         selectedCurrency = null;
         newRateController.clear();
         addError = null;
+        _hasChanges = false;
       });
     }
 
@@ -340,6 +342,13 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
                                             Flexible(
                                               flex: 2,
                                               child: TextField(
+                                                onChanged: (value) {
+                                                  if (!_hasChanges) {
+                                                    setStateDialog(() {
+                                                      _hasChanges = true;
+                                                    });
+                                                  }
+                                                },
                                                 controller: isNew
                                                     ? newRateController
                                                     : rates[c],
@@ -458,13 +467,15 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    showAddFields && selectedCurrency != null
+                    (showAddFields && selectedCurrency != null) || _hasChanges
                         ? 'Guardar'
                         : 'Cerrar',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSecondary,
                       fontWeight: FontWeight.w600,
-                      fontSize: (showAddFields && selectedCurrency != null)
+                      fontSize:
+                          (showAddFields && selectedCurrency != null) ||
+                              _hasChanges
                           ? 13.5
                           : 15,
                     ),

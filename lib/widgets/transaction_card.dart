@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../models/client.dart';
+import '../models/transaction.dart';
+import '../providers/currency_provider.dart';
+import '../utils/currency_utils.dart'; // Importar la utilidad
 import 'sync_message_state.dart';
 
 class TransactionCard extends StatelessWidget {
@@ -146,12 +149,12 @@ class TransactionCard extends StatelessWidget {
                               final usdValue =
                                   t.anchorUsdValue ?? t.amount ?? 0.0;
                               if (selectedCurrency == 'USD') {
-                                return 'USD ${usdValue.toStringAsFixed(2)}';
+                                return 'USD ${CurrencyUtils.formatNumber(usdValue)}';
                               } else {
                                 final rate =
                                     exchangeRates[selectedCurrency] ?? 1.0;
                                 final convertedValue = usdValue * rate;
-                                return '${convertedValue.toStringAsFixed(2)} $selectedCurrency';
+                                return '${CurrencyUtils.formatNumber(convertedValue)} $selectedCurrency';
                               }
                             }(),
                             style: TextStyle(
@@ -166,7 +169,7 @@ class TransactionCard extends StatelessWidget {
                             Padding(
                               padding: const EdgeInsets.only(top: 2),
                               child: Text(
-                                'USD ${(t.anchorUsdValue ?? t.amount ?? 0.0).toStringAsFixed(2)}',
+                                'USD ${CurrencyUtils.formatNumber(t.anchorUsdValue ?? t.amount ?? 0.0)}',
                                 style: const TextStyle(
                                   fontSize: 13,
                                   color: Colors.black54,

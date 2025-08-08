@@ -28,26 +28,30 @@ class CurrencyUtils {
 
   /// Formatea el valor recibido tal cual, solo aplica separadores y símbolo según la moneda indicada.
   /// No realiza ninguna conversión, asume que el valor ya está en la moneda correcta.
-  static String format(BuildContext context, num value, {String? currencyCode}) {
-    final currencyProvider = Provider.of<CurrencyProvider>(
-      context,
-      listen: false,
-    );
-    // Permite forzar el símbolo según la moneda, o usa la seleccionada
-    final code = currencyCode ?? currencyProvider.currency;
-    final isUSD = code == 'USD';
-    final formatter = NumberFormat.currency(
-      locale: 'es',
-      symbol: isUSD ? '\$' : code,
-      decimalDigits: 2,
-      customPattern: '#,##0.00',
-    );
-    return formatter.format(value.toDouble());
+  static String format(BuildContext context, num value) {
+    final currencyProvider = Provider.of<CurrencyProvider>(context);
+    final currency = currencyProvider.currency;
+    final isUSD = currency == 'USD';
+    final rate = currencyProvider.rate > 0 ? currencyProvider.rate : 1.0;
+    final displayValue = isUSD ? value : value * rate;
+    final formattedNumber = NumberFormat(
+      "#,##0.00",
+      "en_US",
+    ).format(displayValue);
+    return isUSD ? 'USD $formattedNumber' : '$formattedNumber $currency';
   }
 
-  /// Formatea el valor recibido en formato compacto, solo visual, sin conversión.
-  /// Asume que el valor ya está en la moneda correcta.
-  static String formatCompact(BuildContext context, num value, {String? currencyCode}) {
+  /// Formatea un número con separadores de miles y dos decimales, sin añadir símbolos de moneda.
+  static String formatNumber(num value) {
+    return NumberFormat("#,##0.00", "en_US").format(value);
+  }
+
+  /// Formatea un valor de forma compacta (ej. 1.5M)
+  static String formatCompact(
+    BuildContext context,
+    num value, {
+    String? currencyCode,
+  }) {
     final currencyProvider = Provider.of<CurrencyProvider>(
       context,
       listen: false,

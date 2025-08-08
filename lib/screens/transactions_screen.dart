@@ -12,6 +12,7 @@ import '../providers/sync_provider.dart';
 import '../utils/no_scrollbar_behavior.dart';
 import '../widgets/transaction_card.dart';
 import '../widgets/sync_message_state.dart';
+import '../utils/currency_utils.dart';
 
 class TransactionsScreen extends StatefulWidget {
   final String userId;
@@ -661,13 +662,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  (currencyProvider.currency == 'USD'
-                                      ? totalAbono.toStringAsFixed(2)
-                                      : (totalAbono *
-                                                (currencyProvider.rate > 0
-                                                    ? currencyProvider.rate
-                                                    : 1.0))
-                                            .toStringAsFixed(2)),
+                                  CurrencyUtils.formatNumber(
+                                    CurrencyUtils.convert(context, totalAbono),
+                                  ),
                                   style: TextStyle(
                                     color: Colors.green[700],
                                     fontWeight: FontWeight.bold,
@@ -712,13 +709,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  (currencyProvider.currency == 'USD'
-                                      ? totalDeuda.toStringAsFixed(2)
-                                      : (totalDeuda *
-                                                (currencyProvider.rate > 0
-                                                    ? currencyProvider.rate
-                                                    : 1.0))
-                                            .toStringAsFixed(2)),
+                                  CurrencyUtils.formatNumber(
+                                    CurrencyUtils.convert(context, totalDeuda),
+                                  ),
                                   style: TextStyle(
                                     color: Colors.red[700],
                                     fontWeight: FontWeight.bold,

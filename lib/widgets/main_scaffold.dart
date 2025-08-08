@@ -10,6 +10,7 @@ import '../providers/tab_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/currency_provider.dart';
 import '../providers/transaction_filter_provider.dart';
+import '../providers/client_provider.dart';
 import 'add_global_transaction_modal.dart';
 import 'faq_help_sheet.dart';
 
@@ -227,55 +228,68 @@ class _MainScaffoldState extends State<MainScaffold> {
                 onPressed: () {
                   showDialog(
                     context: context,
-                    builder: (ctx) => AlertDialog(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      title: const Text('¿Qué deseas registrar?'),
-                      content: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ElevatedButton.icon(
-                            icon: const Icon(Icons.person_add_alt_1),
-                            label: const Text('Cliente'),
-                            style: ElevatedButton.styleFrom(
-                              minimumSize: const Size(double.infinity, 44),
-                              backgroundColor: Colors.indigo,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            onPressed: () {
-                              Navigator.of(ctx).pop();
-                              _showClientForm();
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton.icon(
-                            icon: const Icon(Icons.add_card),
-                            label: const Text('Transacción'),
-                            style: ElevatedButton.styleFrom(
-                              minimumSize: const Size(double.infinity, 44),
-                              backgroundColor: Colors.deepPurple,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            onPressed: () {
-                              Navigator.of(ctx).pop();
-                              showDialog(
-                                context: context,
-                                builder: (ctx2) => AddGlobalTransactionModal(
-                                  userId: widget.userId,
+                    builder: (ctx) {
+                      final clientProvider = Provider.of<ClientProvider>(
+                        context,
+                        listen: false,
+                      );
+                      final hasClients = clientProvider.clients.isNotEmpty;
+
+                      return AlertDialog(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        title: const Text('¿Qué deseas registrar?'),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ElevatedButton.icon(
+                              icon: const Icon(Icons.person_add_alt_1),
+                              label: const Text('Cliente'),
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: const Size(double.infinity, 44),
+                                backgroundColor: Colors.indigo,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
+                              ),
+                              onPressed: () {
+                                Navigator.of(ctx).pop();
+                                _showClientForm();
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              icon: const Icon(Icons.add_card),
+                              label: const Text('Transacción'),
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: const Size(double.infinity, 44),
+                                backgroundColor: hasClients
+                                    ? Colors.deepPurple
+                                    : Colors.grey,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: hasClients
+                                  ? () {
+                                      Navigator.of(ctx).pop();
+                                      showDialog(
+                                        context: context,
+                                        builder: (ctx2) =>
+                                            AddGlobalTransactionModal(
+                                              userId: widget.userId,
+                                            ),
+                                      );
+                                    }
+                                  : null,
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   );
                 },
                 backgroundColor: const Color.fromARGB(255, 145, 88, 236),

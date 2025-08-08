@@ -973,7 +973,7 @@ class ClientsScreenState extends State<ClientsScreen>
                                             0,
                                             10,
                                             0,
-                                            kBottomNavigationBarHeight + 20,
+                                            kBottomNavigationBarHeight + 40,
                                           ),
                                           itemCount: clients.length,
                                           separatorBuilder: (_, __) =>

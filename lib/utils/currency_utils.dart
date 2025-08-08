@@ -28,17 +28,21 @@ class CurrencyUtils {
 
   /// Formatea el valor recibido tal cual, solo aplica separadores y símbolo según la moneda indicada.
   /// No realiza ninguna conversión, asume que el valor ya está en la moneda correcta.
-  static String format(BuildContext context, num value) {
-    final currencyProvider = Provider.of<CurrencyProvider>(context);
-    final currency = currencyProvider.currency;
-    final isUSD = currency == 'USD';
-    final rate = currencyProvider.rate > 0 ? currencyProvider.rate : 1.0;
-    final displayValue = isUSD ? value : value * rate;
-    final formattedNumber = NumberFormat(
-      "#,##0.00",
-      "en_US",
-    ).format(displayValue);
-    return isUSD ? 'USD $formattedNumber' : '$formattedNumber $currency';
+  static String format(
+    BuildContext context,
+    num value, {
+    String? currencyCode,
+  }) {
+    final currencyProvider = Provider.of<CurrencyProvider>(
+      context,
+      listen: false,
+    );
+    final code = currencyCode ?? currencyProvider.currency;
+    final isUSD = code == 'USD';
+
+    final formattedNumber = NumberFormat("#,##0.00", "en_US").format(value);
+
+    return isUSD ? 'USD $formattedNumber' : '$formattedNumber $code';
   }
 
   /// Formatea un número con separadores de miles y dos decimales, sin añadir símbolos de moneda.

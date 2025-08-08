@@ -379,8 +379,7 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                                                 alignment:
                                                     Alignment.centerRight,
                                                 child: Text(
-                                                  CurrencyUtils.format(
-                                                    context,
+                                                  CurrencyUtils.formatNumber(
                                                     e.value.abs(),
                                                   ),
                                                   style: TextStyle(
@@ -436,8 +435,7 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                                         child: Align(
                                           alignment: Alignment.centerRight,
                                           child: Text(
-                                            CurrencyUtils.format(
-                                              context,
+                                            CurrencyUtils.formatNumber(
                                               e.value.abs(),
                                             ),
                                             style: TextStyle(

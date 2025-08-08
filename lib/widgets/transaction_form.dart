@@ -28,7 +28,7 @@ class _TransactionFormState extends State<TransactionForm> {
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
   String? _type; // No seleccionado por defecto
-  String _currencyCode = 'VES';
+  String _currencyCode = 'USD';
   DateTime _selectedDate = DateTime.now();
   Client? _selectedClient;
   String? _error;

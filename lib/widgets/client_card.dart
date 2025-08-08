@@ -111,17 +111,19 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
     final clientTxs = txProvider.transactions.where(
       (t) => t.clientId == client.id,
     );
-    // Suma: si es "deuda" resta, si es "abono" suma
-    double usdBalance = 0.0;
+    // --- Cálculo de balance explícito para mayor claridad ---
+    double totalDebts = 0.0;
+    double totalPayments = 0.0;
     for (var t in clientTxs) {
       final value = t.anchorUsdValue ?? 0.0;
-      final type = t.type.toLowerCase();
-      if (type == 'debt') {
-        usdBalance -= value;
-      } else if (type == 'payment') {
-        usdBalance += value;
+      if (t.type.toLowerCase() == 'debt') {
+        totalDebts += value;
+      } else if (t.type.toLowerCase() == 'payment') {
+        totalPayments += value;
       }
     }
+    final usdBalance = totalPayments - totalDebts;
+
     // Color y mensaje según balance USD
     Color balanceColor;
     String balanceMessage;
@@ -558,10 +560,11 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                                   child: Center(
                                     child: Text(
                                       balanceMessage,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 12,
                                         fontStyle: FontStyle.italic,
-                                        color: Colors.black54,
+                                        color:
+                                            balanceColor, // <-- CORRECCIÓN AQUÍ
                                       ),
                                     ),
                                   ),

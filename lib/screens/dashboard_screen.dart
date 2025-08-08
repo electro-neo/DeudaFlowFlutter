@@ -614,44 +614,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                 size: 28,
                                               ),
                                             ),
-                                            title: Text(
-                                              tx.description,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 16,
-                                                color: Colors.deepPurple,
-                                                shadows: [
-                                                  Shadow(
-                                                    color: Colors.white,
-                                                    offset: Offset(0, 0),
-                                                    blurRadius: 6,
+                                            title: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  tx.description,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 16,
+                                                    color: Colors.deepPurple,
                                                   ),
-                                                ],
-                                              ),
-                                            ),
-                                            subtitle: Text(
-                                              'Cliente: $clientName',
-                                              style: const TextStyle(
-                                                fontSize: 13,
-                                                color: Color(0xFF7B7B7B),
-                                              ),
-                                            ),
-                                            trailing: Text(
-                                              amountText,
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 16,
-                                                color: tx.type == 'debt'
-                                                    ? const Color(0xFFD32F2F)
-                                                    : const Color(0xFF388E3C),
-                                                shadows: const [
-                                                  Shadow(
-                                                    color: Colors.white,
-                                                    offset: Offset(0, 0),
-                                                    blurRadius: 6,
+                                                ),
+                                                Text(
+                                                  'Cliente: $clientName',
+                                                  style: const TextStyle(
+                                                    fontSize: 13,
+                                                    color: Color(0xFF7B7B7B),
                                                   ),
-                                                ],
-                                              ),
+                                                ),
+                                                const SizedBox(height: 8),
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.end,
+                                                  children: [
+                                                    Text(
+                                                      amountText,
+                                                      style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: 16,
+                                                        color: tx.type == 'debt'
+                                                            ? const Color(
+                                                                0xFFD32F2F,
+                                                              )
+                                                            : const Color(
+                                                                0xFF388E3C,
+                                                              ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
                                             ),
                                           ),
                                         ),

@@ -143,52 +143,31 @@ class ClientsScreenState extends State<ClientsScreen>
     }
 
     if (isMobile) {
+      // --- IMPLEMENTACIÓN SIMPLIFICADA Y MÁS ESTABLE ---
       await showModalBottomSheet(
         context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
+        isScrollControlled:
+            true, // Permite que el bottom sheet se ajuste al teclado
+        backgroundColor: Colors.white,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
         builder: (context) {
-          final maxHeight = MediaQuery.of(context).size.height * 0.92;
-          return DraggableScrollableSheet(
-            expand: false,
-            initialChildSize: 0.7,
-            minChildSize: 0.5,
-            maxChildSize: 0.92,
-            builder: (context, scrollController) {
-              return Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(24),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha((0.15 * 255).toInt()),
-                      blurRadius: 12,
-                      offset: const Offset(0, -2),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxHeight: maxHeight),
-                  child: SingleChildScrollView(
-                    controller: scrollController,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        TransactionForm(
-                          userId: widget.userId,
-                          onSave: handleTransactionSave,
-                          onClose: () => Navigator.of(context).pop(),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
+          return Padding(
+            // Este padding asegura que el contenido se mueva hacia arriba cuando aparece el teclado
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+              left: 16,
+              right: 16,
+              top: 20,
+            ),
+            child: SingleChildScrollView(
+              child: TransactionForm(
+                userId: widget.userId,
+                onSave: handleTransactionSave,
+                onClose: () => Navigator.of(context).pop(),
+              ),
+            ),
           );
         },
       );

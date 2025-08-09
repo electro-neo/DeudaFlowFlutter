@@ -34,6 +34,9 @@ class _TransactionFormState extends State<TransactionForm> {
   String? _error;
   bool _loading = false;
 
+  final _rateController = TextEditingController(); // NUEVO
+  bool _rateFieldVisible = false; // NUEVO
+
   final List<Client> clients = [];
   // TODO: Reemplaza esto por la obtención real de clientes desde Provider o base de datos
   // Ejemplo: final clients = Provider.of<ClientProvider>(context).clients;
@@ -53,7 +56,6 @@ class _TransactionFormState extends State<TransactionForm> {
       _loading = true;
     });
     void logError(String message) {
-      // Reemplaza por tu logger preferido si tienes uno global, por ejemplo: logger.e(message);
       debugPrint('[TransactionForm ERROR] $message');
     }
 
@@ -98,6 +100,34 @@ class _TransactionFormState extends State<TransactionForm> {
       });
       logError('Descripción obligatoria');
       return;
+    }
+    // Validar y guardar tasa solo si el campo está visible
+    if (_rateFieldVisible) {
+      final rateText = _rateController.text.replaceAll(',', '.');
+      final rateValue = double.tryParse(rateText);
+      if (rateValue == null || rateValue <= 0) {
+        setState(() {
+          _error = 'Ingrese una tasa válida';
+          _loading = false;
+        });
+        logError('Tasa inválida');
+        return;
+      } else {
+        final currencyProvider = Provider.of<CurrencyProvider>(
+          context,
+          listen: false,
+        );
+        // Agregar la moneda manualmente si no existe
+        if (!currencyProvider.availableCurrencies.contains(
+          _currencyCode.toUpperCase(),
+        )) {
+          currencyProvider.addManualCurrency(_currencyCode.toUpperCase());
+        }
+        currencyProvider.setRateForCurrency(
+          _currencyCode.toUpperCase(),
+          rateValue,
+        );
+      }
     }
     try {
       final now = DateTime.now();
@@ -208,6 +238,19 @@ class _TransactionFormState extends State<TransactionForm> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final symbol = "";
+    final currencyProvider = Provider.of<CurrencyProvider>(context);
+    final allowedCurrencies = CurrencyProvider.allowedCurrencies;
+
+    // NUEVO: Determinar si falta la tasa
+    final rateMissing =
+        _currencyCode.toUpperCase() != 'USD' &&
+        (currencyProvider.exchangeRates[_currencyCode.toUpperCase()] == null ||
+            currencyProvider.exchangeRates[_currencyCode.toUpperCase()] == 0);
+    _rateFieldVisible = rateMissing;
+    final rateValid =
+        double.tryParse(_rateController.text.replaceAll(',', '.')) != null &&
+        double.parse(_rateController.text.replaceAll(',', '.')) > 0;
+
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -434,37 +477,9 @@ class _TransactionFormState extends State<TransactionForm> {
                             items:
                                 [
                                       'USD',
-                                      'VES',
-                                      'COP',
-                                      'EUR',
-                                      'ARS',
-                                      'BRL',
-                                      'CLP',
-                                      'MXN',
-                                      'PEN',
-                                      'BOB',
-                                      'PYG',
-                                      'UYU',
-                                      'CRC',
-                                      'GTQ',
-                                      'HNL',
-                                      'NIO',
-                                      'DOP',
-                                      'CUC',
-                                      'CAD',
-                                      'GBP',
-                                      'JPY',
-                                      'CNY',
-                                      'KRW',
-                                      'INR',
-                                      'TRY',
-                                      'RUB',
-                                      'CHF',
-                                      'AUD',
-                                      'NZD',
-                                      'SGD',
-                                      'HKD',
-                                      'ZAR',
+                                      ...allowedCurrencies.where(
+                                        (code) => code != 'USD',
+                                      ),
                                     ]
                                     .map(
                                       (code) => DropdownMenuItem(
@@ -476,15 +491,38 @@ class _TransactionFormState extends State<TransactionForm> {
                             onChanged: (code) {
                               setState(() {
                                 _currencyCode = code ?? 'VES';
+                                _rateController.text = '';
                               });
                             },
                             dropdownColor: Colors.white,
-                            menuMaxHeight:
-                                180, // Limita la altura del menú desplegable
+                            menuMaxHeight: 180,
                           ),
                         ),
                       ],
                     ),
+                    // NUEVO: Campo de tasa si falta
+                    if (_rateFieldVisible)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10.0, bottom: 4.0),
+                        child: TextField(
+                          controller: _rateController,
+                          decoration: InputDecoration(
+                            labelText:
+                                'Tasa ${_currencyCode.toUpperCase()} a USD',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                            prefixIcon: Icon(Icons.attach_money_rounded),
+                            errorText:
+                                _rateController.text.isNotEmpty && !rateValid
+                                ? 'Ingrese una tasa válida (> 0)'
+                                : null,
+                          ),
+                          keyboardType: TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ),
                     const SizedBox(height: 12),
                     GestureDetector(
                       onTap: _pickDate,

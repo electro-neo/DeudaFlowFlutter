@@ -338,9 +338,10 @@ class _ClientFormState extends State<ClientForm> {
     String newId =
         widget.initialClient?.id ??
         DateTime.now().millisecondsSinceEpoch.toString();
+    final name = capitalizeWords(_nameController.text.trim());
     final client = ClientHive(
       id: newId,
-      name: _nameController.text.trim(),
+      name: name,
       address: _addressController.text.trim(),
       phone: phoneText,
       balance: type == 'debt' ? -balance : balance,
@@ -398,6 +399,17 @@ class _ClientFormState extends State<ClientForm> {
         _isSaving = false;
       });
     }
+  }
+
+  String capitalizeWords(String name) {
+    return name
+        .split(' ')
+        .map(
+          (word) => word.isEmpty
+              ? ''
+              : '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}',
+        )
+        .join(' ');
   }
 
   @override

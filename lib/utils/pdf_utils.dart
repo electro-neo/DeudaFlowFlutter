@@ -25,6 +25,12 @@ String formatAmount(num value, {String symbol = '', int decimals = 2}) {
   return '$safeSymbol$intPart$decPart';
 }
 
+String getCurrencyLabel(String symbol) {
+  if (symbol == 'COP') return 'COP(Pesos)';
+  if (symbol == 'VES') return 'VES(Bs)';
+  return symbol;
+}
+
 // --- PDF builder para recibo general con movimientos filtrados ---
 pw.Document buildGeneralReceiptWithMovementsPDF(
   List<Map<String, dynamic>> filtered, {
@@ -220,6 +226,15 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
 
             // --- TOTALES POR CLIENTE ---
             widgets.add(pw.SizedBox(height: 8));
+            final double saldoPendiente = totalDeudaUSD - totalAbonoUSD;
+            String etiquetaDeuda;
+            if (saldoPendiente < 0) {
+              etiquetaDeuda = 'Saldo a favor del cliente:';
+            } else if (saldoPendiente == 0) {
+              etiquetaDeuda = 'Sin deuda:';
+            } else {
+              etiquetaDeuda = 'Deuda Pendiente:';
+            }
             widgets.add(
               pw.Container(
                 alignment: pw.Alignment.centerRight,
@@ -227,12 +242,12 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                   mainAxisSize: pw.MainAxisSize.min,
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    // --- Columna Total Deuda ---
+                    // --- Columna Total Deuda (ajustada: deuda - abono) ---
                     pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
                         pw.Text(
-                          'Total Deuda:',
+                          etiquetaDeuda,
                           style: pw.TextStyle(
                             fontWeight: pw.FontWeight.bold,
                             fontSize: 12,
@@ -240,15 +255,15 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                         ),
                         pw.SizedBox(height: 2),
                         pw.Text(
-                          formatAmount(totalDeudaUSD, symbol: 'USD'),
+                          formatAmount(saldoPendiente, symbol: 'USD'),
                           style: const pw.TextStyle(fontSize: 11),
                         ),
                         if (convertCurrency) ...[
                           pw.SizedBox(height: 1),
                           pw.Text(
                             formatAmount(
-                              totalDeudaUSD * conversionRate!,
-                              symbol: currencySymbol,
+                              saldoPendiente * conversionRate!,
+                              symbol: getCurrencyLabel(currencySymbol),
                             ),
                             style: const pw.TextStyle(fontSize: 11),
                           ),
@@ -256,12 +271,12 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                       ],
                     ),
                     pw.SizedBox(width: 24), // Espacio entre columnas
-                    // --- Columna Total Abono ---
+                    // --- Columna Total Abono (opcional, puedes dejarla si la necesitas) ---
                     pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
                         pw.Text(
-                          'Total Abono:',
+                          'Total Abonado:',
                           style: pw.TextStyle(
                             fontWeight: pw.FontWeight.bold,
                             fontSize: 12,
@@ -277,7 +292,7 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                           pw.Text(
                             formatAmount(
                               totalAbonoUSD * conversionRate!,
-                              symbol: currencySymbol,
+                              symbol: getCurrencyLabel(currencySymbol),
                             ),
                             style: const pw.TextStyle(fontSize: 11),
                           ),

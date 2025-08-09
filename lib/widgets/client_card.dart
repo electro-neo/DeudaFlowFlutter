@@ -150,6 +150,16 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
     final firstLetter = client.name.isNotEmpty
         ? client.name[0].toUpperCase()
         : '?';
+
+    final displayName = client.name
+        .split(' ')
+        .map((word) {
+          if (word.isEmpty) return '';
+          // Capitaliza la primera letra y pone el resto en minúsculas para un formato consistente.
+          return '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}';
+        })
+        .join(' ');
+
     return Card(
       color: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -192,7 +202,7 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                   child: GestureDetector(
                     onTap: _openModal,
                     child: Text(
-                      client.name,
+                      displayName,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,

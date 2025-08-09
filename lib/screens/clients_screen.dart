@@ -292,22 +292,26 @@ class ClientsScreenState extends State<ClientsScreen>
         }
       }
     });
+
+    // --- OPTIMIZACIÓN: Flujo de Sincronización Mejorado ---
+    // Se eliminó el bucle de sondeo (polling) que recargaba los clientes
+    // repetidamente, lo cual era ineficiente. El nuevo flujo es más rápido y robusto.
+
+    // 1. Se envían todos los cambios locales al servidor (push).
+    // Se mantienen secuenciales para evitar condiciones de carrera.
     await provider.syncPendingClients(widget.userId);
     await provider.cleanLocalPendingDeletedClients();
     await txProvider.syncPendingTransactions(widget.userId);
     await txProvider.cleanLocalOrphanTransactions();
-    int intentos = 0;
-    bool hayPendientes;
-    do {
-      await provider.loadClients(widget.userId);
-      final box = Hive.box<ClientHive>('clients');
-      hayPendientes = box.values.any((c) => c.pendingDelete == true);
-      if (hayPendientes) {
-        await Future.delayed(const Duration(milliseconds: 500));
-      }
-      intentos++;
-    } while (hayPendientes && intentos < 8);
-    await txProvider.loadTransactions(widget.userId);
+
+    // 2. Se recarga toda la información desde el servidor (pull) una sola vez.
+    // Las cargas de clientes y transacciones se ejecutan en paralelo para
+    // acelerar el proceso, ya que son independientes entre sí.
+    await Future.wait([
+      provider.loadClients(widget.userId),
+      txProvider.loadTransactions(widget.userId)
+    ]);
+
     if (mounted) {
       setState(() {
         _isSyncing = false;
@@ -375,6 +379,10 @@ class ClientsScreenState extends State<ClientsScreen>
               await provider.loadClients(widget.userId);
               if (newClient.balance != 0) {
                 final now = DateTime.now();
+                // FIX: Normalizar la fecha de la transacción a medianoche.
+                // La hora del día se captura en `createdAt`. Esto asegura que la
+                // clave de ordenamiento principal (date) sea consistente.
+                final transactionDate = DateTime(now.year, now.month, now.day);
                 final tx = Transaction(
                   id: DateTime.now().millisecondsSinceEpoch.toString(),
                   clientId: realId,
@@ -382,7 +390,7 @@ class ClientsScreenState extends State<ClientsScreen>
                   type: newClient.balance > 0 ? 'payment' : 'debt',
                   amount: newClient.balance.abs(),
                   description: 'Saldo inicial',
-                  date: now,
+                  date: transactionDate,
                   createdAt: now,
                   synced: false,
                   currencyCode: newClient.currencyCode,

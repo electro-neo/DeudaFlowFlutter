@@ -293,6 +293,15 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     String? selectedClientId,
     String? selectedType,
   ) {
+    // Ordenar por fecha de transacción descendente (más reciente primero).
+    // Si las fechas son iguales, se ordena por fecha de creación.
+    transactions.sort((a, b) {
+      final dateCmp = b.date.compareTo(a.date);
+      if (dateCmp != 0) return dateCmp;
+      // Para transacciones en el mismo día, la más nueva (recién creada) va primero.
+      return b.createdAt.compareTo(a.createdAt);
+    });
+
     final clientProvider = Provider.of<ClientProvider>(context, listen: false);
     final syncProvider = Provider.of<SyncProvider?>(context, listen: false);
     bool isOffline = false;

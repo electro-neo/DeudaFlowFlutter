@@ -68,6 +68,12 @@ class Transaction {
   }
 
   static Transaction fromHive(dynamic t) {
+    // --- FIX: Normalizar la fecha al cargar desde la base de datos local (Hive). ---
+    // La fecha cruda de Hive ('t.date') puede contener la hora.
+    final rawDate = t.date as DateTime;
+    // Se normaliza el campo 'date' para el ordenamiento principal (agrupar por día).
+    final normalizedDate = DateTime(rawDate.year, rawDate.month, rawDate.day);
+
     final tx = Transaction(
       id: t.id,
       clientId: t.clientId,
@@ -75,8 +81,8 @@ class Transaction {
       type: t.type,
       amount: t.amount,
       description: t.description,
-      date: t.date,
-      createdAt: t.date, // Solo usa date, TransactionHive no tiene createdAt
+      date: normalizedDate, // Fecha normalizada para ordenar por día.
+      createdAt: rawDate, // Fecha original con hora para desempatar.
       synced: t.synced,
       pendingDelete: t.pendingDelete,
       localId: t.localId,
@@ -90,6 +96,12 @@ class Transaction {
   }
 
   factory Transaction.fromMap(Map<String, dynamic> map) {
+    // --- FIX: Normalizar la fecha al cargar desde Supabase. ---
+    // Se asegura que el campo 'date' solo contenga la fecha (a medianoche).
+    // Esto es crucial para que el ordenamiento funcione con datos existentes.
+    final rawDate = DateTime.parse(map['date'] as String);
+    final normalizedDate = DateTime(rawDate.year, rawDate.month, rawDate.day);
+
     final tx = Transaction(
       id: map['id']?.toString() ?? '',
       clientId: map['client_id']?.toString() ?? '',
@@ -97,7 +109,7 @@ class Transaction {
       type: map['type'],
       amount: (map['amount'] as num?)?.toDouble() ?? 0.0,
       description: map['description'] ?? '',
-      date: DateTime.parse(map['date']),
+      date: normalizedDate, // Fecha normalizada para ordenar por día.
       createdAt: DateTime.parse(map['created_at']),
       synced: map['synced'] is bool
           ? map['synced'] as bool

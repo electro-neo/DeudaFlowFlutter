@@ -264,8 +264,8 @@ class TransactionProvider extends ChangeNotifier {
               id: remote.id,
               clientId: localMatch.clientId,
               type: localMatch.type,
-              amount: localMatch.amount,
-              date: localMatch.date,
+              amount: localMatch.amount, // Esto es la fecha y hora completa
+              date: localMatch.date, // Esto es la fecha y hora completa
               description: localMatch.description,
               synced: true,
               pendingDelete: false,
@@ -301,7 +301,7 @@ class TransactionProvider extends ChangeNotifier {
               clientId: t.clientId,
               type: t.type,
               amount: t.amount,
-              date: t.date,
+              date: t.createdAt, // FIX: Guardar la fecha y hora completa para el ordenamiento
               description: t.description,
               synced: true,
               pendingDelete: false,
@@ -482,7 +482,7 @@ class TransactionProvider extends ChangeNotifier {
             clientId: txWithLocalId.clientId,
             type: txWithLocalId.type,
             amount: txWithLocalId.amount,
-            date: txWithLocalId.date,
+            date: txWithLocalId.createdAt, // FIX: Guardar la fecha y hora completa para el ordenamiento
             description: txWithLocalId.description,
             synced: true,
             pendingDelete: false,
@@ -500,7 +500,7 @@ class TransactionProvider extends ChangeNotifier {
             clientId: txWithLocalId.clientId,
             type: txWithLocalId.type,
             amount: txWithLocalId.amount,
-            date: txWithLocalId.date,
+            date: txWithLocalId.createdAt, // FIX: Guardar la fecha y hora completa para el ordenamiento
             description: txWithLocalId.description,
             synced: false,
             pendingDelete: false,
@@ -519,7 +519,7 @@ class TransactionProvider extends ChangeNotifier {
           clientId: txWithLocalId.clientId,
           type: txWithLocalId.type,
           amount: txWithLocalId.amount,
-          date: txWithLocalId.date,
+          date: txWithLocalId.createdAt, // FIX: Guardar la fecha y hora completa para el ordenamiento
           description: txWithLocalId.description,
           synced: false,
           pendingDelete: false,
@@ -549,7 +549,7 @@ class TransactionProvider extends ChangeNotifier {
           t
             ..type = tx.type
             ..amount = tx.amount
-            ..date = tx.date
+          ..date = tx.createdAt // FIX: Guardar la fecha y hora completa para el ordenamiento
             ..synced = false;
           await t.save();
         }
@@ -562,7 +562,7 @@ class TransactionProvider extends ChangeNotifier {
         t
           ..type = tx.type
           ..amount = tx.amount
-          ..date = tx.date
+          ..date = tx.createdAt // FIX: Guardar la fecha y hora completa para el ordenamiento
           ..synced = false;
         await t.save();
       }

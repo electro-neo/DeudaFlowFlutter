@@ -56,7 +56,8 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
   final _descriptionController = TextEditingController();
   String? _type;
   String _currencyCode = 'USD';
-  DateTime _selectedDate = DateTime.now();
+  // FIX: Normalizar la fecha inicial a medianoche para evitar que la hora interfiera con el ordenamiento.
+  DateTime _selectedDate = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
   Client? _selectedClient;
   String? _error;
   bool _loading = false;
@@ -181,6 +182,10 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
           '\u001b[41m[GLOBAL_FORM][CALC][WARN] No rate for currency=$_currencyCode, anchorUsdValue=null\u001b[0m',
         );
       }
+      // FIX: Asegurar que la fecha de la transacción siempre se guarde sin la hora (a medianoche).
+      // La hora real de creación se guarda en `createdAt`. Esto es crucial para la consistencia del ordenamiento.
+      final normalizedDate = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+
       final transaction = Transaction(
         id: localId, // id local único
         clientId: _selectedClient!.id,
@@ -188,7 +193,7 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
         type: _type!,
         amount: amount,
         description: _descriptionController.text,
-        date: _selectedDate,
+        date: normalizedDate,
         createdAt: now,
         localId: localId,
         currencyCode: _currencyCode,
@@ -207,12 +212,16 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
         widget.userId,
         _selectedClient!.id,
       );
-      // Refresca la lista de clientes y notifica a la UI para actualizar el statscard inmediatamente
+      // --- FIX: Recargar clientes Y transacciones para reconstruir la lista ---
+      // Es crucial recargar ambas listas para que la UI refleje el nuevo
+      // estado inmediatamente y con el orden correcto. La lista de transacciones
+      // necesita ser reconstruida para mostrar el nuevo ítem.
       if (!mounted) return;
-      await Provider.of<ClientProvider>(
-        context,
-        listen: false,
-      ).loadClients(widget.userId);
+      final clientProvider = Provider.of<ClientProvider>(context, listen: false);
+      // Se recargan las transacciones para que la nueva aparezca inmediatamente.
+      await txProvider.loadTransactions(widget.userId);
+      // Se recargan los clientes para actualizar los saldos.
+      await clientProvider.loadClients(widget.userId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Transacción guardada correctamente')),

@@ -394,81 +394,59 @@ class _MainScaffoldState extends State<MainScaffold> {
                                             // ...
                                             // Botón para recargar el tema desde JSON eliminado
                                             const SizedBox(height: 12),
-                                            // Botón original de gestionar monedas
+                                            // Botón para gestionar monedas, con estilo y tamaño consistentes
                                             Consumer<CurrencyProvider>(
                                               builder: (context, currencyProvider, _) {
-                                                return Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [
-                                                    ElevatedButton(
-                                                      style: ElevatedButton.styleFrom(
-                                                        backgroundColor:
-                                                            Colors.white,
-                                                        foregroundColor:
-                                                            Colors.indigo,
-                                                        elevation: 0,
-                                                        side: const BorderSide(
-                                                          color: Colors.indigo,
-                                                        ),
-                                                        shape: RoundedRectangleBorder(
-                                                          borderRadius:
-                                                              BorderRadius.circular(
-                                                                12,
-                                                              ),
-                                                        ),
-                                                        minimumSize: const Size(
-                                                          80,
-                                                          36,
-                                                        ),
-                                                      ),
-                                                      child: Row(
-                                                        children: [
-                                                          const Icon(
-                                                            Icons
-                                                                .attach_money_rounded,
-                                                            size: 18,
-                                                          ),
-                                                          const SizedBox(
-                                                            width: 6,
-                                                          ),
-                                                          Text(
-                                                            'Gestionar monedas',
-                                                            style:
-                                                                const TextStyle(
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w500,
-                                                                ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                      onPressed: () {
-                                                        final monedasConTasa =
-                                                            currencyProvider
-                                                                .exchangeRates
-                                                                .entries
-                                                                .where(
-                                                                  (e) =>
-                                                                      e.key !=
-                                                                      'USD',
-                                                                )
-                                                                .map(
-                                                                  (e) =>
-                                                                      '${e.key}: ${e.value}',
-                                                                )
-                                                                .toList();
-                                                        debugPrint(
-                                                          '[DEBUG][GESTION MONEDAS] Monedas con tasa registrada: ${monedasConTasa.join(', ')}',
-                                                        );
-                                                        showDialog(
-                                                          context: context,
-                                                          builder: (ctx2) =>
-                                                              const CurrencyManagerDialog(),
-                                                        );
-                                                      },
+                                                final onPressedAction = () {
+                                                  final monedasConTasa =
+                                                      currencyProvider
+                                                          .exchangeRates
+                                                          .entries
+                                                          .where(
+                                                            (e) =>
+                                                                e.key != 'USD',
+                                                          )
+                                                          .map(
+                                                            (e) =>
+                                                                '${e.key}: ${e.value}',
+                                                          )
+                                                          .toList();
+                                                  debugPrint(
+                                                    '[DEBUG][GESTION MONEDAS] Monedas con tasa registrada: ${monedasConTasa.join(', ')}',
+                                                  );
+                                                  showDialog(
+                                                    context: context,
+                                                    builder: (ctx2) =>
+                                                        const CurrencyManagerDialog(),
+                                                  );
+                                                };
+
+                                                return ScaleOnTap(
+                                                  duration: scaleTapDuration,
+                                                  onTap: onPressedAction,
+                                                  child: ElevatedButton.icon(
+                                                    icon: const Icon(
+                                                      Icons.attach_money_rounded,
+                                                      color: Colors.indigo,
                                                     ),
-                                                  ],
+                                                    label: const Text(
+                                                      'Gestionar monedas',
+                                                      style: TextStyle(
+                                                        color: Colors.indigo,
+                                                      ),
+                                                    ),
+                                                    style: ElevatedButton.styleFrom(
+                                                      backgroundColor:
+                                                          Colors.white,
+                                                      foregroundColor:
+                                                          Colors.indigo,
+                                                      elevation: 0,
+                                                      side: const BorderSide(
+                                                        color: Colors.indigo,
+                                                      ),
+                                                    ),
+                                                    onPressed: onPressedAction,
+                                                  ),
                                                 );
                                               },
                                             ),

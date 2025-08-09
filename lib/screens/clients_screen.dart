@@ -768,47 +768,12 @@ class ClientsScreenState extends State<ClientsScreen>
                                             );
                                             if (confirm == true) {
                                               for (final client in allClients) {
-                                                await provider.deleteClient(
-                                                  client.id,
-                                                  widget.userId,
-                                                );
+                                                // Se asume que deleteClient marca al cliente para ser eliminado localmente.
+                                                // La sincronización se manejará de forma centralizada.
+                                                provider.deleteClient(client.id, widget.userId);
                                               }
-                                              await provider
-                                                  .cleanLocalPendingDeletedClients();
-                                              await provider.syncPendingClients(
-                                                widget.userId,
-                                              );
-                                              await txProvider
-                                                  .syncPendingTransactions(
-                                                    widget.userId,
-                                                  );
-                                              int intentos = 0;
-                                              bool hayPendientes;
-                                              do {
-                                                await provider.loadClients(
-                                                  widget.userId,
-                                                );
-                                                final box =
-                                                    Hive.box<ClientHive>(
-                                                      'clients',
-                                                    );
-                                                hayPendientes = box.values.any(
-                                                  (c) =>
-                                                      c.pendingDelete == true,
-                                                );
-                                                if (hayPendientes) {
-                                                  await Future.delayed(
-                                                    const Duration(
-                                                      milliseconds: 500,
-                                                    ),
-                                                  );
-                                                }
-                                                intentos++;
-                                              } while (hayPendientes &&
-                                                  intentos < 8);
-                                              await txProvider.loadTransactions(
-                                                widget.userId,
-                                              );
+                                              // Llamar a la función de sincronización centralizada y optimizada.
+                                              await _syncAll();
                                               if (mounted) {
                                                 final isOnline =
                                                     await txProvider.isOnline();

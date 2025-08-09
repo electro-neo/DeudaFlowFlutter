@@ -404,11 +404,6 @@ class TransactionProvider extends ChangeNotifier {
       );
       shouldUpdateRemote = true;
     } else {
-      debugPrint(
-        '>>> [recalculateClientBalance] Balance sin cambios en Hive, pero se forzará actualización remota',
-      );
-      shouldUpdateRemote =
-          true; // Forzar actualización remota SIEMPRE tras sync
     }
     // Refresca la UI y notifica listeners SIEMPRE, aunque falle Supabase
     try {

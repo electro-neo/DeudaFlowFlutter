@@ -228,12 +228,16 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
             widgets.add(pw.SizedBox(height: 8));
             final double saldoPendiente = totalDeudaUSD - totalAbonoUSD;
             String etiquetaDeuda;
+            double montoMostrar;
             if (saldoPendiente < 0) {
               etiquetaDeuda = 'Saldo a favor del cliente:';
+              montoMostrar = saldoPendiente.abs();
             } else if (saldoPendiente == 0) {
               etiquetaDeuda = 'Sin deuda:';
+              montoMostrar = 0;
             } else {
               etiquetaDeuda = 'Deuda Pendiente:';
+              montoMostrar = saldoPendiente;
             }
             widgets.add(
               pw.Container(
@@ -255,14 +259,14 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                         ),
                         pw.SizedBox(height: 2),
                         pw.Text(
-                          formatAmount(saldoPendiente, symbol: 'USD'),
+                          formatAmount(montoMostrar, symbol: 'USD'),
                           style: const pw.TextStyle(fontSize: 11),
                         ),
                         if (convertCurrency) ...[
                           pw.SizedBox(height: 1),
                           pw.Text(
                             formatAmount(
-                              saldoPendiente * conversionRate!,
+                              montoMostrar * conversionRate!,
                               symbol: getCurrencyLabel(currencySymbol),
                             ),
                             style: const pw.TextStyle(fontSize: 11),

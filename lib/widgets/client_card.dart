@@ -287,200 +287,202 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
           ),
           AnimatedCrossFade(
             firstChild: const SizedBox.shrink(key: ValueKey('collapsed')),
-            secondChild: Padding(
-              key: const ValueKey('expanded'),
-              padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
-              child: Column(
-                children: [
-                  // La columna de datos del cliente ha sido eliminada.
-                  // La columna de balance ahora ocupa todo el ancho.
-                  Container(
-                    margin: const EdgeInsets.only(
-                      left: 16,
-                      right: 16,
-                      top: 8,
-                      bottom: 8,
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.indigo.withOpacity(0.06),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.max,
-                        children: [
-                          Container(
-                            width: double.infinity,
-                            height: 22,
-                            decoration: BoxDecoration(
-                              color: Colors.indigo.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(4),
+            secondChild: ClipRect(
+              child: Padding(
+                key: const ValueKey('expanded'),
+                padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+                child: Column(
+                  children: [
+                    // La columna de datos del cliente ha sido eliminada.
+                    // La columna de balance ahora ocupa todo el ancho.
+                    Container(
+                      margin: const EdgeInsets.only(
+                        left: 16,
+                        right: 16,
+                        top: 8,
+                        bottom: 8,
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.indigo.withOpacity(0.06),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.max,
+                          children: [
+                            Container(
+                              width: double.infinity,
+                              height: 22,
+                              decoration: BoxDecoration(
+                                color: Colors.indigo.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              padding: const EdgeInsets.only(
+                                right: 0,
+                                left: 0,
+                                top: 0,
+                                bottom: 0,
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Balance',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                      letterSpacing: 0.5,
+                                      color: Colors.indigo,
+                                    ),
+                                    textAlign: TextAlign.left,
+                                  ),
+                                ],
+                              ),
                             ),
-                            padding: const EdgeInsets.only(
-                              right: 0,
-                              left: 0,
-                              top: 0,
-                              bottom: 0,
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'Balance',
+                            if (balancesList.length > 3)
+                              SizedBox(
+                                height:
+                                    4 *
+                                    18.0, // USD + 3 monedas visibles, luego scroll
+                                child: Scrollbar(
+                                  thumbVisibility: true,
+                                  child: SingleChildScrollView(
+                                    child: Table(
+                                      columnWidths: const {
+                                        0: IntrinsicColumnWidth(),
+                                        1: FlexColumnWidth(),
+                                      },
+                                      defaultVerticalAlignment:
+                                          TableCellVerticalAlignment.middle,
+                                      children: [
+                                        ...balancesList.map(
+                                          (e) => TableRow(
+                                            children: [
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                  bottom: 2,
+                                                  right: 8,
+                                                ),
+                                                child: Align(
+                                                  alignment:
+                                                      Alignment.centerRight,
+                                                  child: Text(
+                                                    e.key,
+                                                    style: const TextStyle(
+                                                      fontWeight: FontWeight.w600,
+                                                      fontSize: 13,
+                                                      color: Colors.indigo,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                  bottom: 2,
+                                                ),
+                                                child: Align(
+                                                  alignment:
+                                                      Alignment.centerRight,
+                                                  child: Text(
+                                                    CurrencyUtils.formatNumber(
+                                                      e.value.abs(),
+                                                    ),
+                                                    style: TextStyle(
+                                                      fontWeight: FontWeight.bold,
+                                                      fontSize: 15,
+                                                      color: balanceColor,
+                                                    ),
+                                                    textAlign: TextAlign.right,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              )
+                            else
+                              Table(
+                                columnWidths: const {
+                                  0: IntrinsicColumnWidth(),
+                                  1: FlexColumnWidth(),
+                                },
+                                defaultVerticalAlignment:
+                                    TableCellVerticalAlignment.middle,
+                                children: [
+                                  ...balancesList.map(
+                                    (e) => TableRow(
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 2,
+                                            right: 8,
+                                          ),
+                                          child: Align(
+                                            alignment: Alignment.centerRight,
+                                            child: Text(
+                                              e.key,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 13,
+                                                color: Colors.indigo,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 2,
+                                          ),
+                                          child: Align(
+                                            alignment: Alignment.centerRight,
+                                            child: Text(
+                                              CurrencyUtils.formatNumber(
+                                                e.value.abs(),
+                                              ),
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 15,
+                                                color: balanceColor,
+                                              ),
+                                              textAlign: TextAlign.right,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            // Mensaje de balance movido aquí
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Center(
+                                child: Text(
+                                  balanceMessage,
                                   style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
-                                    letterSpacing: 0.5,
-                                    color: Colors.indigo,
-                                  ),
-                                  textAlign: TextAlign.left,
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (balancesList.length > 3)
-                            SizedBox(
-                              height:
-                                  4 *
-                                  18.0, // USD + 3 monedas visibles, luego scroll
-                              child: Scrollbar(
-                                thumbVisibility: true,
-                                child: SingleChildScrollView(
-                                  child: Table(
-                                    columnWidths: const {
-                                      0: IntrinsicColumnWidth(),
-                                      1: FlexColumnWidth(),
-                                    },
-                                    defaultVerticalAlignment:
-                                        TableCellVerticalAlignment.middle,
-                                    children: [
-                                      ...balancesList.map(
-                                        (e) => TableRow(
-                                          children: [
-                                            Padding(
-                                              padding: const EdgeInsets.only(
-                                                bottom: 2,
-                                                right: 8,
-                                              ),
-                                              child: Align(
-                                                alignment:
-                                                    Alignment.centerRight,
-                                                child: Text(
-                                                  e.key,
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.w600,
-                                                    fontSize: 13,
-                                                    color: Colors.indigo,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                            Padding(
-                                              padding: const EdgeInsets.only(
-                                                bottom: 2,
-                                              ),
-                                              child: Align(
-                                                alignment:
-                                                    Alignment.centerRight,
-                                                child: Text(
-                                                  CurrencyUtils.formatNumber(
-                                                    e.value.abs(),
-                                                  ),
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 15,
-                                                    color: balanceColor,
-                                                  ),
-                                                  textAlign: TextAlign.right,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
+                                    fontSize: 12,
+                                    fontStyle: FontStyle.italic,
+                                    color: balanceColor, // <-- CORRECCIÓN AQUÍ
                                   ),
                                 ),
                               ),
-                            )
-                          else
-                            Table(
-                              columnWidths: const {
-                                0: IntrinsicColumnWidth(),
-                                1: FlexColumnWidth(),
-                              },
-                              defaultVerticalAlignment:
-                                  TableCellVerticalAlignment.middle,
-                              children: [
-                                ...balancesList.map(
-                                  (e) => TableRow(
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                          bottom: 2,
-                                          right: 8,
-                                        ),
-                                        child: Align(
-                                          alignment: Alignment.centerRight,
-                                          child: Text(
-                                            e.key,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 13,
-                                              color: Colors.indigo,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                          bottom: 2,
-                                        ),
-                                        child: Align(
-                                          alignment: Alignment.centerRight,
-                                          child: Text(
-                                            CurrencyUtils.formatNumber(
-                                              e.value.abs(),
-                                            ),
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 15,
-                                              color: balanceColor,
-                                            ),
-                                            textAlign: TextAlign.right,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
                             ),
-                          // Mensaje de balance movido aquí
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Center(
-                              child: Text(
-                                balanceMessage,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontStyle: FontStyle.italic,
-                                  color: balanceColor, // <-- CORRECCIÓN AQUÍ
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             crossFadeState: widget.expanded

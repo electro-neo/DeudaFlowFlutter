@@ -14,6 +14,46 @@ class SupabaseService {
 
   final _client = Supabase.instance.client;
 
+  // --- Métodos para Tasas de Cambio ---
+
+  Future<Map<String, double>> getExchangeRates() async {
+    try {
+      final userId = _client.auth.currentUser?.id;
+      if (userId == null) return {};
+
+      final response = await _client
+          .from('user_settings')
+          .select('value')
+          .eq('user_id', userId)
+          .eq('key', 'exchange_rates')
+          .single();
+
+      final rates = response['value'] as Map<String, dynamic>;
+      return rates.map((key, value) => MapEntry(key, (value as num).toDouble()));
+    } catch (e) {
+      debugPrint('[SUPABASE][ERROR] No se pudieron cargar las tasas: $e');
+      return {}; // Devuelve mapa vacío si no hay configuración o hay un error
+    }
+  }
+
+  Future<void> saveExchangeRates(Map<String, double> rates) async {
+    try {
+      final userId = _client.auth.currentUser?.id;
+      if (userId == null) return;
+
+      await _client.from('user_settings').upsert({
+        'user_id': userId,
+        'key': 'exchange_rates',
+        'value': rates,
+      }, onConflict: 'user_id,key');
+      debugPrint('[SUPABASE][SUCCESS] Tasas de cambio guardadas.');
+    } catch (e) {
+      debugPrint('[SUPABASE][ERROR] No se pudieron guardar las tasas: $e');
+    }
+  }
+
+  // --- Métodos existentes ---
+
   Future<List<Client>> fetchClients(String userId) async {
     final response = await _client
         .from('clients')

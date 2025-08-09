@@ -78,6 +78,15 @@ class MainScaffold extends StatefulWidget {
 }
 
 class _MainScaffoldState extends State<MainScaffold> {
+  @override
+  void initState() {
+    super.initState();
+    // Cargar las tasas de cambio iniciales cuando el scaffold se inicia
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<CurrencyProvider>(context, listen: false).loadInitialRates();
+    });
+  }
+
   // El FAB ahora llama al método público de ClientsScreenState
   void _showClientForm() {
     _clientsScreenKey.currentState?.showClientForm();
@@ -397,7 +406,7 @@ class _MainScaffoldState extends State<MainScaffold> {
                                             // Botón para gestionar monedas, con estilo y tamaño consistentes
                                             Consumer<CurrencyProvider>(
                                               builder: (context, currencyProvider, _) {
-                                                final onPressedAction = () {
+                                                onPressedAction() {
                                                   final monedasConTasa =
                                                       currencyProvider
                                                           .exchangeRates
@@ -419,7 +428,7 @@ class _MainScaffoldState extends State<MainScaffold> {
                                                     builder: (ctx2) =>
                                                         const CurrencyManagerDialog(),
                                                   );
-                                                };
+                                                }
 
                                                 return ScaleOnTap(
                                                   duration: scaleTapDuration,

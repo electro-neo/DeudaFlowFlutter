@@ -51,6 +51,7 @@ Future<void> _initializeApp() async {
     debugPrint('Box clients abierto');
     await Hive.openBox<TransactionHive>('transactions');
     debugPrint('Box transactions abierto');
+    await Hive.openBox('user_settings');
     runApp(const MyApp());
     debugPrint('runApp ejecutado');
   } catch (e, st) {

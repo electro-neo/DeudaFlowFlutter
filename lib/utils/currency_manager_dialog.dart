@@ -21,6 +21,7 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
   bool showAddFields = false;
   late ScrollController scrollController;
   bool _hasChanges = false;
+  final Set<String> _pendingDeletions = {};
 
   @override
   void initState() {
@@ -195,15 +196,24 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
         context,
         listen: false,
       );
-      // Guardar tasas de las monedas existentes
+
+      // 1. Procesar las eliminaciones pendientes primero
+      for (final c in _pendingDeletions) {
+        currencyProvider.removeManualCurrency(c);
+      }
+
+      // 2. Guardar tasas de las monedas existentes (que no se eliminaron)
       for (final c in rates.keys) {
+        if (_pendingDeletions.contains(c)) continue;
+
         final text = rates[c]?.text.trim() ?? '';
         final val = double.tryParse(text.replaceAll(',', '.'));
         if (val != null && val > 0) {
           currencyProvider.setRateForCurrency(c, val);
         }
       }
-      // Si hay una moneda nueva en proceso de agregar
+
+      // 3. Si hay una moneda nueva en proceso de agregar
       if (showAddFields && selectedCurrency != null) {
         final text = newRateController.text.trim();
         final val = double.tryParse(text.replaceAll(',', '.'));
@@ -223,27 +233,16 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
           }
         }
       }
-      // Actualizar la lista de monedas y controladores
+
+      // 4. Actualizar la UI y limpiar el estado
       setState(() {
-        currencies = currencyProvider.availableCurrencies
-            .where((c) => c != 'USD')
-            .toList();
-        if (selectedCurrency != null && currencies.contains(selectedCurrency)) {
-          currencies.remove(selectedCurrency);
-          currencies.insert(0, selectedCurrency!);
-        }
-        for (final c in currencies) {
-          if (!rates.containsKey(c)) {
-            rates[c] = TextEditingController(
-              text: currencyProvider.exchangeRates[c]?.toString() ?? '',
-            );
-          }
-        }
+        // La lista de monedas se actualizará en la próxima reconstrucción desde el provider
         showAddFields = false;
         selectedCurrency = null;
         newRateController.clear();
         addError = null;
         _hasChanges = false;
+        _pendingDeletions.clear(); // Limpiar las eliminaciones pendientes
       });
     }
 
@@ -318,7 +317,9 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
                                 ),
                               ),
                             ),
-                            ...currencies.map((c) {
+                            ...currencies
+                                .where((c) => !_pendingDeletions.contains(c))
+                                .map((c) {
                               // Si estamos agregando una moneda y es la seleccionada, usar el newRateController
                               final isNew =
                                   showAddFields && selectedCurrency == c;
@@ -391,11 +392,13 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
                                                     selectedCurrency = null;
                                                     newRateController.clear();
                                                     addError = null;
+                                                    showAddFields = false;
                                                   });
                                                 } else {
-                                                  currencyProvider
-                                                      .removeManualCurrency(c);
-                                                  setState(() {});
+                                                  setState(() {
+                                                    _pendingDeletions.add(c);
+                                                    _hasChanges = true;
+                                                  });
                                                 }
                                               },
                                             ),

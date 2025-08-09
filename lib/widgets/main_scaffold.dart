@@ -83,7 +83,7 @@ class _MainScaffoldState extends State<MainScaffold> {
     super.initState();
     // Cargar las tasas de cambio iniciales cuando el scaffold se inicia
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<CurrencyProvider>(context, listen: false).loadInitialRates();
+      Provider.of<CurrencyProvider>(context, listen: false).loadInitialData();
     });
   }
 

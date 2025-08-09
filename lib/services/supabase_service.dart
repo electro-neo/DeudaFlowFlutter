@@ -36,10 +36,10 @@ class SupabaseService {
     }
   }
 
-  Future<void> saveExchangeRates(Map<String, double> rates) async {
+  Future<bool> saveExchangeRates(Map<String, double> rates) async {
     try {
       final userId = _client.auth.currentUser?.id;
-      if (userId == null) return;
+      if (userId == null) return false;
 
       await _client.from('user_settings').upsert({
         'user_id': userId,
@@ -47,8 +47,37 @@ class SupabaseService {
         'value': rates,
       }, onConflict: 'user_id,key');
       debugPrint('[SUPABASE][SUCCESS] Tasas de cambio guardadas.');
+      return true;
     } catch (e) {
       debugPrint('[SUPABASE][ERROR] No se pudieron guardar las tasas: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteExchangeRates(List<String> currencyCodes) async {
+    try {
+      final userId = _client.auth.currentUser?.id;
+      if (userId == null) return false;
+
+      // 1. Fetch current rates
+      final currentRates = await getExchangeRates(); // Reusing existing method
+
+      // 2. Remove specified currency codes
+      for (final code in currencyCodes) {
+        currentRates.remove(code);
+      }
+
+      // 3. Save the modified map back to Supabase
+      await _client.from('user_settings').upsert({
+        'user_id': userId,
+        'key': 'exchange_rates',
+        'value': currentRates, // Save the modified map
+      }, onConflict: 'user_id,key');
+      debugPrint('[SUPABASE][SUCCESS] Tasas de cambio eliminadas y actualizadas.');
+      return true;
+    } catch (e) {
+      debugPrint('[SUPABASE][ERROR] No se pudieron eliminar las tasas: $e');
+      return false;
     }
   }
 

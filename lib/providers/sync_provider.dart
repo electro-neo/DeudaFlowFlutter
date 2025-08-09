@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import 'client_provider.dart';
 import 'transaction_provider.dart';
+import 'currency_provider.dart';
 
 import '../models/client_hive.dart';
 import '../models/transaction_hive.dart';
@@ -93,6 +94,10 @@ class SyncProvider extends ChangeNotifier {
         context,
         listen: false,
       );
+      final currencyProvider = Provider.of<CurrencyProvider>(
+        context,
+        listen: false,
+      );
 
       _setStatus(SyncStatus.waiting);
       await Future.delayed(const Duration(milliseconds: 400));
@@ -100,10 +105,14 @@ class SyncProvider extends ChangeNotifier {
 
       // Sincroniza clientes
       await clientProvider.syncPendingClients(userId);
-      _setStatus(SyncStatus.syncing, progress: 50);
+      _setStatus(SyncStatus.syncing, progress: 45);
 
       // Sincroniza transacciones
       await transactionProvider.syncPendingTransactions(userId);
+      _setStatus(SyncStatus.syncing, progress: 90);
+
+      // Sincroniza tasas de cambio (reutilizando la lógica de carga)
+      await currencyProvider.loadInitialData();
       _setStatus(SyncStatus.syncing, progress: 100);
 
       await Future.delayed(const Duration(milliseconds: 400));
@@ -122,10 +131,14 @@ class SyncProvider extends ChangeNotifier {
       // Solo sincroniza si pasamos de offline a online
       if (online && !_isOnline) {
         debugPrint(
-          '[SYNC][PROVIDER] Reconectado a internet. Iniciando sincronización de clientes y transacciones...',
+          '[SYNC][PROVIDER] Reconectado a internet. Iniciando sincronización completa...',
         );
         if (context is Element && !context.mounted) return;
-        // ignore: use_build_context_synchronously
+
+        // Sincroniza las tasas de cambio primero. Esto es crucial porque `loadInitialRates`
+        // contiene la lógica para enviar (push) las tasas locales si se modificaron offline.
+        await Provider.of<CurrencyProvider>(context, listen: false).loadInitialData();
+
         await _syncAll(context, userId);
         // Refuerzo: recargar clientes solo cuando no haya pendientes de eliminar
         try {

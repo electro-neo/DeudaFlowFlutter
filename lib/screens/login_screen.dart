@@ -312,7 +312,7 @@ class _LoginScreenState extends State<LoginScreen> {
           'DEBUG: Login cancelado por el usuario (GoogleSignInException.canceled)',
         );
         setState(() {
-          _error = 'Inicio de sesión cancelado por el usuario.';
+          _error = 'Revisa tu conexion a internet.';
         });
       } else {
         debugPrint(

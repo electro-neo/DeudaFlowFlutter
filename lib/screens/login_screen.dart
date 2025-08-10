@@ -28,6 +28,23 @@ class _LoginScreenState extends State<LoginScreen> {
   double _guestBtnScale = 1.0;
   double _googleBtnScale = 1.0;
 
+  @override
+  void initState() {
+    super.initState();
+    _prefillEmailFromSession();
+  }
+
+  Future<void> _prefillEmailFromSession() async {
+    try {
+      final box = await Hive.openBox('session');
+      final savedEmail = box.get('email');
+      if (savedEmail is String && savedEmail.trim().isNotEmpty) {
+        // El email ya se guarda normalizado en minúsculas
+        _emailController.text = savedEmail;
+      }
+    } catch (_) {}
+  }
+
   Future<void> _loginOffline() async {
     setState(() {
       _loading = true;
@@ -37,7 +54,16 @@ class _LoginScreenState extends State<LoginScreen> {
     final sessionBox = await Hive.openBox('session');
     final savedEmail = sessionBox.get('email');
     if (!mounted) return;
-    if (savedEmail == email && email.isNotEmpty) {
+    // Permite usar el email guardado si el campo está vacío
+    String? candidateEmail = email.isNotEmpty
+        ? email
+        : (savedEmail is String && savedEmail.trim().isNotEmpty)
+        ? savedEmail
+        : null;
+    // Comparación tolerante a mayúsculas/minúsculas
+    if (savedEmail is String &&
+        candidateEmail != null &&
+        savedEmail.trim().toLowerCase() == candidateEmail.toLowerCase()) {
       Navigator.of(context).pushReplacementNamed('/dashboard');
     } else {
       setState(() {
@@ -134,7 +160,9 @@ class _LoginScreenState extends State<LoginScreen> {
             ? userMeta['name']
             : null;
         await sessionBox.put('userName', userName ?? '');
-        await sessionBox.put('email', user.email ?? email);
+        // Guarda email normalizado para evitar fallas por diferencia de mayúsculas
+        final normalizedEmail = (user.email ?? email).trim().toLowerCase();
+        await sessionBox.put('email', normalizedEmail);
         if (!mounted) return;
         // Sincronizar datos locales si hay internet
         try {
@@ -160,7 +188,8 @@ class _LoginScreenState extends State<LoginScreen> {
         final sessionBox = await Hive.openBox('session');
         final savedEmail = sessionBox.get('email');
         if (!mounted) return;
-        if (savedEmail == email) {
+        if (savedEmail is String &&
+            savedEmail.trim().toLowerCase() == email.toLowerCase()) {
           // Login offline permitido
           // ignore: use_build_context_synchronously
           Navigator.of(context).pushReplacementNamed('/dashboard');
@@ -200,7 +229,8 @@ class _LoginScreenState extends State<LoginScreen> {
           e.toString().toLowerCase().contains('internet')) {
         final sessionBox = await Hive.openBox('session');
         final savedEmail = sessionBox.get('email');
-        if (savedEmail == email) {
+        if (savedEmail is String &&
+            savedEmail.trim().toLowerCase() == email.toLowerCase()) {
           // Login offline permitido
           // ignore: use_build_context_synchronously
           Navigator.of(context).pushReplacementNamed('/dashboard');
@@ -326,7 +356,9 @@ class _LoginScreenState extends State<LoginScreen> {
           ? userMeta['name']
           : null;
       await sessionBox.put('userName', userName ?? '');
-      await sessionBox.put('email', user.email ?? '');
+      // Guarda email normalizado para consistencia con el botón offline
+      final normalizedEmail = (user.email ?? '').trim().toLowerCase();
+      await sessionBox.put('email', normalizedEmail);
       if (!mounted) return;
       debugPrint('DEBUG: Login con Google exitoso, navegando a dashboard.');
       Navigator.of(context).pushReplacementNamed('/dashboard');

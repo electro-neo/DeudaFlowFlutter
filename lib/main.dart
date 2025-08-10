@@ -68,10 +68,11 @@ Future<void> _initializeApp() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await clearHiveData(); // Limpia datos locales de Hive SOLO para migración
+  // Nota: No borres datos locales en cada arranque; esto elimina la sesión guardada (email)
+  // y rompe el acceso offline. Deja esta función solo para migraciones/debug manuales.
+  // await clearHiveData(); // SOLO usar manualmente si necesitas resetear Hive
   await _initializeApp();
 }
-
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

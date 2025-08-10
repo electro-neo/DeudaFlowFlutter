@@ -256,7 +256,13 @@ class _MainScaffoldState extends State<MainScaffold>
     if (guestCleanup != null) {
       await guestCleanup();
     }
-    await Supabase.instance.client.auth.signOut();
+    // Intenta cerrar sesión en Supabase; si no hay internet, evita crashear
+    try {
+      await Supabase.instance.client.auth.signOut();
+    } catch (e) {
+      // Offline u otros errores de red no deben detener el logout local
+      debugPrint('[LOGOUT] Error al cerrar sesión en Supabase: $e');
+    }
     if (mounted) {
       Navigator.of(context).pushReplacementNamed('/');
     }

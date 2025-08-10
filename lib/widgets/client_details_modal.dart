@@ -39,12 +39,16 @@ class ClientDetailsModal extends StatelessWidget {
   }) {
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(10),
-      side: BorderSide(color: color.withOpacity(0.5), width: 1),
+      side: BorderSide(
+        color: color.withValues(alpha: 0.50),
+        width: 1,
+      ), // 50% opacidad
     );
+
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: color.withOpacity(0.09),
+        color: color.withValues(alpha: 0.09), // 9% opacidad (traslúcido)
         shape: shape,
         child: InkWell(
           customBorder: shape,

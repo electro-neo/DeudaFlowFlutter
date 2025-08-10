@@ -170,28 +170,33 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               children: [
+                // Antes: Container con gradiente y decoraciones
+                // Ahora: Material + InkWell con borde y fondo traslúcido
                 ScaleOnTap(
-                  onTap: _openModal,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 4,
-                          offset: const Offset(0, 1),
-                        ),
-                      ],
+                  onTap:
+                      () {}, // solo para el efecto de escala; el tap real lo maneja InkWell
+                  child: Material(
+                    color: const Color(
+                      0xFF4F46E5,
+                    ).withValues(alpha: 0.10), // fondo traslúcido
+                    shape: CircleBorder(
+                      side: BorderSide(
+                        color: const Color(
+                          0xFF4F46E5,
+                        ).withValues(alpha: 0.50), // marco semitransparente
+                        width: 1.2, // grosor del borde
+                      ),
                     ),
-                    child: CircleAvatar(
-                      backgroundColor: Colors
-                          .indigo
-                          .shade100, // Tono más oscuro para mejor contraste
-                      child: Text(
-                        firstLetter,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.indigo,
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: _openModal, // ripple de Material
+                      child: SizedBox(
+                        width: 36,
+                        height: 36,
+                        child: Center(
+                          child: _AvatarLetter(
+                            letter: firstLetter,
+                          ), // <-- pasar la letra
                         ),
                       ),
                     ),
@@ -220,7 +225,9 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: widget.syncMessage!.color.withOpacity(0.13),
+                      color: widget.syncMessage!.color.withValues(
+                        alpha: 0.13,
+                      ), // was withOpacity(0.13)
                       borderRadius: BorderRadius.circular(7),
                     ),
                     child: Row(
@@ -250,7 +257,9 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: widget.syncColor?.withOpacity(0.13),
+                      color: widget.syncColor?.withValues(
+                        alpha: 0.13,
+                      ), // was withOpacity(0.13)
                       borderRadius: BorderRadius.circular(7),
                     ),
                     child: Row(
@@ -307,7 +316,9 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.indigo.withOpacity(0.06),
+                        color: Colors.indigo.withValues(
+                          alpha: 0.06,
+                        ), // was withOpacity(0.06)
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: SizedBox(
@@ -320,7 +331,9 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                               width: double.infinity,
                               height: 22,
                               decoration: BoxDecoration(
-                                color: Colors.indigo.withOpacity(0.08),
+                                color: Colors.indigo.withValues(
+                                  alpha: 0.08,
+                                ), // was withOpacity(0.08)
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               padding: const EdgeInsets.only(
@@ -375,7 +388,8 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                                                   child: Text(
                                                     e.key,
                                                     style: const TextStyle(
-                                                      fontWeight: FontWeight.w600,
+                                                      fontWeight:
+                                                          FontWeight.w600,
                                                       fontSize: 13,
                                                       color: Colors.indigo,
                                                     ),
@@ -394,7 +408,8 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                                                       e.value.abs(),
                                                     ),
                                                     style: TextStyle(
-                                                      fontWeight: FontWeight.bold,
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                       fontSize: 15,
                                                       color: balanceColor,
                                                     ),
@@ -540,6 +555,25 @@ class ClientCard extends StatelessWidget {
       syncIcon: null,
       syncColor: null,
       syncMessage: effectiveSync,
+    );
+  }
+}
+
+class _AvatarLetter extends StatelessWidget {
+  final String letter;
+  const _AvatarLetter({required this.letter});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      letter,
+      style: TextStyle(
+        fontWeight: FontWeight.w700,
+        fontSize: 16,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.white
+            : const Color(0xFF2D2A8C),
+      ),
     );
   }
 }

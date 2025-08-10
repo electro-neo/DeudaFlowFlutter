@@ -309,7 +309,7 @@ class ClientsScreenState extends State<ClientsScreen>
     // acelerar el proceso, ya que son independientes entre sí.
     await Future.wait([
       provider.loadClients(widget.userId),
-      txProvider.loadTransactions(widget.userId)
+      txProvider.loadTransactions(widget.userId),
     ]);
 
     if (mounted) {
@@ -720,6 +720,7 @@ class ClientsScreenState extends State<ClientsScreen>
                                             );
                                             final allClients = box.values
                                                 .toList();
+
                                             if (allClients.isEmpty) {
                                               ScaffoldMessenger.of(
                                                 context,
@@ -732,49 +733,177 @@ class ClientsScreenState extends State<ClientsScreen>
                                               );
                                               return;
                                             }
-                                            final confirm = await showDialog<bool>(
-                                              context: context,
-                                              builder: (_) => AlertDialog(
-                                                title: const Text(
-                                                  'Eliminar TODOS los clientes',
-                                                ),
-                                                content: const Text(
-                                                  '¿Estás seguro de eliminar TODOS los clientes y sus transacciones? Esta acción no se puede deshacer.',
-                                                ),
-                                                actions: [
-                                                  TextButton(
-                                                    onPressed: () =>
-                                                        Navigator.of(
-                                                          context,
-                                                        ).pop(false),
-                                                    child: const Text(
-                                                      'Cancelar',
-                                                    ),
+
+                                            // Estilos de botones (mismo ancho)
+                                            final indigoStyle =
+                                                ElevatedButton.styleFrom(
+                                                  backgroundColor: const Color(
+                                                    0xFF4F46E5,
                                                   ),
-                                                  TextButton(
-                                                    onPressed: () =>
-                                                        Navigator.of(
-                                                          context,
-                                                        ).pop(true),
-                                                    child: const Text(
-                                                      'Eliminar todo',
-                                                      style: TextStyle(
-                                                        color: Colors.red,
+                                                  foregroundColor: Colors.white,
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          12,
+                                                        ),
+                                                  ),
+                                                  elevation: 0,
+                                                  minimumSize: const Size(
+                                                    double.infinity,
+                                                    44,
+                                                  ),
+                                                );
+                                            final dangerStyle =
+                                                ElevatedButton.styleFrom(
+                                                  backgroundColor: Colors.red,
+                                                  foregroundColor: Colors.white,
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          12,
+                                                        ),
+                                                  ),
+                                                  elevation: 0,
+                                                  minimumSize: const Size(
+                                                    double.infinity,
+                                                    44,
+                                                  ),
+                                                );
+                                            final neutralStyle =
+                                                ElevatedButton.styleFrom(
+                                                  backgroundColor: const Color(
+                                                    0xFFEDEDF4,
+                                                  ),
+                                                  foregroundColor: const Color(
+                                                    0xFF1F1F39,
+                                                  ),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          12,
+                                                        ),
+                                                  ),
+                                                  elevation: 0,
+                                                  minimumSize: const Size(
+                                                    double.infinity,
+                                                    44,
+                                                  ),
+                                                );
+
+                                            final String?
+                                            choice = await showDialog<String>(
+                                              context: context,
+                                              builder: (ctx) => AlertDialog(
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(16),
+                                                ),
+                                                // Usamos un título claro y botones con mismo ancho
+                                                title: const Text(
+                                                  '¿Qué deseas eliminar?',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                                content: Column(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    // Solo transacciones (de todos los clientes)
+                                                    SizedBox(
+                                                      width: double.infinity,
+                                                      child: ElevatedButton(
+                                                        style: indigoStyle,
+                                                        onPressed: () =>
+                                                            Navigator.of(
+                                                              ctx,
+                                                            ).pop('txOnlyAll'),
+                                                        child: const Text(
+                                                          'Todas las transacciones',
+                                                        ),
                                                       ),
                                                     ),
-                                                  ),
-                                                ],
+                                                    const SizedBox(height: 8),
+                                                    // Clientes y transacciones
+                                                    SizedBox(
+                                                      width: double.infinity,
+                                                      child: ElevatedButton(
+                                                        style: dangerStyle,
+                                                        onPressed: () =>
+                                                            Navigator.of(
+                                                              ctx,
+                                                            ).pop(
+                                                              'clientsAndTxAll',
+                                                            ),
+                                                        child: const Text(
+                                                          'Todos los clientes',
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 8),
+                                                    // Cancelar
+                                                    SizedBox(
+                                                      width: double.infinity,
+                                                      child: ElevatedButton(
+                                                        style: neutralStyle,
+                                                        onPressed: () =>
+                                                            Navigator.of(
+                                                              ctx,
+                                                            ).pop(null),
+                                                        child: const Text(
+                                                          'Cancelar',
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
                                               ),
                                             );
-                                            if (confirm == true) {
-                                              for (final client in allClients) {
-                                                // Se asume que deleteClient marca al cliente para ser eliminado localmente.
-                                                // La sincronización se manejará de forma centralizada.
-                                                provider.deleteClient(client.id, widget.userId);
-                                              }
-                                              // Llamar a la función de sincronización centralizada y optimizada.
-                                              await _syncAll();
-                                              if (mounted) {
+
+                                            if (choice == null) return;
+
+                                            try {
+                                              if (choice == 'txOnlyAll') {
+                                                // Eliminar TODAS las transacciones (reutilizando la lógica existente por transacción)
+                                                final allTx = List.of(
+                                                  txProvider.transactions,
+                                                );
+                                                if (allTx.isEmpty) {
+                                                  if (mounted) {
+                                                    ScaffoldMessenger.of(
+                                                      context,
+                                                    ).showSnackBar(
+                                                      const SnackBar(
+                                                        content: Text(
+                                                          'No hay transacciones para eliminar.',
+                                                        ),
+                                                      ),
+                                                    );
+                                                  }
+                                                  return;
+                                                }
+                                                for (final t in allTx) {
+                                                  await txProvider
+                                                      .deleteTransaction(
+                                                        t.id,
+                                                        widget.userId,
+                                                      );
+                                                }
+                                                await txProvider
+                                                    .loadTransactions(
+                                                      widget.userId,
+                                                    );
+                                                await txProvider
+                                                    .syncPendingTransactions(
+                                                      widget.userId,
+                                                    );
+                                                await provider.loadClients(
+                                                  widget.userId,
+                                                );
+                                                await txProvider
+                                                    .cleanLocalOrphanTransactions();
+
+                                                if (!mounted) return;
                                                 final isOnline =
                                                     await txProvider.isOnline();
                                                 if (!mounted) return;
@@ -784,12 +913,51 @@ class ClientsScreenState extends State<ClientsScreen>
                                                   SnackBar(
                                                     content: Text(
                                                       isOnline
-                                                          ? 'Todos los clientes eliminados.'
-                                                          : 'Clientes pendientes por eliminar',
+                                                          ? 'Todas las transacciones eliminadas.'
+                                                          : 'Transacciones pendientes por eliminar.',
                                                     ),
                                                   ),
                                                 );
+                                              } else if (choice ==
+                                                  'clientsAndTxAll') {
+                                                // Eliminar TODOS los clientes (y sus transacciones) – lógica existente
+                                                for (final c in allClients) {
+                                                  provider.deleteClient(
+                                                    c.id,
+                                                    widget.userId,
+                                                  );
+                                                }
+                                                await _syncAll();
+
+                                                if (mounted) {
+                                                  final isOnline =
+                                                      await txProvider
+                                                          .isOnline();
+                                                  if (!mounted) return;
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        isOnline
+                                                            ? 'Todos los clientes eliminados.'
+                                                            : 'Clientes pendientes por eliminar.',
+                                                      ),
+                                                    ),
+                                                  );
+                                                }
                                               }
+                                            } catch (e) {
+                                              if (!mounted) return;
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    'Error al eliminar: $e',
+                                                  ),
+                                                ),
+                                              );
                                             }
                                           },
                                           tooltip:
@@ -1005,97 +1173,289 @@ class ClientsScreenState extends State<ClientsScreen>
                                                       Provider.of<
                                                         TransactionProvider
                                                       >(context, listen: false);
-                                                  final userTransactions =
-                                                      txProvider.transactions
-                                                          .where(
-                                                            (tx) =>
-                                                                tx.clientId ==
-                                                                client.id,
-                                                          )
-                                                          .toList();
-                                                  String warning = '';
-                                                  if (userTransactions
-                                                      .isNotEmpty) {
-                                                    warning =
-                                                        '\n\nADVERTENCIA: Este cliente tiene ${userTransactions.length} transacción(es) asociada(s). Se eliminarán TODAS las transacciones de este cliente.';
-                                                  }
-                                                  final confirm =
-                                                      await showDialog<bool>(
-                                                        context: context,
-                                                        builder: (_) => AlertDialog(
-                                                          title: const Text(
-                                                            'Eliminar Cliente',
-                                                          ),
-                                                          content: Text(
-                                                            '¿Estás seguro de eliminar a ${client.name}?$warning',
-                                                          ),
-                                                          actions: [
-                                                            TextButton(
-                                                              onPressed: () =>
-                                                                  Navigator.of(
-                                                                    context,
-                                                                  ).pop(false),
-                                                              child: const Text(
-                                                                'Cancelar',
+
+                                                  final userTx = txProvider
+                                                      .transactions
+                                                      .where(
+                                                        (tx) =>
+                                                            tx.clientId ==
+                                                            client.id,
+                                                      )
+                                                      .toList();
+
+                                                  final String?
+                                                  choice = await showDialog<String>(
+                                                    context: context,
+                                                    builder: (ctx) {
+                                                      final message =
+                                                          userTx.isEmpty
+                                                          ? '"${client.name}" no tiene transacciones.\n¿Eliminarlo?'
+                                                          : '"${client.name}" tiene ${userTx.length} transacción(es).\n¿Qué deseas eliminar?';
+
+                                                      final indigoStyle =
+                                                          ElevatedButton.styleFrom(
+                                                            backgroundColor:
+                                                                const Color.fromARGB(
+                                                                  244,
+                                                                  54,
+                                                                  133,
+                                                                  244,
+                                                                ),
+                                                            foregroundColor:
+                                                                Colors.white,
+                                                            shape: RoundedRectangleBorder(
+                                                              borderRadius:
+                                                                  BorderRadius.circular(
+                                                                    12,
+                                                                  ),
+                                                            ),
+                                                            elevation: 0,
+                                                            minimumSize:
+                                                                const Size(
+                                                                  double
+                                                                      .infinity,
+                                                                  44,
+                                                                ),
+                                                          );
+                                                      final dangerStyle =
+                                                          ElevatedButton.styleFrom(
+                                                            backgroundColor:
+                                                                Colors.red,
+                                                            foregroundColor:
+                                                                Colors.white,
+                                                            shape: RoundedRectangleBorder(
+                                                              borderRadius:
+                                                                  BorderRadius.circular(
+                                                                    12,
+                                                                  ),
+                                                            ),
+                                                            elevation: 0,
+                                                            minimumSize:
+                                                                const Size(
+                                                                  double
+                                                                      .infinity,
+                                                                  44,
+                                                                ),
+                                                          );
+                                                      final neutralStyle =
+                                                          ElevatedButton.styleFrom(
+                                                            backgroundColor:
+                                                                const Color(
+                                                                  0xFFEDEDF4,
+                                                                ),
+                                                            foregroundColor:
+                                                                const Color(
+                                                                  0xFF1F1F39,
+                                                                ),
+                                                            shape: RoundedRectangleBorder(
+                                                              borderRadius:
+                                                                  BorderRadius.circular(
+                                                                    12,
+                                                                  ),
+                                                            ),
+                                                            elevation: 0,
+                                                            minimumSize:
+                                                                const Size(
+                                                                  double
+                                                                      .infinity,
+                                                                  44,
+                                                                ),
+                                                          );
+
+                                                      // Etiqueta dinámica del botón principal
+                                                      final String
+                                                      confirmLabel =
+                                                          userTx.isEmpty
+                                                          ? 'Sí'
+                                                          : 'Cliente y Transacciones';
+
+                                                      return AlertDialog(
+                                                        shape: RoundedRectangleBorder(
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                16,
+                                                              ),
+                                                        ),
+                                                        title: Text(
+                                                          message,
+                                                          style:
+                                                              const TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w600,
+                                                              ),
+                                                        ),
+                                                        content: Column(
+                                                          mainAxisSize:
+                                                              MainAxisSize.min,
+                                                          children: [
+                                                            if (userTx
+                                                                .isNotEmpty) ...[
+                                                              SizedBox(
+                                                                width: double
+                                                                    .infinity,
+                                                                child: ElevatedButton(
+                                                                  style:
+                                                                      indigoStyle,
+                                                                  onPressed: () =>
+                                                                      Navigator.of(
+                                                                        ctx,
+                                                                      ).pop(
+                                                                        'txOnly',
+                                                                      ),
+                                                                  child: const Text(
+                                                                    'Transacciones',
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                              const SizedBox(
+                                                                height: 8,
+                                                              ),
+                                                            ],
+                                                            SizedBox(
+                                                              width: double
+                                                                  .infinity,
+                                                              child: ElevatedButton(
+                                                                style:
+                                                                    dangerStyle,
+                                                                onPressed: () =>
+                                                                    Navigator.of(
+                                                                      ctx,
+                                                                    ).pop(
+                                                                      'clientAndTx',
+                                                                    ),
+                                                                child: Text(
+                                                                  confirmLabel,
+                                                                ),
                                                               ),
                                                             ),
-                                                            TextButton(
-                                                              onPressed: () =>
-                                                                  Navigator.of(
-                                                                    context,
-                                                                  ).pop(true),
-                                                              child: const Text(
-                                                                'Eliminar',
+                                                            const SizedBox(
+                                                              height: 8,
+                                                            ),
+                                                            SizedBox(
+                                                              width: double
+                                                                  .infinity,
+                                                              child: ElevatedButton(
+                                                                style:
+                                                                    neutralStyle,
+                                                                onPressed: () =>
+                                                                    Navigator.of(
+                                                                      ctx,
+                                                                    ).pop(null),
+                                                                child:
+                                                                    const Text(
+                                                                      'Cancelar',
+                                                                    ),
                                                               ),
                                                             ),
                                                           ],
                                                         ),
                                                       );
-                                                  if (confirm == true) {
-                                                    await provider.deleteClient(
-                                                      client.id,
-                                                      widget.userId,
-                                                    );
-                                                    // Refresca la lista para que la UI muestre el estado pendingDelete
-                                                    await provider.loadClients(
-                                                      widget.userId,
-                                                    );
-                                                    if (mounted) {
-                                                      setState(() {});
-                                                    }
-                                                    // El resto de la sync y feedback visual
-                                                    await provider
-                                                        .cleanLocalPendingDeletedClients();
-                                                    await provider
-                                                        .syncPendingClients(
-                                                          widget.userId,
-                                                        );
-                                                    await txProvider
-                                                        .syncPendingTransactions(
-                                                          widget.userId,
-                                                        );
-                                                    await txProvider
-                                                        .loadTransactions(
-                                                          widget.userId,
-                                                        );
-                                                    if (!mounted) return;
-                                                    final isOnline =
+                                                    },
+                                                  );
+
+                                                  if (choice == null) return;
+
+                                                  try {
+                                                    if (choice == 'txOnly') {
+                                                      for (final t in userTx) {
                                                         await txProvider
-                                                            .isOnline();
+                                                            .deleteTransaction(
+                                                              t.id,
+                                                              widget.userId,
+                                                            );
+                                                      }
+                                                      await txProvider
+                                                          .loadTransactions(
+                                                            widget.userId,
+                                                          );
+                                                      await txProvider
+                                                          .syncPendingTransactions(
+                                                            widget.userId,
+                                                          );
+                                                      await provider
+                                                          .loadClients(
+                                                            widget.userId,
+                                                          );
+                                                      if (!mounted) return;
+                                                      final isOnline =
+                                                          await txProvider
+                                                              .isOnline();
+                                                      if (!mounted) return;
+                                                      ScaffoldMessenger.of(
+                                                        context,
+                                                      ).showSnackBar(
+                                                        SnackBar(
+                                                          content: Text(
+                                                            isOnline
+                                                                ? 'Transacciones del cliente eliminadas.'
+                                                                : 'Transacciones pendientes por eliminar.',
+                                                          ),
+                                                          duration:
+                                                              const Duration(
+                                                                seconds: 2,
+                                                              ),
+                                                        ),
+                                                      );
+                                                    } else if (choice ==
+                                                        'clientAndTx') {
+                                                      await provider
+                                                          .deleteClient(
+                                                            client.id,
+                                                            widget.userId,
+                                                          );
+                                                      await provider
+                                                          .loadClients(
+                                                            widget.userId,
+                                                          );
+                                                      if (mounted)
+                                                        setState(() {});
+                                                      await provider
+                                                          .cleanLocalPendingDeletedClients();
+                                                      await provider
+                                                          .syncPendingClients(
+                                                            widget.userId,
+                                                          );
+                                                      await txProvider
+                                                          .syncPendingTransactions(
+                                                            widget.userId,
+                                                          );
+                                                      await txProvider
+                                                          .cleanLocalOrphanTransactions();
+                                                      await txProvider
+                                                          .loadTransactions(
+                                                            widget.userId,
+                                                          );
+                                                      if (!mounted) return;
+                                                      final isOnline =
+                                                          await txProvider
+                                                              .isOnline();
+                                                      if (!mounted) return;
+                                                      ScaffoldMessenger.of(
+                                                        context,
+                                                      ).showSnackBar(
+                                                        SnackBar(
+                                                          content: Text(
+                                                            isOnline
+                                                                ? 'Cliente y transacciones eliminados.'
+                                                                : 'Cliente y transacciones pendientes por eliminar.',
+                                                          ),
+                                                          duration:
+                                                              const Duration(
+                                                                seconds: 2,
+                                                              ),
+                                                        ),
+                                                      );
+                                                    }
+                                                  } catch (e) {
                                                     if (!mounted) return;
                                                     ScaffoldMessenger.of(
                                                       context,
                                                     ).showSnackBar(
                                                       SnackBar(
                                                         content: Text(
-                                                          isOnline
-                                                              ? 'Cliente eliminado correctamente.'
-                                                              : 'Cliente pendiente por eliminar',
+                                                          'Error al eliminar: $e',
                                                         ),
-                                                        duration:
-                                                            const Duration(
-                                                              seconds: 2,
-                                                            ),
                                                       ),
                                                     );
                                                   }

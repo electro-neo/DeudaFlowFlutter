@@ -231,6 +231,18 @@ class _MainScaffoldState extends State<MainScaffold> {
     return false; // no consumimos el evento
   }
 
+  // Desplaza el scroll principal hasta el tope
+  Future<void> _scrollToTop() async {
+    final controller = PrimaryScrollController.of(context);
+    if (controller != null && controller.hasClients) {
+      await controller.animateTo(
+        0,
+        duration: const Duration(milliseconds: 450),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
   @override
   void dispose() {
     _chromeTNotifier.dispose();
@@ -300,6 +312,7 @@ class _MainScaffoldState extends State<MainScaffold> {
                   );
                 },
                 child: FloatingActionButton(
+                  heroTag: 'mainFab',
                   onPressed: () {
                     showDialog(
                       context: context,
@@ -652,6 +665,46 @@ class _MainScaffoldState extends State<MainScaffold> {
                           ],
                         ),
                       ),
+                    ),
+                  ),
+
+                  // Botón "subir arriba" en la esquina inferior derecha
+                  Positioned(
+                    right: 16,
+                    bottom: 16 + MediaQuery.of(context).padding.bottom,
+                    child: ValueListenableBuilder<double>(
+                      valueListenable: _chromeTNotifier,
+                      builder: (context, t, _) {
+                        final isKeyboardVisibleLocal =
+                            MediaQuery.of(context).viewInsets.bottom > 0;
+                        final show = !isKeyboardVisibleLocal && t >= 0.98;
+                        return IgnorePointer(
+                          ignoring: !show,
+                          child: AnimatedSlide(
+                            duration: const Duration(milliseconds: 180),
+                            curve: Curves.easeOut,
+                            offset: show ? Offset.zero : const Offset(0, 0.4),
+                            child: AnimatedOpacity(
+                              duration: const Duration(milliseconds: 180),
+                              opacity: show ? 1 : 0,
+                              child: FloatingActionButton.small(
+                                heroTag: 'scrollTopFab',
+                                backgroundColor: const Color.fromARGB(
+                                  255,
+                                  145,
+                                  88,
+                                  236,
+                                ),
+                                onPressed: _scrollToTop,
+                                child: const Icon(
+                                  Icons.arrow_upward,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],

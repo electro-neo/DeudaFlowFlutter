@@ -202,7 +202,8 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
               if (filtered.isEmpty)
                 const Text('No hay movimientos en el rango seleccionado.'),
               ...filtered.map((e) {
-                final client = e['client'];
+                final client = e['client'] as Client;
+                final name = (client.name ?? '').toString();
                 final phone =
                     (client.phone != null &&
                         client.phone.toString().trim().isNotEmpty)
@@ -214,7 +215,10 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Nombre
                     RichText(
+                      textAlign: TextAlign.left,
+                      textWidthBasis: TextWidthBasis.parent,
                       text: TextSpan(
                         style: baseTextStyle,
                         children: [
@@ -222,11 +226,14 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                             text: 'Nombre: ',
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
-                          TextSpan(text: client.name ?? ''),
+                          TextSpan(text: name),
                         ],
                       ),
                     ),
+                    // Teléfono
                     RichText(
+                      textAlign: TextAlign.left,
+                      textWidthBasis: TextWidthBasis.parent,
                       text: TextSpan(
                         style: baseTextStyle,
                         children: [
@@ -238,7 +245,10 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                         ],
                       ),
                     ),
+                    // ID
                     RichText(
+                      textAlign: TextAlign.left,
+                      textWidthBasis: TextWidthBasis.parent,
                       text: TextSpan(
                         style: baseTextStyle,
                         children: [
@@ -247,87 +257,112 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           TextSpan(
-                            text: client.id != null ? client.id.toString() : '',
-                            style: const TextStyle(
-                              fontSize:
-                                  11, // <-- AQUÍ: Letra más pequeña para el ID
-                            ), // <-- AQUÍ: Letra más pequeña para el ID
+                            text: client.id?.toString() ?? '',
+                            style: const TextStyle(fontSize: 11),
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 8),
+
                     if (filteredTxs.isEmpty)
-                      const Text(
-                        'No hay movimientos en el rango seleccionado.',
-                        style: TextStyle(color: Colors.red),
+                      Container(
+                        width: double.infinity,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'No hay movimientos en el rango seleccionado.',
+                          style: (baseTextStyle ?? const TextStyle()).copyWith(
+                            color: Colors.red,
+                          ),
+                          textAlign: TextAlign.left,
+                        ),
                       ),
+
                     if (filteredTxs.isNotEmpty)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ...filteredTxs.map((tx) {
-                            String tipo = tx.type;
-                            if (tipo == 'payment') {
-                              tipo = 'Abono';
-                            } else if (tipo == 'debt') {
-                              tipo = 'Deuda';
-                            }
+                      Container(
+                        width: double.infinity,
+                        alignment: Alignment.centerLeft,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ...filteredTxs.map((tx) {
+                              String tipo = tx.type;
+                              if (tipo == 'payment')
+                                tipo = 'Abono';
+                              else if (tipo == 'debt')
+                                tipo = 'Deuda';
 
-                            final usdValue = tx.anchorUsdValue ?? tx.amount;
-                            final formattedDate =
-                                '${tx.date.day.toString().padLeft(2, '0')}/${tx.date.month.toString().padLeft(2, '0')}/${tx.date.year}';
-                            final usdString = CurrencyUtils.format(
-                              context,
-                              usdValue,
-                              currencyCode: 'USD',
-                            );
+                              final usdValue = tx.anchorUsdValue ?? tx.amount;
+                              final formattedDate =
+                                  '${tx.date.day.toString().padLeft(2, '0')}/${tx.date.month.toString().padLeft(2, '0')}/${tx.date.year}';
+                              final usdString = CurrencyUtils.format(
+                                context,
+                                usdValue,
+                                currencyCode: 'USD',
+                              );
 
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 6.0,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Fecha: $formattedDate',
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.black54,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'Tipo: $tipo',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    usdString,
-                                    style: const TextStyle(fontSize: 14),
-                                  ),
-                                  if (selectedCurrency != 'USD' &&
-                                      conversionRate > 0) ...[
-                                    const SizedBox(height: 2),
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 6.0,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
                                     Text(
-                                      CurrencyUtils.format(
-                                        context,
-                                        usdValue * conversionRate,
-                                        currencyCode: selectedCurrency,
+                                      'Fecha: $formattedDate',
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.black54,
                                       ),
-                                      style: const TextStyle(fontSize: 14),
+                                      textAlign: TextAlign.left,
                                     ),
+                                    const SizedBox(height: 2),
+                                    // Tipo (label + valor)
+                                    RichText(
+                                      textAlign: TextAlign.left,
+                                      text: TextSpan(
+                                        style:
+                                            baseTextStyle?.copyWith(
+                                              fontSize: 14,
+                                            ) ??
+                                            const TextStyle(fontSize: 14),
+                                        children: [
+                                          const TextSpan(
+                                            text: 'Tipo: ',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          TextSpan(text: tipo),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      usdString,
+                                      style: const TextStyle(fontSize: 14),
+                                      textAlign: TextAlign.left,
+                                    ),
+                                    if (selectedCurrency != 'USD' &&
+                                        conversionRate > 0) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        CurrencyUtils.format(
+                                          context,
+                                          usdValue * conversionRate,
+                                          currencyCode: selectedCurrency,
+                                        ),
+                                        style: const TextStyle(fontSize: 14),
+                                        textAlign: TextAlign.left,
+                                      ),
+                                    ],
+                                    const Divider(height: 16),
                                   ],
-                                  const Divider(height: 16),
-                                ],
-                              ),
-                            );
-                          }),
-                        ],
+                                ),
+                              );
+                            }),
+                          ],
+                        ),
                       ),
                     const SizedBox(height: 12),
                   ],

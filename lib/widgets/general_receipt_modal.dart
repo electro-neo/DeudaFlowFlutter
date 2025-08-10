@@ -73,6 +73,18 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
             }
             return true;
           }).toList();
+
+          // Ordenar: más recientes primero
+          DateTime _parseDate(dynamic d) {
+            if (d is DateTime) return d;
+            return DateTime.tryParse(d.toString()) ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+          }
+
+          filteredTxs.sort(
+            (a, b) => _parseDate(b.date).compareTo(_parseDate(a.date)),
+          );
+
           final balance = filteredTxs.isEmpty
               ? 0.0
               : filteredTxs.fold<double>(0, (sum, tx) {
@@ -237,7 +249,8 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                           TextSpan(
                             text: client.id != null ? client.id.toString() : '',
                             style: const TextStyle(
-                              fontSize: 11,  // <-- AQUÍ: Letra más pequeña para el ID
+                              fontSize:
+                                  11, // <-- AQUÍ: Letra más pequeña para el ID
                             ), // <-- AQUÍ: Letra más pequeña para el ID
                           ),
                         ],

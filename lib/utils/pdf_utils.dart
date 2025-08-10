@@ -181,6 +181,20 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
             widgets.add(pw.Text('Sin movimientos en el rango de fechas.'));
           }
           if (txs.isNotEmpty) {
+            // Orden descendente por fecha (más recientes primero)
+            final sortedTxs = List<dynamic>.from(txs)
+              ..sort((a, b) {
+                final DateTime da = a.date is DateTime
+                    ? a.date as DateTime
+                    : DateTime.tryParse(a.date.toString()) ??
+                          DateTime.fromMillisecondsSinceEpoch(0);
+                final DateTime db = b.date is DateTime
+                    ? b.date as DateTime
+                    : DateTime.tryParse(b.date.toString()) ??
+                          DateTime.fromMillisecondsSinceEpoch(0);
+                return db.compareTo(da);
+              });
+
             // --- TABLA DE TRANSACCIONES ---
             final headers = ['Fecha', 'Descripción', 'Tipo', 'Monto USD'];
             if (convertCurrency) {
@@ -197,27 +211,26 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                 headerDecoration: pw.BoxDecoration(color: PdfColors.blue),
                 cellStyle: pw.TextStyle(fontSize: 10),
                 cellAlignments: {
-                  3: pw
-                      .Alignment
-                      .centerRight, // Alinea la columna 'Monto USD' a la derecha
-                  4: pw
-                      .Alignment
-                      .centerRight, // Alinea la columna de moneda secundaria a la derecha
+                  3: pw.Alignment.centerRight,
+                  4: pw.Alignment.centerRight,
                 },
-                data: txs.map((tx) {
+                data: sortedTxs.map((tx) {
                   final usdValue = (tx.anchorUsdValue ?? tx.amount) as num;
                   final row = [
-                    tx.date.toLocal().toString().split(' ')[0],
+                    (tx.date is DateTime
+                            ? (tx.date as DateTime)
+                            : DateTime.tryParse(tx.date.toString()) ??
+                                  DateTime.now())
+                        .toLocal()
+                        .toString()
+                        .split(' ')
+                        .first,
                     tx.description,
                     tx.type == 'deuda' || tx.type == 'debt' ? 'Deuda' : 'Abono',
-                    formatAmount(usdValue), // Símbolo de moneda eliminado
+                    formatAmount(usdValue),
                   ];
                   if (convertCurrency) {
-                    row.add(
-                      formatAmount(
-                        usdValue * conversionRate!,
-                      ), // Símbolo de moneda eliminado
-                    );
+                    row.add(formatAmount(usdValue * conversionRate!));
                   }
                   return row;
                 }).toList(),
@@ -477,38 +490,43 @@ Future<void> exportAndShareClientReceiptPDF(
   final pdf = pw.Document();
   pdf.addPage(
     pw.Page(
-      build: (context) => pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Text(
-            'Recibo de ${client.name}',
-            style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
-          ),
-          pw.Text('ID: ${client.id}'),
-          pw.SizedBox(height: 10),
-          pw.Table.fromTextArray(
-            headers: ['Fecha', 'Descripción', 'Tipo', 'Monto'],
-            headerStyle: pw.TextStyle(
-              fontWeight: pw.FontWeight.bold,
-              color: PdfColors.white,
+      build: (context) {
+        // Orden descendente por fecha
+        final sorted = List<Transaction>.from(transactions)
+          ..sort((a, b) => b.date.compareTo(a.date));
+        return pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text(
+              'Recibo de ${client.name}',
+              style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
             ),
-            headerDecoration: pw.BoxDecoration(color: PdfColors.blue),
-            cellStyle: pw.TextStyle(fontSize: 10),
-            data: transactions
-                .map(
-                  (tx) => [
-                    tx.date.toLocal().toString().split(' ')[0],
-                    tx.description,
-                    tx.type == 'debt' ? 'Deuda' : 'Abono',
-                    tx.amount.toStringAsFixed(2),
-                  ],
-                )
-                .toList(),
-          ),
-          pw.SizedBox(height: 10),
-          pw.Text('Saldo actual: ${client.balance.toStringAsFixed(2)}'),
-        ],
-      ),
+            pw.Text('ID: ${client.id}'),
+            pw.SizedBox(height: 10),
+            pw.Table.fromTextArray(
+              headers: ['Fecha', 'Descripción', 'Tipo', 'Monto'],
+              headerStyle: pw.TextStyle(
+                fontWeight: pw.FontWeight.bold,
+                color: PdfColors.white,
+              ),
+              headerDecoration: pw.BoxDecoration(color: PdfColors.blue),
+              cellStyle: pw.TextStyle(fontSize: 10),
+              data: sorted
+                  .map(
+                    (tx) => [
+                      tx.date.toLocal().toString().split(' ')[0],
+                      tx.description,
+                      tx.type == 'debt' ? 'Deuda' : 'Abono',
+                      tx.amount.toStringAsFixed(2),
+                    ],
+                  )
+                  .toList(),
+            ),
+            pw.SizedBox(height: 10),
+            pw.Text('Saldo actual: ${client.balance.toStringAsFixed(2)}'),
+          ],
+        );
+      },
     ),
   );
   final bytes = await pdf.save();
@@ -576,32 +594,37 @@ Future<void> exportClientReceiptToPDF(
   final pdf = pw.Document();
   pdf.addPage(
     pw.Page(
-      build: (context) => pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Text(
-            'Recibo de ${client.name}',
-            style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
-          ),
-          pw.Text('ID: ${client.id}'),
-          pw.SizedBox(height: 10),
-          pw.TableHelper.fromTextArray(
-            headers: ['Tipo', 'Monto', 'Descripción', 'Fecha'],
-            data: transactions
-                .map(
-                  (tx) => [
-                    tx.type == 'debt' ? 'Deuda' : 'Abono',
-                    tx.amount.toStringAsFixed(2),
-                    tx.description,
-                    tx.date.toLocal().toString().split(' ')[0],
-                  ],
-                )
-                .toList(),
-          ),
-          pw.SizedBox(height: 10),
-          pw.Text('Saldo actual: ${client.balance.toStringAsFixed(2)}'),
-        ],
-      ),
+      build: (context) {
+        // Orden descendente por fecha
+        final sorted = List<Transaction>.from(transactions)
+          ..sort((a, b) => b.date.compareTo(a.date));
+        return pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text(
+              'Recibo de ${client.name}',
+              style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
+            ),
+            pw.Text('ID: ${client.id}'),
+            pw.SizedBox(height: 10),
+            pw.TableHelper.fromTextArray(
+              headers: ['Tipo', 'Monto', 'Descripción', 'Fecha'],
+              data: sorted
+                  .map(
+                    (tx) => [
+                      tx.type == 'debt' ? 'Deuda' : 'Abono',
+                      tx.amount.toStringAsFixed(2),
+                      tx.description,
+                      tx.date.toLocal().toString().split(' ')[0],
+                    ],
+                  )
+                  .toList(),
+            ),
+            pw.SizedBox(height: 10),
+            pw.Text('Saldo actual: ${client.balance.toStringAsFixed(2)}'),
+          ],
+        );
+      },
     ),
   );
   await Printing.layoutPdf(onLayout: (format) async => pdf.save());

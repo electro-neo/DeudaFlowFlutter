@@ -4,6 +4,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hive/hive.dart';
 import 'package:provider/provider.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:internet_connection_checker/internet_connection_checker.dart';
 import '../providers/client_provider.dart';
 import '../providers/transaction_provider.dart';
 import 'register_screen.dart';
@@ -78,6 +80,21 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _loading = false;
   String? _error;
+
+  // Verifica rápidamente si hay conectividad y acceso real a internet.
+  Future<bool> _hasConnectivity() async {
+    try {
+      final results = await Connectivity().checkConnectivity();
+      final hasAnyNetwork = results.any((r) => r != ConnectivityResult.none);
+      if (!hasAnyNetwork) return false;
+      // Verifica acceso real a internet (no solo red local/portal cautivo)
+      final hasInternet = await InternetConnectionChecker().hasConnection;
+      return hasInternet;
+    } catch (_) {
+      // En caso de error del plugin, no bloquear el flujo existente
+      return true;
+    }
+  }
 
   Future<void> _login() async {
     setState(() {
@@ -225,6 +242,14 @@ class _LoginScreenState extends State<LoginScreen> {
       _loading = true;
       _error = null;
     });
+    // Validación de conectividad antes de iniciar el flujo de Google
+    if (!await _hasConnectivity()) {
+      setState(() {
+        _loading = false;
+        _error = 'Sin conexión a internet.';
+      });
+      return;
+    }
     debugPrint(
       'DEBUG: Iniciando login con Google (Android, OAuth tipo Web Client ID, no WebApp)...',
     );
@@ -306,20 +331,37 @@ class _LoginScreenState extends State<LoginScreen> {
       debugPrint('DEBUG: Login con Google exitoso, navegando a dashboard.');
       Navigator.of(context).pushReplacementNamed('/dashboard');
     } catch (e) {
-      if (e is GoogleSignInException &&
-          e.code == GoogleSignInExceptionCode.canceled) {
-        debugPrint(
-          'DEBUG: Login cancelado por el usuario (GoogleSignInException.canceled)',
-        );
-        setState(() {
-          _error = 'Revisa tu conexion a internet.';
-        });
+      if (e is GoogleSignInException) {
+        if (e.code == GoogleSignInExceptionCode.canceled) {
+          debugPrint('DEBUG: Login cancelado por el usuario');
+          setState(() {
+            _error = 'Selección de cuenta cancelada.';
+          });
+        } else {
+          final msg = e.toString().toLowerCase();
+          final isNet =
+              msg.contains('network') ||
+              msg.contains('internet') ||
+              msg.contains('timeout');
+          setState(() {
+            _error = isNet
+                ? 'Problemas de conexión. Intenta nuevamente.'
+                : 'Error al iniciar sesión con Google: ${e.toString()}';
+          });
+        }
       } else {
         debugPrint(
           'DEBUG: Error inesperado en login con Google: ${e.toString()}',
         );
+        final msg = e.toString().toLowerCase();
+        final isNet =
+            msg.contains('network') ||
+            msg.contains('internet') ||
+            msg.contains('timeout');
         setState(() {
-          _error = 'Error al iniciar sesión con Google: ${e.toString()}';
+          _error = isNet
+              ? 'Problemas de conexión. Intenta nuevamente.'
+              : 'Error al iniciar sesión con Google: ${e.toString()}';
         });
       }
     } finally {

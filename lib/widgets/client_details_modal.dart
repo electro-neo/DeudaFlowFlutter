@@ -28,6 +28,39 @@ class ClientDetailsModal extends StatelessWidget {
     this.onReceipt,
   });
 
+  // Botón reutilizable compacto con fondo y marco
+  Widget _actionBtn({
+    required String tooltip,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+    double size = 36, // tamaño del botón
+    double iconSize = 18, // tamaño del ícono
+  }) {
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(10),
+      side: BorderSide(color: color.withOpacity(0.5), width: 1),
+    );
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: color.withOpacity(0.09),
+        shape: shape,
+        child: InkWell(
+          customBorder: shape,
+          onTap: onPressed,
+          child: SizedBox(
+            width: size,
+            height: size,
+            child: Center(
+              child: Icon(icon, color: color, size: iconSize),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final rootContext = Navigator.of(context, rootNavigator: true).context;
@@ -124,156 +157,142 @@ class ClientDetailsModal extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 18),
-            // Botones de acción
+
+            // Una sola fila con los 5 botones compactos
             Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Tooltip(
-                  message: 'Recibo',
-                  child: IconButton(
-                    icon: const Icon(Icons.receipt_long, size: 26),
-                    color: Colors.deepPurple,
-                    onPressed: () {
-                      Navigator.of(context, rootNavigator: true).pop();
-                      Future.delayed(Duration.zero, () {
-                        final txProvider = Provider.of<TransactionProvider>(
-                          rootContext,
-                          listen: false,
-                        );
-                        final clientData = [
-                          {
-                            'client': client,
-                            'transactions': txProvider.transactions
-                                .where((tx) => tx.clientId == client.id)
-                                .toList(),
-                          },
-                        ];
-                        showDialog(
-                          context: rootContext,
-                          builder: (_) =>
-                              GeneralReceiptModal(clientData: clientData),
-                        );
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(width: 0),
-                Tooltip(
-                  message: 'Editar',
-                  child: IconButton(
-                    icon: const Icon(Icons.edit, size: 26),
-                    color: Colors.blue,
-                    onPressed: () {
-                      Navigator.of(context, rootNavigator: true).pop();
-                      if (onEdit != null) {
-                        Future.delayed(Duration.zero, onEdit!);
-                      }
-                    },
-                  ),
-                ),
-                const SizedBox(width: 0),
-                Tooltip(
-                  message: 'Eliminar',
-                  child: IconButton(
-                    icon: const Icon(Icons.delete, size: 26),
-                    color: Colors.red,
-                    onPressed: () {
-                      debugPrint(
-                        '[CLIENT_DETAILS_MODAL] Botón Eliminar PRESIONADO para cliente: id=${client.id}, name=${client.name}',
+                _actionBtn(
+                  tooltip: 'Recibo',
+                  icon: Icons.receipt_long,
+                  color: Colors.deepPurple,
+                  onPressed: () {
+                    Navigator.of(context, rootNavigator: true).pop();
+                    Future.delayed(Duration.zero, () {
+                      final txProvider = Provider.of<TransactionProvider>(
+                        rootContext,
+                        listen: false,
                       );
-                      Navigator.of(context, rootNavigator: true).pop();
-                      if (onDelete != null) {
-                        Future.delayed(Duration.zero, onDelete!);
-                      }
-                    },
-                  ),
+                      final clientData = [
+                        {
+                          'client': client,
+                          'transactions': txProvider.transactions
+                              .where((tx) => tx.clientId == client.id)
+                              .toList(),
+                        },
+                      ];
+                      showDialog(
+                        context: rootContext,
+                        builder: (_) =>
+                            GeneralReceiptModal(clientData: clientData),
+                      );
+                    });
+                  },
                 ),
-                const SizedBox(width: 0),
-                Tooltip(
-                  message: 'Agregar deuda/abono',
-                  child: IconButton(
-                    icon: const Icon(Icons.add, size: 26),
-                    color: Colors.green,
-                    onPressed: () {
-                      Navigator.of(context, rootNavigator: true).pop();
-                      Future.delayed(Duration.zero, () {
-                        // Envolver TransactionForm con Consumer<CurrencyProvider> para asegurar acceso
-                        showDialog(
-                          context: rootContext,
-                          builder: (dialogContext) => Builder(
-                            builder: (innerContext) {
-                              // Si CurrencyProvider está en el árbol, úsalo; si no, muestra igual
-                              return TransactionForm(
-                                userId: userId,
-                                initialClient: client,
-                                onClose: () => Navigator.of(
+                _actionBtn(
+                  tooltip: 'Editar',
+                  icon: Icons.edit,
+                  color: Colors.blue,
+                  onPressed: () {
+                    Navigator.of(context, rootNavigator: true).pop();
+                    if (onEdit != null) {
+                      Future.delayed(Duration.zero, onEdit!);
+                    }
+                  },
+                ),
+                _actionBtn(
+                  tooltip: 'Eliminar',
+                  icon: Icons.delete,
+                  color: Colors.red,
+                  onPressed: () {
+                    debugPrint(
+                      '[CLIENT_DETAILS_MODAL] Botón Eliminar PRESIONADO para cliente: id=${client.id}, name=${client.name}',
+                    );
+                    Navigator.of(context, rootNavigator: true).pop();
+                    if (onDelete != null) {
+                      Future.delayed(Duration.zero, onDelete!);
+                    }
+                  },
+                ),
+                _actionBtn(
+                  tooltip: 'Agregar deuda/abono',
+                  icon: Icons.add,
+                  color: Colors.green,
+                  onPressed: () {
+                    Navigator.of(context, rootNavigator: true).pop();
+                    Future.delayed(Duration.zero, () {
+                      showDialog(
+                        context: rootContext,
+                        builder: (dialogContext) => Builder(
+                          builder: (innerContext) {
+                            return TransactionForm(
+                              userId: userId,
+                              initialClient: client,
+                              onClose: () => Navigator.of(
+                                dialogContext,
+                                rootNavigator: true,
+                              ).pop(),
+                              onSave: (tx) async {
+                                final txProvider =
+                                    Provider.of<TransactionProvider>(
+                                      dialogContext,
+                                      listen: false,
+                                    );
+                                final clientProvider =
+                                    Provider.of<ClientProvider>(
+                                      dialogContext,
+                                      listen: false,
+                                    );
+                                final navigator = Navigator.of(
                                   dialogContext,
                                   rootNavigator: true,
-                                ).pop(),
-                                onSave: (tx) async {
-                                  final txProvider =
-                                      Provider.of<TransactionProvider>(
-                                        dialogContext,
-                                        listen: false,
-                                      );
-                                  final clientProvider =
-                                      Provider.of<ClientProvider>(
-                                        dialogContext,
-                                        listen: false,
-                                      );
-                                  final navigator = Navigator.of(
-                                    dialogContext,
-                                    rootNavigator: true,
-                                  );
-                                  final scaffoldMessenger =
-                                      ScaffoldMessenger.of(dialogContext);
-                                  await txProvider.addTransaction(
-                                    tx,
-                                    userId,
-                                    client.id,
-                                  );
-                                  await txProvider.loadTransactions(userId);
-                                  await clientProvider.loadClients(userId);
-                                  if (navigator.mounted && navigator.canPop()) {
-                                    navigator.pop();
-                                  }
-                                  try {
-                                    scaffoldMessenger.showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Transacción guardada correctamente',
-                                        ),
+                                );
+                                final scaffoldMessenger = ScaffoldMessenger.of(
+                                  dialogContext,
+                                );
+                                await txProvider.addTransaction(
+                                  tx,
+                                  userId,
+                                  client.id,
+                                );
+                                await txProvider.loadTransactions(userId);
+                                await clientProvider.loadClients(userId);
+                                if (navigator.mounted && navigator.canPop()) {
+                                  navigator.pop();
+                                }
+                                try {
+                                  scaffoldMessenger.showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Transacción guardada correctamente',
                                       ),
-                                    );
-                                  } catch (_) {}
-                                },
-                              );
-                            },
-                          ),
-                        );
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(width: 0),
-                Tooltip(
-                  message: 'Ver movimientos',
-                  child: IconButton(
-                    icon: const Icon(Icons.list, size: 26),
-                    color: Colors.orange,
-                    onPressed: () {
-                      debugPrint(
-                        '[CLIENT_DETAILS_MODAL] Botón Ver movimientos PRESIONADO para cliente: ${client.id}',
+                                    ),
+                                  );
+                                } catch (_) {}
+                              },
+                            );
+                          },
+                        ),
                       );
-                      Navigator.of(context, rootNavigator: true).pop();
-                      if (onViewMovements != null) {
-                        Future.delayed(
-                          Duration.zero,
-                          () => onViewMovements!(client.id),
-                        );
-                      }
-                    },
-                  ),
+                    });
+                  },
+                ),
+                _actionBtn(
+                  tooltip: 'Ver movimientos',
+                  icon: Icons.list,
+                  color: Colors.orange,
+                  onPressed: () {
+                    debugPrint(
+                      '[CLIENT_DETAILS_MODAL] Botón Ver movimientos PRESIONADO para cliente: ${client.id}',
+                    );
+                    Navigator.of(context, rootNavigator: true).pop();
+                    if (onViewMovements != null) {
+                      Future.delayed(
+                        Duration.zero,
+                        () => onViewMovements!(client.id),
+                      );
+                    }
+                  },
                 ),
               ],
             ),

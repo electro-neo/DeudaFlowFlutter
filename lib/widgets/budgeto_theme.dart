@@ -9,12 +9,12 @@ class BudgetoTheme {
     // Transiciones de navegación suaves y consistentes en todas las plataformas
     pageTransitionsTheme: const PageTransitionsTheme(
       builders: <TargetPlatform, PageTransitionsBuilder>{
-        TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
-        TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder(),
-        TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
-        TargetPlatform.macOS: FadeUpwardsPageTransitionsBuilder(),
-        TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
-        TargetPlatform.fuchsia: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.android: _SmoothPageTransitionsBuilder(),
+        TargetPlatform.iOS: _SmoothPageTransitionsBuilder(),
+        TargetPlatform.linux: _SmoothPageTransitionsBuilder(),
+        TargetPlatform.macOS: _SmoothPageTransitionsBuilder(),
+        TargetPlatform.windows: _SmoothPageTransitionsBuilder(),
+        TargetPlatform.fuchsia: _SmoothPageTransitionsBuilder(),
       },
     ),
     // ColorScheme principal (usa kGreenColor como color primario)
@@ -108,12 +108,12 @@ class BudgetoTheme {
     // Transiciones de navegación suaves y consistentes en todas las plataformas
     pageTransitionsTheme: const PageTransitionsTheme(
       builders: <TargetPlatform, PageTransitionsBuilder>{
-        TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
-        TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder(),
-        TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
-        TargetPlatform.macOS: FadeUpwardsPageTransitionsBuilder(),
-        TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
-        TargetPlatform.fuchsia: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.android: _SmoothPageTransitionsBuilder(),
+        TargetPlatform.iOS: _SmoothPageTransitionsBuilder(),
+        TargetPlatform.linux: _SmoothPageTransitionsBuilder(),
+        TargetPlatform.macOS: _SmoothPageTransitionsBuilder(),
+        TargetPlatform.windows: _SmoothPageTransitionsBuilder(),
+        TargetPlatform.fuchsia: _SmoothPageTransitionsBuilder(),
       },
     ),
     // ColorScheme principal (usa kDarkGreenColor como color primario)
@@ -173,4 +173,43 @@ class BudgetoTheme {
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
     ),
   );
+}
+
+/// Transición global suave para rutas: fade + slide + scale con curvas suaves.
+class _SmoothPageTransitionsBuilder extends PageTransitionsBuilder {
+  const _SmoothPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    // Curvas y valores inspirados en la animación de tabs de MainScaffold
+    // Aumentar delay: fade empieza un poco después, slide/scale empiezan más tarde
+    final fade = CurvedAnimation(
+      parent: animation,
+      curve: const Interval(0.08, 1.0, curve: Curves.easeOutSine),
+    ).drive(Tween<double>(begin: 0.96, end: 1.0));
+
+    final slide = CurvedAnimation(
+      parent: animation,
+      curve: const Interval(0.30, 1.0, curve: Curves.easeOutCubic),
+    ).drive(Tween<Offset>(begin: const Offset(0.08, 0.0), end: Offset.zero));
+
+    final scale = CurvedAnimation(
+      parent: animation,
+      curve: const Interval(0.30, 1.0, curve: Curves.easeOutSine),
+    ).drive(Tween<double>(begin: 0.996, end: 1.0));
+
+    return FadeTransition(
+      opacity: fade,
+      child: SlideTransition(
+        position: slide,
+        child: ScaleTransition(scale: scale, child: child),
+      ),
+    );
+  }
 }

@@ -199,13 +199,16 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
 
       // 1. Procesar las eliminaciones pendientes primero
       for (final c in _pendingDeletions) {
+        // Si la moneda eliminada es la seleccionada, volver a USD
+        if (currencyProvider.currency == c) {
+          currencyProvider.setCurrency('USD');
+        }
         currencyProvider.removeManualCurrency(c);
       }
 
       // 2. Guardar tasas de las monedas existentes (que no se eliminaron)
       for (final c in rates.keys) {
         if (_pendingDeletions.contains(c)) continue;
-
         final text = rates[c]?.text.trim() ?? '';
         final val = double.tryParse(text.replaceAll(',', '.'));
         if (val != null && val > 0) {
@@ -317,9 +320,9 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
                                 ),
                               ),
                             ),
-                            ...currencies
-                                .where((c) => !_pendingDeletions.contains(c))
-                                .map((c) {
+                            ...currencies.where((c) => !_pendingDeletions.contains(c)).map((
+                              c,
+                            ) {
                               // Si estamos agregando una moneda y es la seleccionada, usar el newRateController
                               final isNew =
                                   showAddFields && selectedCurrency == c;

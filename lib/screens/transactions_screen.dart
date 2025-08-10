@@ -85,6 +85,18 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   @override
   Widget build(BuildContext context) {
     final currencyProvider = context.watch<CurrencyProvider>();
+
+    // Fallback a USD si la moneda seleccionada ya no está disponible
+    if (currencyProvider.currency != 'USD' &&
+        !currencyProvider.availableCurrencies.contains(
+          currencyProvider.currency,
+        )) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        context.read<CurrencyProvider>().setCurrency('USD');
+      });
+    }
+
     final txProvider = Provider.of<TransactionProvider>(context);
     final clientProvider = Provider.of<ClientProvider>(context);
     final filterProvider = Provider.of<TransactionFilterProvider>(context);

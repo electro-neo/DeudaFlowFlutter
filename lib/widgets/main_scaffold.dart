@@ -100,6 +100,13 @@ class _MainScaffoldState extends State<MainScaffold> {
   final GlobalKey _transactionsScreenKey = GlobalKey();
   int _currentIndex = 0;
 
+  // Progreso de ocultación (0.0 visible, 1.0 oculto)
+  double _chromeT = 0.0;
+  // Notificador para evitar rebuilds grandes en scroll
+  final ValueNotifier<double> _chromeTNotifier = ValueNotifier<double>(0.0);
+  // Distancia de scroll necesaria para ocultar por completo
+  static const double _hideDistance = 96.0;
+
   void _onTab(int index) {
     // Si cambias desde la pestaña de clientes, limpia el buscador y cierra expansión
     if (_currentIndex == 1 && index != 1) {
@@ -133,14 +140,28 @@ class _MainScaffoldState extends State<MainScaffold> {
             (state as dynamic).resetSearchState();
           } catch (_) {}
         }
-        setState(() {});
+        setState(() {
+          // Mostrar nuevamente barra y FAB
+          _chromeT = 0.0;
+          _chromeTNotifier.value = 0.0;
+        });
       }
       tabProvider.setTab(index);
-      setState(() => _currentIndex = index);
+      setState(() {
+        _currentIndex = index;
+        // Mostrar nuevamente barra y FAB
+        _chromeT = 0.0;
+        _chromeTNotifier.value = 0.0;
+      });
       return;
     }
     Provider.of<TabProvider>(context, listen: false).setTab(index);
-    setState(() => _currentIndex = index);
+    setState(() {
+      _currentIndex = index;
+      // Mostrar nuevamente barra y FAB
+      _chromeT = 0.0;
+      _chromeTNotifier.value = 0.0;
+    });
   }
 
   // Permite cambiar a la pestaña de movimientos y filtrar por cliente
@@ -153,7 +174,11 @@ class _MainScaffoldState extends State<MainScaffold> {
     filterProvider.setType(null);
     final tabProvider = Provider.of<TabProvider>(context, listen: false);
     tabProvider.setTab(2);
-    setState(() => _currentIndex = 2);
+    setState(() {
+      _currentIndex = 2;
+      _chromeT = 0.0;
+      _chromeTNotifier.value = 0.0;
+    });
   }
 
   void _logout() async {
@@ -177,6 +202,39 @@ class _MainScaffoldState extends State<MainScaffold> {
     } catch (_) {
       return null;
     }
+  }
+
+  // Listener de scroll para ocultar/mostrar progresivamente FAB y BottomBar
+  bool _onScrollNotification(ScrollNotification notification) {
+    // Solo vertical del scrollable primario (evita notifs anidadas)
+    if (notification.metrics.axis != Axis.vertical || notification.depth != 0) {
+      return false;
+    }
+
+    double? delta;
+    if (notification is ScrollUpdateNotification) {
+      delta = notification.scrollDelta;
+    } else if (notification is OverscrollNotification) {
+      delta = notification.overscroll;
+    }
+    if (delta == null) return false;
+
+    // Suaviza ruido de deltas minúsculos
+    if (delta.abs() < 0.5) return false;
+
+    // delta > 0: scroll down (oculta), delta < 0: scroll up (muestra)
+    final next = (_chromeT + (delta / _hideDistance)).clamp(0.0, 1.0);
+    if (next != _chromeT) {
+      _chromeT = next;
+      _chromeTNotifier.value = next; // solo repinta FAB y barra
+    }
+    return false; // no consumimos el evento
+  }
+
+  @override
+  void dispose() {
+    _chromeTNotifier.dispose();
+    super.dispose();
   }
 
   @override
@@ -233,78 +291,87 @@ class _MainScaffoldState extends State<MainScaffold> {
 
         Widget? fab = isKeyboardVisible
             ? null
-            : FloatingActionButton(
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (ctx) {
-                      final clientProvider = Provider.of<ClientProvider>(
-                        context,
-                        listen: false,
-                      );
-                      final hasClients = clientProvider.clients.isNotEmpty;
-
-                      return AlertDialog(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        title: const Text('¿Qué deseas registrar?'),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            ElevatedButton.icon(
-                              icon: const Icon(Icons.person_add_alt_1),
-                              label: const Text('Cliente'),
-                              style: ElevatedButton.styleFrom(
-                                minimumSize: const Size(double.infinity, 44),
-                                backgroundColor: Colors.indigo,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              onPressed: () {
-                                Navigator.of(ctx).pop();
-                                _showClientForm();
-                              },
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton.icon(
-                              icon: const Icon(Icons.add_card),
-                              label: const Text('Transacción'),
-                              style: ElevatedButton.styleFrom(
-                                minimumSize: const Size(double.infinity, 44),
-                                backgroundColor: hasClients
-                                    ? Colors.deepPurple
-                                    : Colors.grey,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              onPressed: hasClients
-                                  ? () {
-                                      Navigator.of(ctx).pop();
-                                      showDialog(
-                                        context: context,
-                                        builder: (ctx2) =>
-                                            AddGlobalTransactionModal(
-                                              userId: widget.userId,
-                                            ),
-                                      );
-                                    }
-                                  : null,
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+            : ValueListenableBuilder<double>(
+                valueListenable: _chromeTNotifier,
+                builder: (context, t, child) {
+                  return Transform.translate(
+                    offset: Offset(0, 120.0 * t),
+                    child: Opacity(opacity: 1.0 - t, child: child),
                   );
                 },
-                backgroundColor: const Color.fromARGB(255, 145, 88, 236),
-                elevation: 6,
-                shape: const CircleBorder(),
-                child: const Icon(Icons.add, size: 32, color: Colors.white),
+                child: FloatingActionButton(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (ctx) {
+                        final clientProvider = Provider.of<ClientProvider>(
+                          context,
+                          listen: false,
+                        );
+                        final hasClients = clientProvider.clients.isNotEmpty;
+
+                        return AlertDialog(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          title: const Text('¿Qué deseas registrar?'),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ElevatedButton.icon(
+                                icon: const Icon(Icons.person_add_alt_1),
+                                label: const Text('Cliente'),
+                                style: ElevatedButton.styleFrom(
+                                  minimumSize: const Size(double.infinity, 44),
+                                  backgroundColor: Colors.indigo,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: () {
+                                  Navigator.of(ctx).pop();
+                                  _showClientForm();
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton.icon(
+                                icon: const Icon(Icons.add_card),
+                                label: const Text('Transacción'),
+                                style: ElevatedButton.styleFrom(
+                                  minimumSize: const Size(double.infinity, 44),
+                                  backgroundColor: hasClients
+                                      ? Colors.deepPurple
+                                      : Colors.grey,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: hasClients
+                                    ? () {
+                                        Navigator.of(ctx).pop();
+                                        showDialog(
+                                          context: context,
+                                          builder: (ctx2) =>
+                                              AddGlobalTransactionModal(
+                                                userId: widget.userId,
+                                              ),
+                                        );
+                                      }
+                                    : null,
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                  backgroundColor: const Color.fromARGB(255, 145, 88, 236),
+                  elevation: 6,
+                  shape: const CircleBorder(),
+                  child: const Icon(Icons.add, size: 32, color: Colors.white),
+                ),
               );
 
         return Column(
@@ -329,178 +396,158 @@ class _MainScaffoldState extends State<MainScaffold> {
                     extendBody: true,
                     backgroundColor: Colors.transparent,
                     appBar: null,
-                    body: IndexedStack(index: tabIndex, children: screens),
+                    body: NotificationListener<ScrollNotification>(
+                      onNotification: _onScrollNotification,
+                      child: IndexedStack(index: tabIndex, children: screens),
+                    ),
                     floatingActionButton: fab,
                     floatingActionButtonLocation:
                         FloatingActionButtonLocation.centerDocked,
-                    bottomNavigationBar: BottomAppBar(
-                      color: Colors.white,
-                      elevation: 0,
-                      shape: const CircularNotchedRectangle(),
-                      notchMargin: 8.0,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: <Widget>[
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.dashboard),
-                                tooltip: 'Dashboard',
-                                color: tabIndex == 0
-                                    ? Theme.of(context).colorScheme.primary
-                                    : null,
-                                onPressed: () => _onTab(0),
-                              ),
-                              const SizedBox(width: 20),
-                              IconButton(
-                                icon: const Icon(Icons.people),
-                                tooltip: 'Clientes',
-                                color: tabIndex == 1
-                                    ? Theme.of(context).colorScheme.primary
-                                    : null,
-                                onPressed: () => _onTab(1),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(width: 32),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.list_alt),
-                                tooltip: 'Movimientos',
-                                color: tabIndex == 2
-                                    ? Theme.of(context).colorScheme.primary
-                                    : null,
-                                onPressed: () => _onTab(2),
-                              ),
-                              const SizedBox(width: 20),
-                              IconButton(
-                                icon: const Icon(Icons.menu),
-                                tooltip: 'Menú',
-                                onPressed: () {
-                                  final logout = _logout;
-                                  showModalBottomSheet(
-                                    context: context,
-                                    shape: const RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.vertical(
-                                        top: Radius.circular(16),
-                                      ),
-                                    ),
-                                    builder: (ctx) {
-                                      return Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 24,
-                                          horizontal: 24,
+                    bottomNavigationBar: ValueListenableBuilder<double>(
+                      valueListenable: _chromeTNotifier,
+                      builder: (context, t, child) {
+                        return Transform.translate(
+                          offset: Offset(0, 80.0 * t),
+                          child: Opacity(opacity: 1.0 - t, child: child),
+                        );
+                      },
+                      child: BottomAppBar(
+                        color: Colors.white,
+                        elevation: 0,
+                        shape: const CircularNotchedRectangle(),
+                        notchMargin: 8.0,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: <Widget>[
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.dashboard),
+                                  tooltip: 'Dashboard',
+                                  color: tabIndex == 0
+                                      ? Theme.of(context).colorScheme.primary
+                                      : null,
+                                  onPressed: () => _onTab(0),
+                                ),
+                                const SizedBox(width: 20),
+                                IconButton(
+                                  icon: const Icon(Icons.people),
+                                  tooltip: 'Clientes',
+                                  color: tabIndex == 1
+                                      ? Theme.of(context).colorScheme.primary
+                                      : null,
+                                  onPressed: () => _onTab(1),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(width: 32),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.list_alt),
+                                  tooltip: 'Movimientos',
+                                  color: tabIndex == 2
+                                      ? Theme.of(context).colorScheme.primary
+                                      : null,
+                                  onPressed: () => _onTab(2),
+                                ),
+                                const SizedBox(width: 20),
+                                IconButton(
+                                  icon: const Icon(Icons.menu),
+                                  tooltip: 'Menú',
+                                  onPressed: () {
+                                    final logout = _logout;
+                                    showModalBottomSheet(
+                                      context: context,
+                                      shape: const RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.vertical(
+                                          top: Radius.circular(16),
                                         ),
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.stretch,
-                                          children: [
-                                            const SizedBox(height: 16),
-                                            // ...
-                                            // Botón para recargar el tema desde JSON eliminado
-                                            const SizedBox(height: 12),
-                                            // Botón para gestionar monedas, con estilo y tamaño consistentes
-                                            Consumer<CurrencyProvider>(
-                                              builder: (context, currencyProvider, _) {
-                                                onPressedAction() {
-                                                  final monedasConTasa =
-                                                      currencyProvider
-                                                          .exchangeRates
-                                                          .entries
-                                                          .where(
-                                                            (e) =>
-                                                                e.key != 'USD',
-                                                          )
-                                                          .map(
-                                                            (e) =>
-                                                                '${e.key}: ${e.value}',
-                                                          )
-                                                          .toList();
-                                                  debugPrint(
-                                                    '[DEBUG][GESTION MONEDAS] Monedas con tasa registrada: ${monedasConTasa.join(', ')}',
-                                                  );
-                                                  showDialog(
-                                                    context: context,
-                                                    builder: (ctx2) =>
-                                                        const CurrencyManagerDialog(),
-                                                  );
-                                                }
+                                      ),
+                                      builder: (ctx) {
+                                        return Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 24,
+                                            horizontal: 24,
+                                          ),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.stretch,
+                                            children: [
+                                              const SizedBox(height: 16),
+                                              // ...
+                                              // Botón para recargar el tema desde JSON eliminado
+                                              const SizedBox(height: 12),
+                                              // Botón para gestionar monedas, con estilo y tamaño consistentes
+                                              Consumer<CurrencyProvider>(
+                                                builder: (context, currencyProvider, _) {
+                                                  onPressedAction() {
+                                                    final monedasConTasa =
+                                                        currencyProvider
+                                                            .exchangeRates
+                                                            .entries
+                                                            .where(
+                                                              (e) =>
+                                                                  e.key !=
+                                                                  'USD',
+                                                            )
+                                                            .map(
+                                                              (e) =>
+                                                                  '${e.key}: ${e.value}',
+                                                            )
+                                                            .toList();
+                                                    debugPrint(
+                                                      '[DEBUG][GESTION MONEDAS] Monedas con tasa registrada: ${monedasConTasa.join(', ')}',
+                                                    );
+                                                    showDialog(
+                                                      context: context,
+                                                      builder: (ctx2) =>
+                                                          const CurrencyManagerDialog(),
+                                                    );
+                                                  }
 
-                                                return ScaleOnTap(
-                                                  duration: scaleTapDuration,
-                                                  onTap: onPressedAction,
-                                                  child: ElevatedButton.icon(
-                                                    icon: const Icon(
-                                                      Icons.attach_money_rounded,
-                                                      color: Colors.indigo,
-                                                    ),
-                                                    label: const Text(
-                                                      'Gestionar monedas',
-                                                      style: TextStyle(
+                                                  return ScaleOnTap(
+                                                    duration: scaleTapDuration,
+                                                    onTap: onPressedAction,
+                                                    child: ElevatedButton.icon(
+                                                      icon: const Icon(
+                                                        Icons
+                                                            .attach_money_rounded,
                                                         color: Colors.indigo,
                                                       ),
-                                                    ),
-                                                    style: ElevatedButton.styleFrom(
-                                                      backgroundColor:
-                                                          Colors.white,
-                                                      foregroundColor:
-                                                          Colors.indigo,
-                                                      elevation: 0,
-                                                      side: const BorderSide(
-                                                        color: Colors.indigo,
+                                                      label: const Text(
+                                                        'Gestionar monedas',
+                                                        style: TextStyle(
+                                                          color: Colors.indigo,
+                                                        ),
                                                       ),
+                                                      style:
+                                                          ElevatedButton.styleFrom(
+                                                            backgroundColor:
+                                                                Colors.white,
+                                                            foregroundColor:
+                                                                Colors.indigo,
+                                                            elevation: 0,
+                                                            side:
+                                                                const BorderSide(
+                                                                  color: Colors
+                                                                      .indigo,
+                                                                ),
+                                                          ),
+                                                      onPressed:
+                                                          onPressedAction,
                                                     ),
-                                                    onPressed: onPressedAction,
-                                                  ),
-                                                );
-                                              },
-                                            ),
-                                            const SizedBox(height: 16),
-                                            // ...eliminado el botón de cambio de color primario dinámico...
-                                            ScaleOnTap(
-                                              duration: scaleTapDuration,
-                                              onTap: () {
-                                                showModalBottomSheet(
-                                                  context: ctx,
-                                                  isScrollControlled: true,
-                                                  backgroundColor:
-                                                      const Color.fromARGB(
-                                                        255,
-                                                        241,
-                                                        239,
-                                                        239,
-                                                      ),
-                                                  builder: (_) =>
-                                                      const FaqHelpSheet(),
-                                                );
-                                              },
-                                              child: ElevatedButton.icon(
-                                                icon: const Icon(
-                                                  Icons.help_outline,
-                                                  color: Colors.indigo,
-                                                ),
-                                                label: const Text(
-                                                  'Ayuda / FAQ',
-                                                  style: TextStyle(
-                                                    color: Colors.indigo,
-                                                  ),
-                                                ),
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor: const Color(
-                                                    0xFFFFFFFF,
-                                                  ),
-                                                  foregroundColor:
-                                                      Colors.indigo,
-                                                  elevation: 0,
-                                                  side: const BorderSide(
-                                                    color: Colors.indigo,
-                                                  ),
-                                                ),
-                                                onPressed: () {
+                                                  );
+                                                },
+                                              ),
+                                              const SizedBox(height: 16),
+                                              // ...eliminado el botón de cambio de color primario dinámico...
+                                              ScaleOnTap(
+                                                duration: scaleTapDuration,
+                                                onTap: () {
                                                   showModalBottomSheet(
                                                     context: ctx,
                                                     isScrollControlled: true,
@@ -515,52 +562,95 @@ class _MainScaffoldState extends State<MainScaffold> {
                                                         const FaqHelpSheet(),
                                                   );
                                                 },
+                                                child: ElevatedButton.icon(
+                                                  icon: const Icon(
+                                                    Icons.help_outline,
+                                                    color: Colors.indigo,
+                                                  ),
+                                                  label: const Text(
+                                                    'Ayuda / FAQ',
+                                                    style: TextStyle(
+                                                      color: Colors.indigo,
+                                                    ),
+                                                  ),
+                                                  style:
+                                                      ElevatedButton.styleFrom(
+                                                        backgroundColor:
+                                                            const Color(
+                                                              0xFFFFFFFF,
+                                                            ),
+                                                        foregroundColor:
+                                                            Colors.indigo,
+                                                        elevation: 0,
+                                                        side: const BorderSide(
+                                                          color: Colors.indigo,
+                                                        ),
+                                                      ),
+                                                  onPressed: () {
+                                                    showModalBottomSheet(
+                                                      context: ctx,
+                                                      isScrollControlled: true,
+                                                      backgroundColor:
+                                                          const Color.fromARGB(
+                                                            255,
+                                                            241,
+                                                            239,
+                                                            239,
+                                                          ),
+                                                      builder: (_) =>
+                                                          const FaqHelpSheet(),
+                                                    );
+                                                  },
+                                                ),
                                               ),
-                                            ),
-                                            const SizedBox(height: 8),
-                                            ScaleOnTap(
-                                              duration: scaleTapDuration,
-                                              onTap: () {
-                                                Navigator.of(ctx).pop();
-                                                logout();
-                                              },
-                                              child: ElevatedButton.icon(
-                                                icon: const Icon(
-                                                  Icons.logout,
-                                                  color: Colors.red,
-                                                ),
-                                                label: const Text(
-                                                  'Cerrar sesión',
-                                                  style: TextStyle(
-                                                    color: Colors.red,
-                                                  ),
-                                                ),
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor: const Color(
-                                                    0xFFFFFFFF,
-                                                  ),
-                                                  foregroundColor: Colors.red,
-                                                  elevation: 0,
-                                                  side: const BorderSide(
-                                                    color: Colors.red,
-                                                  ),
-                                                ),
-                                                onPressed: () {
+                                              const SizedBox(height: 8),
+                                              ScaleOnTap(
+                                                duration: scaleTapDuration,
+                                                onTap: () {
                                                   Navigator.of(ctx).pop();
                                                   logout();
                                                 },
+                                                child: ElevatedButton.icon(
+                                                  icon: const Icon(
+                                                    Icons.logout,
+                                                    color: Colors.red,
+                                                  ),
+                                                  label: const Text(
+                                                    'Cerrar sesión',
+                                                    style: TextStyle(
+                                                      color: Colors.red,
+                                                    ),
+                                                  ),
+                                                  style:
+                                                      ElevatedButton.styleFrom(
+                                                        backgroundColor:
+                                                            const Color(
+                                                              0xFFFFFFFF,
+                                                            ),
+                                                        foregroundColor:
+                                                            Colors.red,
+                                                        elevation: 0,
+                                                        side: const BorderSide(
+                                                          color: Colors.red,
+                                                        ),
+                                                      ),
+                                                  onPressed: () {
+                                                    Navigator.of(ctx).pop();
+                                                    logout();
+                                                  },
+                                                ),
                                               ),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                        ],
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

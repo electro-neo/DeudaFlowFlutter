@@ -6,17 +6,46 @@ class BudgetoTheme {
     fontFamily: 'Outfit',
     // Fondo principal del Scaffold (tema claro)
     scaffoldBackgroundColor: Colors.white,
+    // Transiciones de navegación suaves y consistentes en todas las plataformas
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: <TargetPlatform, PageTransitionsBuilder>{
+        TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.macOS: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.fuchsia: FadeUpwardsPageTransitionsBuilder(),
+      },
+    ),
     // ColorScheme principal (usa kGreenColor como color primario)
     colorScheme: const ColorScheme.light(
-      primary: Color.fromARGB(255, 84, 10, 136),  // kGreenColor: color principal/acento
-      secondary: Color.fromARGB(255, 79, 155, 247), // Color secundario para acentos y bordes enfocados 
-      onSecondary: Colors.white, // <--- Aquí defines el color del texto sobre secondary
+      primary: Color.fromARGB(
+        255,
+        84,
+        10,
+        136,
+      ), // kGreenColor: color principal/acento
+      secondary: Color.fromARGB(
+        255,
+        79,
+        155,
+        247,
+      ), // Color secundario para acentos y bordes enfocados
+      onSecondary:
+          Colors.white, // <--- Aquí defines el color del texto sobre secondary
     ), // kGreenColor: color principal/acento
-    primaryColor: const Color.fromARGB(255, 66, 6, 144), // kGreenColor: color principal/acento
+    primaryColor: const Color.fromARGB(
+      255,
+      66,
+      6,
+      144,
+    ), // kGreenColor: color principal/acento
     cardColor: kCardColor, // kCardColor: fondo de tarjetas
     textTheme: const TextTheme(
       bodyLarge: TextStyle(color: kFontBlackC), // kFontBlackC: texto principal
-      bodyMedium: TextStyle(color: kFontBlackC), // kFontBlackC: texto secundario
+      bodyMedium: TextStyle(
+        color: kFontBlackC,
+      ), // kFontBlackC: texto secundario
       bodySmall: TextStyle(color: kFontBlackC), // kFontBlackC: texto pequeño
     ),
     appBarTheme: const AppBarTheme(
@@ -34,8 +63,12 @@ class BudgetoTheme {
     ),
     inputDecorationTheme: InputDecorationTheme(
       hoverColor: kGreenColor, // kGreenColor: hover en campos
-      focusColor:
-          const Color.fromARGB(255, 133, 189, 246), // kTextFieldColor: fondo de TextField enfocado
+      focusColor: const Color.fromARGB(
+        255,
+        133,
+        189,
+        246,
+      ), // kTextFieldColor: fondo de TextField enfocado
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(
@@ -72,10 +105,22 @@ class BudgetoTheme {
     // Fondo principal del Scaffold (tema oscuro)
     scaffoldBackgroundColor:
         kDarkScaffoldC, // kDarkScaffoldC: fondo principal oscuro
+    // Transiciones de navegación suaves y consistentes en todas las plataformas
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: <TargetPlatform, PageTransitionsBuilder>{
+        TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.macOS: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.fuchsia: FadeUpwardsPageTransitionsBuilder(),
+      },
+    ),
     // ColorScheme principal (usa kDarkGreenColor como color primario)
     colorScheme: const ColorScheme.dark(
       primary: kDarkGreenColor,
-      secondary: kDarkGreenColor, // Color secundario para acentos y bordes enfocados en oscuro
+      secondary:
+          kDarkGreenColor, // Color secundario para acentos y bordes enfocados en oscuro
     ), // kDarkGreenColor: color principal/acento oscuro
     primaryColor:
         kDarkGreenColor, // kDarkGreenColor: color principal/acento oscuro

@@ -77,7 +77,8 @@ class MainScaffold extends StatefulWidget {
   State<MainScaffold> createState() => _MainScaffoldState();
 }
 
-class _MainScaffoldState extends State<MainScaffold> {
+class _MainScaffoldState extends State<MainScaffold>
+    with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
@@ -85,6 +86,33 @@ class _MainScaffoldState extends State<MainScaffold> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<CurrencyProvider>(context, listen: false).loadInitialData();
     });
+    // Controlador para animar el cambio de pestaña sin reconstruir pantallas
+    _tabAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 850),
+    );
+    // Curvas separadas para suavizar cada propiedad
+    _fadeCurve = CurvedAnimation(
+      parent: _tabAnimController,
+      curve: Curves.easeOutSine,
+    );
+    _moveCurve = CurvedAnimation(
+      parent: _tabAnimController,
+      curve: const Interval(0.15, 1.0, curve: Curves.easeOutCubic),
+    );
+    _scaleCurve = CurvedAnimation(
+      parent: _tabAnimController,
+      curve: Curves.easeOutSine,
+    );
+    // Valores iniciales (se recalculan al cambiar de tab)
+    _slideUp = Tween<Offset>(
+      begin: Offset.zero,
+      end: Offset.zero,
+    ).animate(_moveCurve);
+    _scaleIn = Tween<double>(begin: 0.998, end: 1.0).animate(_scaleCurve);
+    _opacityIn = Tween<double>(begin: 0.98, end: 1.0).animate(_fadeCurve);
+    // Arranca visible
+    _tabAnimController.value = 1.0;
   }
 
   // El FAB ahora llama al método público de ClientsScreenState
@@ -99,6 +127,13 @@ class _MainScaffoldState extends State<MainScaffold> {
       GlobalKey<ClientsScreenState>();
   final GlobalKey _transactionsScreenKey = GlobalKey();
   int _currentIndex = 0;
+  late AnimationController _tabAnimController;
+  late Animation<double> _fadeCurve;
+  late Animation<double> _moveCurve;
+  late Animation<double> _scaleCurve;
+  late Animation<Offset> _slideUp;
+  late Animation<double> _scaleIn;
+  late Animation<double> _opacityIn;
 
   // Progreso de ocultación (0.0 visible, 1.0 oculto)
   double _chromeT = 0.0;
@@ -147,10 +182,23 @@ class _MainScaffoldState extends State<MainScaffold> {
         });
       }
       tabProvider.setTab(index);
+      // Prepara animación para el nuevo contenido
+      _tabAnimController.stop();
+      _tabAnimController.value = 0.0;
+      final prev = _currentIndex;
+      final dir = (index > prev) ? 1.0 : -1.0; // derecha si avanzas
       setState(() {
+        _slideUp = Tween<Offset>(
+          begin: Offset(0.04 * dir, 0),
+          end: Offset.zero,
+        ).animate(_moveCurve);
         _currentIndex = index;
         _chromeT = 0.0;
         _chromeTNotifier.value = 0.0;
+      });
+      // Dispara animación en el siguiente frame para evitar parpadeo
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _tabAnimController.forward();
       });
       return;
     }
@@ -165,10 +213,23 @@ class _MainScaffoldState extends State<MainScaffold> {
     }
 
     Provider.of<TabProvider>(context, listen: false).setTab(index);
+    // Prepara animación para el nuevo contenido
+    _tabAnimController.stop();
+    _tabAnimController.value = 0.0;
+    final prev = _currentIndex;
+    final dir = (index > prev) ? 1.0 : -1.0; // derecha si avanzas
     setState(() {
+      _slideUp = Tween<Offset>(
+        begin: Offset(0.06 * dir, 0),
+        end: Offset.zero,
+      ).animate(_moveCurve);
       _currentIndex = index;
       _chromeT = 0.0;
       _chromeTNotifier.value = 0.0;
+    });
+    // Dispara animación en el siguiente frame para evitar parpadeo
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _tabAnimController.forward();
     });
   }
 
@@ -242,7 +303,7 @@ class _MainScaffoldState extends State<MainScaffold> {
   // Desplaza el scroll principal hasta el tope
   Future<void> _scrollToTop() async {
     final controller = PrimaryScrollController.of(context);
-    if (controller != null && controller.hasClients) {
+    if (controller.hasClients) {
       await controller.animateTo(
         0,
         duration: const Duration(milliseconds: 450),
@@ -254,6 +315,7 @@ class _MainScaffoldState extends State<MainScaffold> {
   @override
   void dispose() {
     _chromeTNotifier.dispose();
+    _tabAnimController.dispose();
     super.dispose();
   }
 
@@ -404,9 +466,21 @@ class _MainScaffoldState extends State<MainScaffold> {
                     extendBody: true,
                     backgroundColor: Colors.transparent,
                     appBar: null,
-                    body: NotificationListener<ScrollNotification>(
-                      onNotification: _onScrollNotification,
-                      child: IndexedStack(index: tabIndex, children: screens),
+                    body: FadeTransition(
+                      opacity: _opacityIn,
+                      child: SlideTransition(
+                        position: _slideUp,
+                        child: ScaleTransition(
+                          scale: _scaleIn,
+                          child: NotificationListener<ScrollNotification>(
+                            onNotification: _onScrollNotification,
+                            child: IndexedStack(
+                              index: tabIndex,
+                              children: screens,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                     floatingActionButton: fab,
                     floatingActionButtonLocation:

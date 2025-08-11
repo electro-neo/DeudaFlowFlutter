@@ -11,6 +11,7 @@ import 'currency_provider.dart';
 
 import '../models/client_hive.dart';
 import '../models/transaction_hive.dart';
+import '../services/session_authority_service.dart';
 
 enum SyncStatus { idle, waiting, syncing, success, error }
 
@@ -86,6 +87,10 @@ class SyncProvider extends ChangeNotifier {
   Future<void> _syncAll(BuildContext context, String userId) async {
     try {
       if (context is Element && !context.mounted) return;
+      // Validar device_id antes de sincronizar
+      final ok = await SessionAuthorityService.instance
+          .validateDeviceAuthorityOrLogout(context, userId);
+      if (!ok) return;
       final clientProvider = Provider.of<ClientProvider>(
         context,
         listen: false,
@@ -134,10 +139,48 @@ class SyncProvider extends ChangeNotifier {
           '[SYNC][PROVIDER] Reconectado a internet. Iniciando sincronización completa...',
         );
         if (context is Element && !context.mounted) return;
+        // Verificación de autoridad de dispositivo antes de cualquier sincronización
+        final state = await SessionAuthorityService.instance.evaluate(
+          userId: userId,
+          hasInternet: true,
+        );
+        bool canContinue = true;
+        if (state == AuthorityState.conflict) {
+          // Detecta si veníamos en estado autorizado offline
+          final wasAuthorizedOffline = await SessionAuthorityService.instance
+              .wasAuthorizedOffline();
+          canContinue = await SessionAuthorityService.instance
+              .handleConflictDialog(
+                context,
+                userId,
+                wasAuthorizedOffline: wasAuthorizedOffline,
+              );
+        } else {
+          // Si remoto vacío, fijar a este dispositivo
+          final localId = await SessionAuthorityService.instance
+              .getOrCreateLocalDeviceId();
+          final remote = await SessionAuthorityService.instance
+              .fetchServerDeviceId(userId);
+          if (remote == null || remote.isEmpty) {
+            await SessionAuthorityService.instance.setServerDeviceId(
+              userId,
+              localId,
+            );
+          }
+          await SessionAuthorityService.instance.markSessionFlag('authorized');
+        }
+        if (!canContinue) {
+          _isOnline = online; // actualiza estado y termina
+          notifyListeners();
+          return;
+        }
 
         // Sincroniza las tasas de cambio primero. Esto es crucial porque `loadInitialRates`
         // contiene la lógica para enviar (push) las tasas locales si se modificaron offline.
-        await Provider.of<CurrencyProvider>(context, listen: false).loadInitialData();
+        await Provider.of<CurrencyProvider>(
+          context,
+          listen: false,
+        ).loadInitialData();
 
         await _syncAll(context, userId);
         // Refuerzo: recargar clientes solo cuando no haya pendientes de eliminar

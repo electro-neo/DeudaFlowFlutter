@@ -6,6 +6,8 @@ import '../models/client.dart';
 import '../models/client_hive.dart';
 import '../models/transaction_hive.dart';
 import '../services/supabase_service.dart';
+import '../services/session_authority_service.dart';
+import '../main.dart';
 import 'transaction_provider.dart';
 
 class ClientProvider extends ChangeNotifier {
@@ -51,6 +53,13 @@ class ClientProvider extends ChangeNotifier {
 
   /// Sincroniza los clientes locales pendientes cuando hay internet
   Future<void> syncPendingClients(String userId) async {
+    // Validar device_id antes de sincronizar
+    final context = navigatorKey.currentContext;
+    if (context != null) {
+      final ok = await SessionAuthorityService.instance
+          .validateDeviceAuthorityOrLogout(context, userId);
+      if (!ok) return;
+    }
     if (!await _isOnline()) return;
     final box = Hive.box<ClientHive>('clients');
     // 1. LOG: Mostrar todos los clientes marcados para eliminar
@@ -367,6 +376,12 @@ class ClientProvider extends ChangeNotifier {
     // Siempre intenta sincronizar, incluso si no hay transacciones
     String finalId = clientHive.id;
     if (await _isOnline()) {
+      final context = navigatorKey.currentContext;
+      if (context != null) {
+        final ok = await SessionAuthorityService.instance
+            .validateDeviceAuthorityOrLogout(context, userId);
+        if (!ok) return finalId;
+      }
       await syncPendingClients(userId);
       // Buscar el id real en Hive después de sincronizar
       final updated = box.values.firstWhere(
@@ -417,6 +432,12 @@ class ClientProvider extends ChangeNotifier {
 
     // Si estamos online, sincroniza inmediatamente
     if (await _isOnline()) {
+      final context = navigatorKey.currentContext;
+      if (context != null) {
+        final ok = await SessionAuthorityService.instance
+            .validateDeviceAuthorityOrLogout(context, userId);
+        if (!ok) return;
+      }
       await syncPendingClients(userId);
       // Refrescar clientes desde Hive y notificar listeners para asegurar actualización inmediata de la UI
       await _refreshClientsFromHive();
@@ -460,6 +481,12 @@ class ClientProvider extends ChangeNotifier {
 
     // 2. Verificar si estamos online
     if (await _isOnline()) {
+      final context = navigatorKey.currentContext;
+      if (context != null) {
+        final ok = await SessionAuthorityService.instance
+            .validateDeviceAuthorityOrLogout(context, userId);
+        if (!ok) return;
+      }
       // Si hay internet, sincroniza inmediatamente (elimina en Supabase y luego en Hive)
       await syncPendingClients(userId);
     } else {

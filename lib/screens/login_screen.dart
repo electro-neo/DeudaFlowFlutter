@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
+import '../services/session_authority_service.dart';
 import '../providers/client_provider.dart';
 import '../providers/transaction_provider.dart';
 import 'register_screen.dart';
@@ -164,7 +165,41 @@ class _LoginScreenState extends State<LoginScreen> {
         final normalizedEmail = (user.email ?? email).trim().toLowerCase();
         await sessionBox.put('email', normalizedEmail);
         if (!mounted) return;
-        // Sincronizar datos locales si hay internet
+        // Verificación de sesión única por dispositivo
+        try {
+          final state = await SessionAuthorityService.instance.evaluate(
+            userId: user.id,
+            hasInternet: true,
+          );
+          if (state == AuthorityState.conflict) {
+            final proceed = await SessionAuthorityService.instance
+                .handleConflictDialog(context, user.id, isLoginFlow: true);
+            if (!proceed) {
+              // Usuario canceló o cerró sesión
+              setState(() {
+                _loading = false;
+              });
+              return;
+            }
+          } else {
+            // Si el device_id remoto está vacío, fijarlo a este dispositivo
+            final localId = await SessionAuthorityService.instance
+                .getOrCreateLocalDeviceId();
+            final remote = await SessionAuthorityService.instance
+                .fetchServerDeviceId(user.id);
+            if (remote == null || remote.isEmpty) {
+              await SessionAuthorityService.instance.setServerDeviceId(
+                user.id,
+                localId,
+              );
+            }
+            await SessionAuthorityService.instance.markSessionFlag(
+              'authorized',
+            );
+          }
+        } catch (_) {}
+
+        // Sincronizar datos locales si hay internet (solo si no hubo bloqueo por conflicto)
         try {
           final clientProvider = Provider.of<ClientProvider>(
             context,
@@ -360,6 +395,36 @@ class _LoginScreenState extends State<LoginScreen> {
       final normalizedEmail = (user.email ?? '').trim().toLowerCase();
       await sessionBox.put('email', normalizedEmail);
       if (!mounted) return;
+
+      // Verificación de sesión única por dispositivo
+      try {
+        final state = await SessionAuthorityService.instance.evaluate(
+          userId: user.id,
+          hasInternet: true,
+        );
+        if (state == AuthorityState.conflict) {
+          final proceed = await SessionAuthorityService.instance
+              .handleConflictDialog(context, user.id, isLoginFlow: true);
+          if (!proceed) {
+            setState(() {
+              _loading = false;
+            });
+            return;
+          }
+        } else {
+          final localId = await SessionAuthorityService.instance
+              .getOrCreateLocalDeviceId();
+          final remote = await SessionAuthorityService.instance
+              .fetchServerDeviceId(user.id);
+          if (remote == null || remote.isEmpty) {
+            await SessionAuthorityService.instance.setServerDeviceId(
+              user.id,
+              localId,
+            );
+          }
+          await SessionAuthorityService.instance.markSessionFlag('authorized');
+        }
+      } catch (_) {}
       debugPrint('DEBUG: Login con Google exitoso, navegando a dashboard.');
       Navigator.of(context).pushReplacementNamed('/dashboard');
     } catch (e) {

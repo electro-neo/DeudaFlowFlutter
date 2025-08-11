@@ -9,6 +9,8 @@ import '../models/transaction_hive.dart';
 import '../models/client_hive.dart';
 import '../models/client.dart';
 import '../services/supabase_service.dart';
+import '../services/session_authority_service.dart';
+import '../main.dart';
 import 'client_provider.dart';
 
 class TransactionProvider extends ChangeNotifier {
@@ -23,6 +25,12 @@ class TransactionProvider extends ChangeNotifier {
     String transactionId,
     String userId,
   ) async {
+    final context = navigatorKey.currentContext;
+    if (context != null) {
+      final ok = await SessionAuthorityService.instance
+          .validateDeviceAuthorityOrLogout(context, userId);
+      if (!ok) return;
+    }
     debugPrint(
       '>>> [markTransactionForDeletionAndSync] INICIO para transactionId=$transactionId, userId=$userId',
     );
@@ -198,6 +206,12 @@ class TransactionProvider extends ChangeNotifier {
     }
 
     if (effectiveUserId != null && effectiveUserId.isNotEmpty) {
+      final context = navigatorKey.currentContext;
+      if (context != null) {
+        final ok = await SessionAuthorityService.instance
+            .validateDeviceAuthorityOrLogout(context, effectiveUserId);
+        if (!ok) return;
+      }
       debugPrint(
         '[SYNC] Conexión recuperada. Sincronizando transacciones pendientes para el usuario $effectiveUserId...',
       );
@@ -301,7 +315,8 @@ class TransactionProvider extends ChangeNotifier {
               clientId: t.clientId,
               type: t.type,
               amount: t.amount,
-              date: t.createdAt, // FIX: Guardar la fecha y hora completa para el ordenamiento
+              date: t
+                  .createdAt, // FIX: Guardar la fecha y hora completa para el ordenamiento
               description: t.description,
               synced: true,
               pendingDelete: false,
@@ -403,8 +418,7 @@ class TransactionProvider extends ChangeNotifier {
         '[recalculateClientBalance][LOCAL] Balance actualizado en Hive para cliente ${client.id}: $newBalance',
       );
       shouldUpdateRemote = true;
-    } else {
-    }
+    } else {}
     // Refresca la UI y notifica listeners SIEMPRE, aunque falle Supabase
     try {
       notifyListeners();
@@ -477,7 +491,8 @@ class TransactionProvider extends ChangeNotifier {
             clientId: txWithLocalId.clientId,
             type: txWithLocalId.type,
             amount: txWithLocalId.amount,
-            date: txWithLocalId.createdAt, // FIX: Guardar la fecha y hora completa para el ordenamiento
+            date: txWithLocalId
+                .createdAt, // FIX: Guardar la fecha y hora completa para el ordenamiento
             description: txWithLocalId.description,
             synced: true,
             pendingDelete: false,
@@ -495,7 +510,8 @@ class TransactionProvider extends ChangeNotifier {
             clientId: txWithLocalId.clientId,
             type: txWithLocalId.type,
             amount: txWithLocalId.amount,
-            date: txWithLocalId.createdAt, // FIX: Guardar la fecha y hora completa para el ordenamiento
+            date: txWithLocalId
+                .createdAt, // FIX: Guardar la fecha y hora completa para el ordenamiento
             description: txWithLocalId.description,
             synced: false,
             pendingDelete: false,
@@ -514,7 +530,8 @@ class TransactionProvider extends ChangeNotifier {
           clientId: txWithLocalId.clientId,
           type: txWithLocalId.type,
           amount: txWithLocalId.amount,
-          date: txWithLocalId.createdAt, // FIX: Guardar la fecha y hora completa para el ordenamiento
+          date: txWithLocalId
+              .createdAt, // FIX: Guardar la fecha y hora completa para el ordenamiento
           description: txWithLocalId.description,
           synced: false,
           pendingDelete: false,
@@ -544,7 +561,8 @@ class TransactionProvider extends ChangeNotifier {
           t
             ..type = tx.type
             ..amount = tx.amount
-          ..date = tx.createdAt // FIX: Guardar la fecha y hora completa para el ordenamiento
+            ..date = tx
+                .createdAt // FIX: Guardar la fecha y hora completa para el ordenamiento
             ..synced = false;
           await t.save();
         }
@@ -557,7 +575,8 @@ class TransactionProvider extends ChangeNotifier {
         t
           ..type = tx.type
           ..amount = tx.amount
-          ..date = tx.createdAt // FIX: Guardar la fecha y hora completa para el ordenamiento
+          ..date = tx
+              .createdAt // FIX: Guardar la fecha y hora completa para el ordenamiento
           ..synced = false;
         await t.save();
       }

@@ -75,14 +75,14 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
           }).toList();
 
           // Ordenar: más recientes primero
-          DateTime _parseDate(dynamic d) {
+          DateTime parseDate(dynamic d) {
             if (d is DateTime) return d;
             return DateTime.tryParse(d.toString()) ??
                 DateTime.fromMillisecondsSinceEpoch(0);
           }
 
           filteredTxs.sort(
-            (a, b) => _parseDate(b.date).compareTo(_parseDate(a.date)),
+            (a, b) => parseDate(b.date).compareTo(parseDate(a.date)),
           );
 
           final balance = filteredTxs.isEmpty
@@ -257,7 +257,7 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           TextSpan(
-                            text: client.id?.toString() ?? '',
+                            text: client.id.toString() ?? '',
                             style: const TextStyle(fontSize: 11),
                           ),
                         ],
@@ -287,9 +287,9 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                           children: [
                             ...filteredTxs.map((tx) {
                               String tipo = tx.type;
-                              if (tipo == 'payment')
+                              if (tipo == 'payment') {
                                 tipo = 'Abono';
-                              else if (tipo == 'debt')
+                              } else if (tipo == 'debt')
                                 tipo = 'Deuda';
 
                               final usdValue = tx.anchorUsdValue ?? tx.amount;

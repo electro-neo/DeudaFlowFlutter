@@ -29,7 +29,9 @@ class SupabaseService {
           .single();
 
       final rates = response['value'] as Map<String, dynamic>;
-      return rates.map((key, value) => MapEntry(key, (value as num).toDouble()));
+      return rates.map(
+        (key, value) => MapEntry(key, (value as num).toDouble()),
+      );
     } catch (e) {
       debugPrint('[SUPABASE][ERROR] No se pudieron cargar las tasas: $e');
       return {}; // Devuelve mapa vacío si no hay configuración o hay un error
@@ -73,11 +75,54 @@ class SupabaseService {
         'key': 'exchange_rates',
         'value': currentRates, // Save the modified map
       }, onConflict: 'user_id,key');
-      debugPrint('[SUPABASE][SUCCESS] Tasas de cambio eliminadas y actualizadas.');
+      debugPrint(
+        '[SUPABASE][SUCCESS] Tasas de cambio eliminadas y actualizadas.',
+      );
       return true;
     } catch (e) {
       debugPrint('[SUPABASE][ERROR] No se pudieron eliminar las tasas: $e');
       return false;
+    }
+  }
+
+  // --- device_id (sesión única por dispositivo) ---
+
+  Future<String?> getDeviceId() async {
+    try {
+      final userId = _client.auth.currentUser?.id;
+      if (userId == null) return null;
+      final response = await _client
+          .from('user_settings')
+          .select('value')
+          .eq('user_id', userId)
+          .eq('key', 'device_id')
+          .maybeSingle();
+      if (response == null) return null;
+      final value = response['value'];
+      if (value is Map && value['device_id'] is String) {
+        return (value['device_id'] as String).trim();
+      }
+      return null;
+    } catch (e) {
+      debugPrint('[SUPABASE][ERROR] getDeviceId: $e');
+      return null;
+    }
+  }
+
+  Future<void> saveDeviceId(String deviceId) async {
+    try {
+      final userId = _client.auth.currentUser?.id;
+      if (userId == null) return;
+      await _client.from('user_settings').upsert({
+        'user_id': userId,
+        'key': 'device_id',
+        'value': {
+          'device_id': deviceId,
+          'updated_at': DateTime.now().toIso8601String(),
+        },
+      }, onConflict: 'user_id,key');
+    } catch (e) {
+      debugPrint('[SUPABASE][ERROR] saveDeviceId: $e');
     }
   }
 

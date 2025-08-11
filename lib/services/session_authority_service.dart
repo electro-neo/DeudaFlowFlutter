@@ -42,6 +42,21 @@ class SessionAuthorityService {
     final remoteId = await fetchServerDeviceId(userId);
     if (remoteId != null && remoteId.isNotEmpty && remoteId != localId) {
       if (context is Element && !context.mounted) return false;
+      // Detectar si es reconexión tras autorizado offline
+      final box = await Hive.openBox('session');
+      final prevFlag = box.get(kSessionFlagKey);
+      final wasAuthorizedOffline = prevFlag == 'authorized';
+      if (wasAuthorizedOffline) {
+        // Mostrar diálogo de opciones en vez de cerrar sesión automática
+        final ok = await SessionAuthorityService.instance.handleConflictDialog(
+          context,
+          userId,
+          isLoginFlow: false,
+          wasAuthorizedOffline: true,
+        );
+        return ok;
+      }
+      // Si no es reconexión offline, cerrar sesión automática
       await showDialog(
         context: context,
         barrierDismissible: false,

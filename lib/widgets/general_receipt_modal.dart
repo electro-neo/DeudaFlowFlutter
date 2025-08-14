@@ -257,7 +257,7 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           TextSpan(
-                            text: client.id.toString() ?? '',
+                            text: client.id.toString(),
                             style: const TextStyle(fontSize: 11),
                           ),
                         ],

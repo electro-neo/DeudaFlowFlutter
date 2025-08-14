@@ -532,20 +532,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                                       // --- Lógica de balance corregida ---
                                       final valueInUsd =
-                                          tx.anchorUsdValue ?? tx.amount ?? 0.0;
+                                          tx.anchorUsdValue ?? tx.amount;
 
                                       // Lógica de conversión explícita para reaccionar a la moneda seleccionada
                                       final selectedCurrency =
                                           currencyProvider.currency;
                                       // FIX: Se usa getRateFor para obtener la tasa correcta.
-                                      final rate =
-                                          currencyProvider.getRateFor(
-                                            selectedCurrency,
-                                          ) ??
-                                          1.0;
-                                      num displayValue = valueInUsd;
+                                      final rate = currencyProvider.getRateFor(
+                                        selectedCurrency,
+                                      );
 
+                                      num displayValue = valueInUsd;
                                       if (selectedCurrency != 'USD' &&
+                                          rate != null &&
                                           rate > 0) {
                                         displayValue = valueInUsd * rate;
                                       }

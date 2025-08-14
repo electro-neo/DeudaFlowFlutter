@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "com.example.deuda_flow_flutter"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "29.0.13599879"
+    ndkVersion = "29.0.13846066"
 
     signingConfigs {
         create("release") {

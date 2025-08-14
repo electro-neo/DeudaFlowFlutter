@@ -203,7 +203,7 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                 const Text('No hay movimientos en el rango seleccionado.'),
               ...filtered.map((e) {
                 final client = e['client'] as Client;
-                final name = (client.name ?? '').toString();
+                final name = (client.name).toString();
                 final phone =
                     (client.phone != null &&
                         client.phone.toString().trim().isNotEmpty)

@@ -173,7 +173,9 @@ class ClientDetailsModal extends StatelessWidget {
                   onPressed: () {
                     Navigator.of(context, rootNavigator: true).pop();
                     Future.delayed(Duration.zero, () {
+                      // ignore: use_build_context_synchronously
                       final txProvider = Provider.of<TransactionProvider>(
+                        // ignore: use_build_context_synchronously
                         rootContext,
                         listen: false,
                       );
@@ -186,6 +188,7 @@ class ClientDetailsModal extends StatelessWidget {
                         },
                       ];
                       showDialog(
+                        // ignore: use_build_context_synchronously
                         context: rootContext,
                         builder: (_) =>
                             GeneralReceiptModal(clientData: clientData),
@@ -226,6 +229,7 @@ class ClientDetailsModal extends StatelessWidget {
                     Navigator.of(context, rootNavigator: true).pop();
                     Future.delayed(Duration.zero, () {
                       showDialog(
+                        // ignore: use_build_context_synchronously
                         context: rootContext,
                         builder: (dialogContext) => Builder(
                           builder: (innerContext) {

@@ -227,7 +227,9 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
           SnackBar(content: Text('Transacción guardada correctamente')),
         );
         Future.delayed(const Duration(milliseconds: 350), () {
+          // ignore: use_build_context_synchronously
           if (Navigator.of(context).canPop()) {
+            // ignore: use_build_context_synchronously
             Navigator.of(context).pop();
           }
         });

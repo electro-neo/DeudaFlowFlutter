@@ -899,6 +899,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           );
                           debugPrint('Stacktrace: \n$stack');
                           if (mounted) {
+                            // ignore: use_build_context_synchronously
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(

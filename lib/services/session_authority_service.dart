@@ -49,6 +49,7 @@ class SessionAuthorityService {
       if (wasAuthorizedOffline) {
         // Mostrar diálogo de opciones en vez de cerrar sesión automática
         final ok = await SessionAuthorityService.instance.handleConflictDialog(
+          // ignore: use_build_context_synchronously
           context,
           userId,
           isLoginFlow: false,
@@ -58,10 +59,12 @@ class SessionAuthorityService {
       }
       // Si no es reconexión offline, cerrar sesión automática
       await showDialog(
+        // ignore: use_build_context_synchronously
         context: context,
         barrierDismissible: false,
         builder: (ctx) {
           Future.delayed(const Duration(seconds: 4), () async {
+            // ignore: use_build_context_synchronously
             if (Navigator.of(ctx).canPop()) Navigator.of(ctx).pop();
             try {
               await Supabase.instance.client.auth.signOut();
@@ -251,6 +254,7 @@ class SessionAuthorityService {
     final hasPending = await hasLocalPendingChanges();
 
     final result = await showDialog<String>(
+      // ignore: use_build_context_synchronously
       context: context,
       barrierDismissible: false,
       builder: (ctx) {

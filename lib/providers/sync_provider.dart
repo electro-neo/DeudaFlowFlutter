@@ -86,43 +86,55 @@ class SyncProvider extends ChangeNotifier {
   /// Puedes ignorar el warning `use_build_context_synchronously` en este contexto.
   Future<void> _syncAll(BuildContext context, String userId) async {
     try {
-      if (context is Element && !context.mounted) return;
+      // Guardar un BuildContext local antes de cualquier await
+      final BuildContext localContext = context;
+      if (localContext is Element && !localContext.mounted) return;
       // Validar device_id antes de sincronizar
       final ok = await SessionAuthorityService.instance
-          .validateDeviceAuthorityOrLogout(context, userId);
+          .validateDeviceAuthorityOrLogout(localContext, userId);
       if (!ok) return;
+      if (localContext is Element && !localContext.mounted) return;
       final clientProvider = Provider.of<ClientProvider>(
-        context,
+        // ignore: use_build_context_synchronously
+        localContext,
         listen: false,
       );
       final transactionProvider = Provider.of<TransactionProvider>(
-        context,
+        // ignore: use_build_context_synchronously
+        localContext,
         listen: false,
       );
       final currencyProvider = Provider.of<CurrencyProvider>(
-        context,
+        // ignore: use_build_context_synchronously
+        localContext,
         listen: false,
       );
 
       _setStatus(SyncStatus.waiting);
       await Future.delayed(const Duration(milliseconds: 400));
+      if (localContext is Element && !localContext.mounted) return;
       _setStatus(SyncStatus.syncing, progress: 0);
 
       // Sincroniza clientes
       await clientProvider.syncPendingClients(userId);
+      if (localContext is Element && !localContext.mounted) return;
       _setStatus(SyncStatus.syncing, progress: 45);
 
       // Sincroniza transacciones
       await transactionProvider.syncPendingTransactions(userId);
+      if (localContext is Element && !localContext.mounted) return;
       _setStatus(SyncStatus.syncing, progress: 90);
 
       // Sincroniza tasas de cambio (reutilizando la lógica de carga)
       await currencyProvider.loadInitialData();
+      if (localContext is Element && !localContext.mounted) return;
       _setStatus(SyncStatus.syncing, progress: 100);
 
       await Future.delayed(const Duration(milliseconds: 400));
+      if (localContext is Element && !localContext.mounted) return;
       _setStatus(SyncStatus.success);
       await Future.delayed(const Duration(seconds: 2));
+      if (localContext is Element && !localContext.mounted) return;
       _setStatus(SyncStatus.idle);
     } catch (e) {
       _setStatus(SyncStatus.error, error: e.toString());
@@ -151,6 +163,7 @@ class SyncProvider extends ChangeNotifier {
               .wasAuthorizedOffline();
           canContinue = await SessionAuthorityService.instance
               .handleConflictDialog(
+                // ignore: use_build_context_synchronously
                 context,
                 userId,
                 wasAuthorizedOffline: wasAuthorizedOffline,
@@ -178,10 +191,12 @@ class SyncProvider extends ChangeNotifier {
         // Sincroniza las tasas de cambio primero. Esto es crucial porque `loadInitialRates`
         // contiene la lógica para enviar (push) las tasas locales si se modificaron offline.
         await Provider.of<CurrencyProvider>(
+          // ignore: use_build_context_synchronously
           context,
           listen: false,
         ).loadInitialData();
 
+        // ignore: use_build_context_synchronously
         await _syncAll(context, userId);
         // Refuerzo: recargar clientes solo cuando no haya pendientes de eliminar
         try {

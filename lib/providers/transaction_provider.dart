@@ -25,10 +25,11 @@ class TransactionProvider extends ChangeNotifier {
     String transactionId,
     String userId,
   ) async {
-    final context = navigatorKey.currentContext;
-    if (context != null) {
+    final localContext = navigatorKey.currentContext;
+    if (localContext != null) {
+      // ignore: use_build_context_synchronously
       final ok = await SessionAuthorityService.instance
-          .validateDeviceAuthorityOrLogout(context, userId);
+          .validateDeviceAuthorityOrLogout(localContext, userId);
       if (!ok) return;
     }
     debugPrint(
@@ -206,10 +207,12 @@ class TransactionProvider extends ChangeNotifier {
     }
 
     if (effectiveUserId != null && effectiveUserId.isNotEmpty) {
-      final context = navigatorKey.currentContext;
-      if (context != null) {
+      final localContext = navigatorKey.currentContext;
+      if (localContext != null) {
+        // ignore: use_build_context_synchronously
         final ok = await SessionAuthorityService.instance
-            .validateDeviceAuthorityOrLogout(context, effectiveUserId);
+            // ignore: use_build_context_synchronously
+            .validateDeviceAuthorityOrLogout(localContext, effectiveUserId);
         if (!ok) return;
       }
       debugPrint(

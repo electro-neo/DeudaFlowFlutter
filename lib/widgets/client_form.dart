@@ -76,6 +76,7 @@ class _ClientFormState extends State<ClientForm> {
       },
     );
     if (result != null) {
+      // ignore: use_build_context_synchronously
       final provider = Provider.of<CurrencyProvider>(context, listen: false);
       provider.setRateForCurrency(currency, result);
       // Asegura que la moneda esté en availableCurrencies si no hay transacción aún
@@ -518,6 +519,7 @@ class _ClientFormState extends State<ClientForm> {
                           final status = await Permission.contacts.status;
                           if (status.isGranted ||
                               (await Permission.contacts.request()).isGranted) {
+                            // ignore: use_build_context_synchronously
                             final selected = await _selectContactModal(context);
                             if (selected != null &&
                                 selected.phones.isNotEmpty) {
@@ -532,6 +534,7 @@ class _ClientFormState extends State<ClientForm> {
                               );
                             }
                           } else if (status.isDenied || status.isRestricted) {
+                            // ignore: use_build_context_synchronously
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Row(
@@ -590,6 +593,7 @@ class _ClientFormState extends State<ClientForm> {
                               ),
                             );
                           } else if (status.isPermanentlyDenied) {
+                            // ignore: use_build_context_synchronously
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Row(
@@ -619,6 +623,7 @@ class _ClientFormState extends State<ClientForm> {
                               ),
                             );
                           } else {
+                            // ignore: use_build_context_synchronously
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Row(

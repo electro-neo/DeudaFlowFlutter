@@ -10,7 +10,7 @@ import '../providers/currency_provider.dart'; // Proveedor de moneda y tasa
 // Utilidades para formatear moneda
 
 // Widget que muestra los statscard del dashboard
-class DashboardStats extends StatelessWidget {
+class DashboardStats extends StatefulWidget {
   final void Function(int)? onTab;
   final Duration scaleTapDuration;
   const DashboardStats({
@@ -18,7 +18,12 @@ class DashboardStats extends StatelessWidget {
     this.onTab,
     this.scaleTapDuration = const Duration(milliseconds: 120),
   });
-  //
+
+  @override
+  State<DashboardStats> createState() => _DashboardStatsState();
+}
+
+class _DashboardStatsState extends State<DashboardStats> {
   @override
   Widget build(BuildContext context) {
     // 1. Escuchar y obtener la instancia del provider
@@ -99,26 +104,31 @@ class DashboardStats extends StatelessWidget {
     ); // Muestra el saldo neto
     // Navegación igual que el botón de la barra inferior usando Provider
     void goToClientsTab() {
-      if (onTab != null) onTab!(1);
+      if (widget.onTab != null) widget.onTab!(1);
     }
 
-    void goToDeudaTab() async {
-      if (onTab != null) {
-        onTab!(2);
-        await Future.delayed(scaleTapDuration);
+    Future<void> goToDeudaTab() async {
+      if (widget.onTab != null) {
+        widget.onTab!(2);
+        await Future.delayed(widget.scaleTapDuration);
       }
+      if (!mounted) return;
+      // ignore: use_build_context_synchronously
       Provider.of<TransactionFilterProvider>(
+        // ignore: use_build_context_synchronously
         context,
         listen: false,
       ).setType('debt'); // Filtra por deudas
     }
 
-    void goToAbonoTab() async {
-      if (onTab != null) {
-        onTab!(2);
-        await Future.delayed(scaleTapDuration);
+    Future<void> goToAbonoTab() async {
+      if (widget.onTab != null) {
+        widget.onTab!(2);
+        await Future.delayed(widget.scaleTapDuration);
       }
+      if (!mounted) return;
       Provider.of<TransactionFilterProvider>(
+        // ignore: use_build_context_synchronously
         context,
         listen: false,
       ).setType('payment'); // Filtra por abonos

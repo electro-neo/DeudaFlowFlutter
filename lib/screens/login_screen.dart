@@ -172,7 +172,9 @@ class _LoginScreenState extends State<LoginScreen> {
             hasInternet: true,
           );
           if (state == AuthorityState.conflict) {
+            // ignore: use_build_context_synchronously
             final proceed = await SessionAuthorityService.instance
+                // ignore: use_build_context_synchronously
                 .handleConflictDialog(context, user.id, isLoginFlow: true);
             if (!proceed) {
               // Usuario canceló o cerró sesión
@@ -202,10 +204,12 @@ class _LoginScreenState extends State<LoginScreen> {
         // Sincronizar datos locales si hay internet (solo si no hubo bloqueo por conflicto)
         try {
           final clientProvider = Provider.of<ClientProvider>(
+            // ignore: use_build_context_synchronously
             context,
             listen: false,
           );
           final txProvider = Provider.of<TransactionProvider>(
+            // ignore: use_build_context_synchronously
             context,
             listen: false,
           );
@@ -404,6 +408,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
         if (state == AuthorityState.conflict) {
           final proceed = await SessionAuthorityService.instance
+              // ignore: use_build_context_synchronously
               .handleConflictDialog(context, user.id, isLoginFlow: true);
           if (!proceed) {
             setState(() {
@@ -426,6 +431,7 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       } catch (_) {}
       debugPrint('DEBUG: Login con Google exitoso, navegando a dashboard.');
+      // ignore: use_build_context_synchronously
       Navigator.of(context).pushReplacementNamed('/dashboard');
     } catch (e) {
       if (e is GoogleSignInException) {

@@ -37,11 +37,11 @@ class _TransactionFormState extends State<TransactionForm> {
   final _rateController = TextEditingController(); // NUEVO
   bool _rateFieldVisible = false; // NUEVO
 
-  final List<Client> clients = [];
-  // TODO: Reemplaza esto por la obtención real de clientes desde Provider o base de datos
-  // Ejemplo: final clients = Provider.of<ClientProvider>(context).clients;
+  //Reemplaza esto por la obtención real de clientes desde Provider o base de datos
+ //Ejemplo: final clients = Provider.of<ClientProvider>(context).clients;
 
-  @override
+  final List<Client> clients = [];
+   @override
   void initState() {
     super.initState();
     if (widget.initialClient != null) {
@@ -151,6 +151,7 @@ class _TransactionFormState extends State<TransactionForm> {
         double? rate;
         try {
           final currencyProvider = Provider.of<CurrencyProvider>(
+            // ignore: use_build_context_synchronously
             context,
             listen: false,
           );

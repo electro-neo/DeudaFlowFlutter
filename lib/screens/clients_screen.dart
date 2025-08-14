@@ -871,6 +871,7 @@ class ClientsScreenState extends State<ClientsScreen>
                                                 if (allTx.isEmpty) {
                                                   if (mounted) {
                                                     ScaffoldMessenger.of(
+                                                      // ignore: use_build_context_synchronously
                                                       context,
                                                     ).showSnackBar(
                                                       const SnackBar(
@@ -908,6 +909,7 @@ class ClientsScreenState extends State<ClientsScreen>
                                                     await txProvider.isOnline();
                                                 if (!mounted) return;
                                                 ScaffoldMessenger.of(
+                                                  // ignore: use_build_context_synchronously
                                                   context,
                                                 ).showSnackBar(
                                                   SnackBar(
@@ -935,6 +937,7 @@ class ClientsScreenState extends State<ClientsScreen>
                                                           .isOnline();
                                                   if (!mounted) return;
                                                   ScaffoldMessenger.of(
+                                                    // ignore: use_build_context_synchronously
                                                     context,
                                                   ).showSnackBar(
                                                     SnackBar(
@@ -950,6 +953,7 @@ class ClientsScreenState extends State<ClientsScreen>
                                             } catch (e) {
                                               if (!mounted) return;
                                               ScaffoldMessenger.of(
+                                                // ignore: use_build_context_synchronously
                                                 context,
                                               ).showSnackBar(
                                                 SnackBar(
@@ -1382,7 +1386,9 @@ class ClientsScreenState extends State<ClientsScreen>
                                                           await txProvider
                                                               .isOnline();
                                                       if (!mounted) return;
+                                                      // ignore: use_build_context_synchronously
                                                       ScaffoldMessenger.of(
+                                                        // ignore: use_build_context_synchronously
                                                         context,
                                                       ).showSnackBar(
                                                         SnackBar(
@@ -1433,6 +1439,7 @@ class ClientsScreenState extends State<ClientsScreen>
                                                               .isOnline();
                                                       if (!mounted) return;
                                                       ScaffoldMessenger.of(
+                                                        // ignore: use_build_context_synchronously
                                                         context,
                                                       ).showSnackBar(
                                                         SnackBar(
@@ -1451,6 +1458,7 @@ class ClientsScreenState extends State<ClientsScreen>
                                                   } catch (e) {
                                                     if (!mounted) return;
                                                     ScaffoldMessenger.of(
+                                                      // ignore: use_build_context_synchronously
                                                       context,
                                                     ).showSnackBar(
                                                       SnackBar(

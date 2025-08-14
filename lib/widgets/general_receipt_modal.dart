@@ -289,8 +289,9 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                               String tipo = tx.type;
                               if (tipo == 'payment') {
                                 tipo = 'Abono';
-                              } else if (tipo == 'debt')
+                              } else if (tipo == 'debt') {
                                 tipo = 'Deuda';
+                              }
 
                               final usdValue = tx.anchorUsdValue ?? tx.amount;
                               final formattedDate =

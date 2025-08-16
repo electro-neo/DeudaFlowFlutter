@@ -267,7 +267,7 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
               saldoPendiente[symbol] =
                   (totalDeuda[symbol] ?? 0) - (totalAbono[symbol] ?? 0);
             }
-            // Estructura: dos columnas, una para deuda pendiente y otra para total abonado, cada una con la lista de monedas debajo
+            // Estructura: dos columnas, invertimos el orden para mayor claridad - Deuda Pendiente primero (izquierda), Total Abonado segundo (derecha)
             widgets.add(
               pw.Container(
                 alignment: pw.Alignment.centerRight,
@@ -275,29 +275,7 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                   mainAxisSize: pw.MainAxisSize.min,
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    // Columna izquierda: Total Abonado
-                    pw.Expanded(
-                      child: pw.Column(
-                        crossAxisAlignment: pw.CrossAxisAlignment.start,
-                        children: [
-                          pw.Text(
-                            'Total Abonado:',
-                            style: pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                          for (final currency in selectedCurrencies)
-                            pw.Text(
-                              '${getCurrencyLabel(currency['symbol'])} '
-                              '${formatAmount(totalAbono[currency['symbol']] ?? 0, symbol: "")}',
-                              style: const pw.TextStyle(fontSize: 12),
-                            ),
-                        ],
-                      ),
-                    ),
-                    pw.SizedBox(width: 32),
-                    // Columna derecha: Deuda Pendiente (resaltada)
+                    // Columna izquierda: Deuda Pendiente (más importante, se lee primero)
                     pw.Expanded(
                       child: pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -307,7 +285,7 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                             decoration: pw.BoxDecoration(
                               border: pw.Border(
                                 bottom: pw.BorderSide(
-                                  color: PdfColors.blue,
+                                  color: PdfColors.red,
                                   width: 2,
                                 ),
                               ),
@@ -322,15 +300,53 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                               style: pw.TextStyle(
                                 fontWeight: pw.FontWeight.bold,
                                 fontSize: 14,
-                                color: PdfColors.blue,
+                                color: PdfColors.red,
                               ),
                             ),
                           ),
                           for (final currency in selectedCurrencies)
-                            pw.Text(
-                              '${getCurrencyLabel(currency['symbol'])} '
-                              '${formatAmount(saldoPendiente[currency['symbol']]!.abs(), symbol: "")}',
-                              style: const pw.TextStyle(fontSize: 12),
+                            pw.Container(
+                              padding: const pw.EdgeInsets.symmetric(vertical: 1),
+                              child: pw.Text(
+                                '${getCurrencyLabel(currency['symbol'])} '
+                                '${formatAmount(saldoPendiente[currency['symbol']]!.abs(), symbol: "")}',
+                                style: pw.TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: pw.FontWeight.bold,
+                                  color: saldoPendiente[currency['symbol']]! > 0 
+                                    ? PdfColors.red 
+                                    : PdfColors.green,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    pw.SizedBox(width: 32),
+                    // Columna derecha: Total Abonado
+                    pw.Expanded(
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            'Total Abonado:',
+                            style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold,
+                              fontSize: 14,
+                              color: PdfColors.green,
+                            ),
+                          ),
+                          for (final currency in selectedCurrencies)
+                            pw.Container(
+                              padding: const pw.EdgeInsets.symmetric(vertical: 1),
+                              child: pw.Text(
+                                '${getCurrencyLabel(currency['symbol'])} '
+                                '${formatAmount(totalAbono[currency['symbol']] ?? 0, symbol: "")}',
+                                style: pw.TextStyle(
+                                  fontSize: 12,
+                                  color: PdfColors.green,
+                                ),
+                              ),
                             ),
                         ],
                       ),
@@ -343,8 +359,16 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
           widgets.add(pw.SizedBox(height: 12));
         }
 
-        // --- TOTALES GENERALES ---
+        // --- TOTALES GENERALES (orden invertido para consistencia) ---
         if (filtered.length > 1) {
+          // Calcular totales generales de deuda pendiente
+          final Map<String, double> totalDeudaPendienteGeneral = {};
+          for (final currency in selectedCurrencies) {
+            final symbol = currency['symbol'];
+            totalDeudaPendienteGeneral[symbol] = 
+                (totalDeudaGeneral[symbol] ?? 0) - (totalAbonoGeneral[symbol] ?? 0);
+          }
+          
           widgets.add(pw.Divider());
           widgets.add(pw.SizedBox(height: 8));
           widgets.add(
@@ -354,7 +378,48 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                 mainAxisSize: pw.MainAxisSize.min,
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  // --- Columna Total Abono General (izquierda) ---
+                  // --- Columna Total Deuda Pendiente General (izquierda) ---
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Container(
+                        padding: const pw.EdgeInsets.only(bottom: 2),
+                        decoration: pw.BoxDecoration(
+                          border: pw.Border(
+                            bottom: pw.BorderSide(
+                              color: PdfColors.red,
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                        child: pw.Text(
+                          'Deuda pendiente general:',
+                          style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 14,
+                            color: PdfColors.red,
+                          ),
+                        ),
+                      ),
+                      pw.SizedBox(height: 2),
+                      for (final currency in selectedCurrencies)
+                        pw.Text(
+                          formatAmount(
+                            (totalDeudaPendienteGeneral[currency['symbol']] ?? 0).abs(),
+                            symbol: getCurrencyLabel(currency['symbol']),
+                          ),
+                          style: pw.TextStyle(
+                            fontSize: 12,
+                            fontWeight: pw.FontWeight.bold,
+                            color: (totalDeudaPendienteGeneral[currency['symbol']] ?? 0) > 0 
+                              ? PdfColors.red 
+                              : PdfColors.green,
+                          ),
+                        ),
+                    ],
+                  ),
+                  pw.SizedBox(width: 24), // Espacio entre columnas
+                  // --- Columna Total Abono General (derecha) ---
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
@@ -363,6 +428,7 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                         style: pw.TextStyle(
                           fontWeight: pw.FontWeight.bold,
                           fontSize: 14,
+                          color: PdfColors.green,
                         ),
                       ),
                       pw.SizedBox(height: 2),
@@ -372,30 +438,10 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                             totalAbonoGeneral[currency['symbol']] ?? 0,
                             symbol: getCurrencyLabel(currency['symbol']),
                           ),
-                          style: const pw.TextStyle(fontSize: 12),
-                        ),
-                    ],
-                  ),
-                  pw.SizedBox(width: 24), // Espacio entre columnas
-                  // --- Columna Total Deuda General (derecha) ---
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text(
-                        'Total deuda general:',
-                        style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                      pw.SizedBox(height: 2),
-                      for (final currency in selectedCurrencies)
-                        pw.Text(
-                          formatAmount(
-                            totalDeudaGeneral[currency['symbol']] ?? 0,
-                            symbol: getCurrencyLabel(currency['symbol']),
+                          style: pw.TextStyle(
+                            fontSize: 12,
+                            color: PdfColors.green,
                           ),
-                          style: const pw.TextStyle(fontSize: 12),
                         ),
                     ],
                   ),
@@ -437,63 +483,11 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
   return pdf;
 }
 
-// --- PDF builder común para recibo general ---
-pw.Document buildGeneralReceiptPDF(List<Client> clients) {
-  final pdf = pw.Document();
-  double totalDeuda = 0;
-  double totalAbono = 0;
-  pdf.addPage(
-    pw.MultiPage(
-      build: (context) {
-        List<pw.Widget> widgets = [
-          pw.Text(
-            'Recibo General de Clientes',
-            style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
-          ),
-          pw.SizedBox(height: 10),
-        ];
-        for (final client in clients) {
-          widgets.addAll([
-            pw.Text(
-              '${client.name} (ID: ${client.id})',
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-            ),
-            pw.Text(
-              'Teléfono: ${(client.phone != null && client.phone.toString().trim().isNotEmpty) ? client.phone.toString() : 'Sin Información'}',
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
-            ),
-            pw.SizedBox(height: 4),
-            pw.TableHelper.fromTextArray(
-              headers: ['Saldo'],
-              data: [
-                [client.balance.toStringAsFixed(2)],
-              ],
-            ),
-            pw.SizedBox(height: 12),
-          ]);
-          if (client.balance < 0) {
-            totalDeuda += client.balance.abs();
-          } else {
-            totalAbono += client.balance;
-          }
-        }
-        widgets.add(
-          pw.Text(
-            'Total Deuda: ${totalDeuda.toStringAsFixed(2)} / Total Abono: ${totalAbono.toStringAsFixed(2)}',
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-          ),
-        );
-        return widgets;
-      },
-    ),
-  );
-  return pdf;
-}
-
 Future<void> exportAndShareClientReceiptPDF(
   Client client,
-  List<Transaction> transactions,
-) async {
+  List<Transaction> transactions, {
+  required List<Map<String, dynamic>> selectedCurrencies,
+}) async {
   final pdf = pw.Document();
   pdf.addPage(
     pw.Page(
@@ -511,26 +505,49 @@ Future<void> exportAndShareClientReceiptPDF(
             pw.Text('ID: ${client.id}'),
             pw.SizedBox(height: 10),
             pw.Table.fromTextArray(
-              headers: ['Fecha', 'Descripción', 'Tipo', 'Monto'],
+              headers: [
+                'Fecha',
+                'Descripción', 
+                'Tipo',
+                ...selectedCurrencies.map(
+                  (c) => 'Monto ${getCurrencyLabel(c['symbol'])}',
+                ),
+              ],
               headerStyle: pw.TextStyle(
                 fontWeight: pw.FontWeight.bold,
                 color: PdfColors.white,
               ),
               headerDecoration: pw.BoxDecoration(color: PdfColors.blue),
               cellStyle: pw.TextStyle(fontSize: 10),
+              cellAlignments: {
+                for (int i = 3; i < 3 + selectedCurrencies.length; i++)
+                  i: pw.Alignment.centerRight,
+              },
               data: sorted
                   .map(
                     (tx) => [
                       tx.date.toLocal().toString().split(' ')[0],
                       tx.description,
                       tx.type == 'debt' ? 'Deuda' : 'Abono',
-                      tx.amount.toStringAsFixed(2),
+                      ...selectedCurrencies.map(
+                        (c) => formatAmount(
+                          (tx.anchorUsdValue ?? tx.amount) * (c['rate'] as num),
+                          symbol: c['symbol'],
+                        ),
+                      ),
                     ],
                   )
                   .toList(),
             ),
             pw.SizedBox(height: 10),
-            pw.Text('Saldo actual: ${client.balance.toStringAsFixed(2)}'),
+            // Mostrar saldo actual en cada moneda seleccionada
+            ...selectedCurrencies.map((c) {
+              final symbol = c['symbol'];
+              final rate = c['rate'] as num;
+              return pw.Text(
+                'Saldo actual (${getCurrencyLabel(symbol)}): ${formatAmount(client.balance * rate, symbol: symbol)}',
+              );
+            }),
           ],
         );
       },

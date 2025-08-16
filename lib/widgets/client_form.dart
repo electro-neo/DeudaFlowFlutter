@@ -230,7 +230,7 @@ class _ClientFormState extends State<ClientForm> {
     'NZD',
     'ZAR',
   ];
-  String? _selectedCurrency = 'USD';
+  String? _selectedCurrency;
   @override
   void initState() {
     super.initState();
@@ -307,13 +307,14 @@ class _ClientFormState extends State<ClientForm> {
       }
       // --- Cálculo de anchorUsdValue ---
       final provider = Provider.of<CurrencyProvider>(context, listen: false);
-      final rate = provider.exchangeRates[_selectedCurrency!.toUpperCase()];
+      final codeUC = _selectedCurrency!.toUpperCase();
+      final rate = provider.exchangeRates[codeUC];
       if (rate != null && rate > 0) {
         anchorUsdValue = balance / rate;
         debugPrint(
           '\u001b[41m[FORM][CALC] balance=$balance, currency=$_selectedCurrency, rate=$rate, anchorUsdValue=$anchorUsdValue\u001b[0m',
         );
-      } else if (_selectedCurrency!.toUpperCase() == 'USD') {
+      } else if (codeUC == 'USD') {
         anchorUsdValue = balance;
         debugPrint(
           '\u001b[41m[FORM][CALC] balance=$balance, currency=USD, anchorUsdValue=$anchorUsdValue\u001b[0m',
@@ -348,7 +349,7 @@ class _ClientFormState extends State<ClientForm> {
       balance: type == 'debt' ? -balance : balance,
       synced: widget.initialClient?.synced ?? false,
       pendingDelete: widget.initialClient?.pendingDelete ?? false,
-      currencyCode: _selectedCurrency ?? 'USD',
+      currencyCode: _selectedCurrency!, // safe, ya validado
       anchorUsdValue: anchorUsdValue, // <-- Ahora sí se pasa correctamente
     );
     debugPrint(
@@ -803,12 +804,14 @@ class _ClientFormState extends State<ClientForm> {
                                 border: OutlineInputBorder(),
                                 isDense: true,
                               ),
-                              items: currencyList.map((currency) {
-                                return DropdownMenuItem<String>(
-                                  value: currency,
-                                  child: Text(currency),
-                                );
-                              }).toList(),
+                              items: [
+                                ...currencyList.map(
+                                  (currency) => DropdownMenuItem<String>(
+                                    value: currency,
+                                    child: Text(currency),
+                                  ),
+                                ),
+                              ],
                               onChanged: (value) async {
                                 if (value == null) return;
 

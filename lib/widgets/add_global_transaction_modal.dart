@@ -111,12 +111,21 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
       logError('Monto inválido');
       return;
     }
-    if (_descriptionController.text.trim().isEmpty) {
+    final descText = _descriptionController.text.trim();
+    if (descText.isEmpty) {
       setState(() {
         _error = 'Descripción obligatoria';
         _loading = false;
       });
       logError('Descripción obligatoria');
+      return;
+    }
+    if (descText.length > 30) {
+      setState(() {
+        _error = 'La descripción no puede tener más de 30 caracteres';
+        _loading = false;
+      });
+      logError('Descripción muy larga');
       return;
     }
     // Validar y guardar tasa solo si el campo está visible
@@ -579,11 +588,13 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
         const SizedBox(height: 12),
         TextField(
           controller: _descriptionController,
+          maxLength: 30,
           decoration: InputDecoration(
             labelText: 'Descripción',
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             prefixIcon: Icon(Icons.description),
             isDense: true,
+            counterText: '',
           ),
           maxLines: 2,
         ),

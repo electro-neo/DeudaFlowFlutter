@@ -28,7 +28,7 @@ class _TransactionFormState extends State<TransactionForm> {
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
   String? _type; // No seleccionado por defecto
-  String _currencyCode = 'USD';
+  String? _currencyCode;
   DateTime _selectedDate = DateTime.now();
   Client? _selectedClient;
   String? _error;
@@ -38,10 +38,10 @@ class _TransactionFormState extends State<TransactionForm> {
   bool _rateFieldVisible = false; // NUEVO
 
   //Reemplaza esto por la obtención real de clientes desde Provider o base de datos
- //Ejemplo: final clients = Provider.of<ClientProvider>(context).clients;
+  //Ejemplo: final clients = Provider.of<ClientProvider>(context).clients;
 
   final List<Client> clients = [];
-   @override
+  @override
   void initState() {
     super.initState();
     if (widget.initialClient != null) {
@@ -76,7 +76,7 @@ class _TransactionFormState extends State<TransactionForm> {
       logError('Debes seleccionar Deuda o Abono');
       return;
     }
-    if (_currencyCode.isEmpty) {
+    if (_currencyCode == null || _currencyCode!.isEmpty) {
       setState(() {
         _error = 'Debes seleccionar una moneda';
         _loading = false;
@@ -112,21 +112,17 @@ class _TransactionFormState extends State<TransactionForm> {
         });
         logError('Tasa inválida');
         return;
-      } else {
+      } else if (_currencyCode != null) {
         final currencyProvider = Provider.of<CurrencyProvider>(
           context,
           listen: false,
         );
+        final codeUC = _currencyCode!.toUpperCase();
         // Agregar la moneda manualmente si no existe
-        if (!currencyProvider.availableCurrencies.contains(
-          _currencyCode.toUpperCase(),
-        )) {
-          currencyProvider.addManualCurrency(_currencyCode.toUpperCase());
+        if (!currencyProvider.availableCurrencies.contains(codeUC)) {
+          currencyProvider.addManualCurrency(codeUC);
         }
-        currencyProvider.setRateForCurrency(
-          _currencyCode.toUpperCase(),
-          rateValue,
-        );
+        currencyProvider.setRateForCurrency(codeUC, rateValue);
       }
     }
     try {
@@ -155,8 +151,9 @@ class _TransactionFormState extends State<TransactionForm> {
             context,
             listen: false,
           );
-          rate = currencyProvider.exchangeRates[_currencyCode.toUpperCase()];
-          if (_currencyCode.toUpperCase() == 'USD') {
+          final codeUC = _currencyCode!.toUpperCase();
+          rate = currencyProvider.exchangeRates[codeUC];
+          if (codeUC == 'USD') {
             anchorUsdValue = amount;
             rate = 1.0;
           } else if (rate != null && rate > 0) {
@@ -169,7 +166,8 @@ class _TransactionFormState extends State<TransactionForm> {
           );
         } catch (e) {
           // Fallback si no hay provider en el árbol
-          if (_currencyCode.toUpperCase() == 'USD') {
+          final codeUC = _currencyCode!.toUpperCase();
+          if (codeUC == 'USD') {
             anchorUsdValue = amount;
             rate = 1.0;
           } else {
@@ -190,7 +188,7 @@ class _TransactionFormState extends State<TransactionForm> {
             date: _selectedDate,
             createdAt: now,
             localId: localId,
-            currencyCode: _currencyCode,
+            currencyCode: _currencyCode!, // safe, ya validado
             anchorUsdValue: anchorUsdValue,
           ),
         );
@@ -243,10 +241,12 @@ class _TransactionFormState extends State<TransactionForm> {
     final allowedCurrencies = CurrencyProvider.allowedCurrencies;
 
     // NUEVO: Determinar si falta la tasa
+    final codeUC = _currencyCode?.toUpperCase();
     final rateMissing =
-        _currencyCode.toUpperCase() != 'USD' &&
-        (currencyProvider.exchangeRates[_currencyCode.toUpperCase()] == null ||
-            currencyProvider.exchangeRates[_currencyCode.toUpperCase()] == 0);
+        codeUC != null &&
+        codeUC != 'USD' &&
+        (currencyProvider.exchangeRates[codeUC] == null ||
+            currencyProvider.exchangeRates[codeUC] == 0);
     _rateFieldVisible = rateMissing;
     final rateValid =
         double.tryParse(_rateController.text.replaceAll(',', '.')) != null &&
@@ -475,23 +475,22 @@ class _TransactionFormState extends State<TransactionForm> {
                               border: OutlineInputBorder(),
                               isDense: true,
                             ),
-                            items:
-                                [
-                                      'USD',
-                                      ...allowedCurrencies.where(
-                                        (code) => code != 'USD',
-                                      ),
-                                    ]
-                                    .map(
-                                      (code) => DropdownMenuItem(
-                                        value: code,
-                                        child: Text(code),
-                                      ),
-                                    )
-                                    .toList(),
+                            items: [
+                              ...[
+                                'USD',
+                                ...allowedCurrencies.where(
+                                  (code) => code != 'USD',
+                                ),
+                              ].map(
+                                (code) => DropdownMenuItem(
+                                  value: code,
+                                  child: Text(code),
+                                ),
+                              ),
+                            ],
                             onChanged: (code) {
                               setState(() {
-                                _currencyCode = code ?? 'VES';
+                                _currencyCode = code;
                                 _rateController.text = '';
                               });
                             },
@@ -509,7 +508,7 @@ class _TransactionFormState extends State<TransactionForm> {
                           controller: _rateController,
                           decoration: InputDecoration(
                             labelText:
-                                'Tasa ${_currencyCode.toUpperCase()} a USD',
+                                'Tasa ${_currencyCode?.toUpperCase() ?? ''} a USD',
                             border: OutlineInputBorder(),
                             isDense: true,
                             prefixIcon: Icon(Icons.attach_money_rounded),

@@ -607,15 +607,21 @@ Future<void> exportClientReceiptToPDF(
             ),
             pw.Text('ID: ${client.id}'),
             pw.SizedBox(height: 10),
-            pw.TableHelper.fromTextArray(
-              headers: ['Tipo', 'Monto', 'Descripción', 'Fecha'],
+            pw.Table.fromTextArray(
+              headers: ['Fecha', 'Descripción', 'Tipo', 'Monto'],
+              headerStyle: pw.TextStyle(
+                fontWeight: pw.FontWeight.bold,
+                color: PdfColors.white,
+              ),
+              headerDecoration: pw.BoxDecoration(color: PdfColors.blue),
+              cellStyle: pw.TextStyle(fontSize: 10),
               data: sorted
                   .map(
                     (tx) => [
+                      tx.date.toLocal().toString().split(' ')[0],
+                      tx.description,
                       tx.type == 'debt' ? 'Deuda' : 'Abono',
                       tx.amount.toStringAsFixed(2),
-                      tx.description,
-                      tx.date.toLocal().toString().split(' ')[0],
                     ],
                   )
                   .toList(),

@@ -413,27 +413,84 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                                 context,
                                 listen: false,
                               );
-                          // Lógica corregida para la exportación a PDF
-                          final selectedCurrency = currencyProvider.currency;
-                          final shouldConvertToSecondary =
-                              selectedCurrency != 'USD';
-                          final conversionRate =
-                              currencyProvider.getRateFor(selectedCurrency) ??
-                              1.0;
-
+                          // Obtener monedas registradas y tasas
+                          final registeredCurrencies =
+                              currencyProvider.availableCurrencies;
+                          final rates = Map.fromEntries(
+                            registeredCurrencies.map(
+                              (symbol) => MapEntry(
+                                symbol,
+                                currencyProvider.getRateFor(symbol) ?? 1.0,
+                              ),
+                            ),
+                          );
+                          // Diálogo de selección de monedas
+                          List<String> selected = [];
+                          await showDialog(
+                            context: context,
+                            builder: (ctx) {
+                              return StatefulBuilder(
+                                builder: (ctx, setStateDialog) {
+                                  return AlertDialog(
+                                    title: const Text(
+                                      'Selecciona monedas (máximo 2)',
+                                    ),
+                                    content: Wrap(
+                                      spacing: 8,
+                                      children: registeredCurrencies.map((
+                                        symbol,
+                                      ) {
+                                        final isSelected = selected.contains(
+                                          symbol,
+                                        );
+                                        return ChoiceChip(
+                                          label: Text(symbol),
+                                          selected: isSelected,
+                                          onSelected: (val) {
+                                            setStateDialog(() {
+                                              if (val) {
+                                                if (selected.length < 2) {
+                                                  selected.add(symbol);
+                                                }
+                                              } else {
+                                                selected.remove(symbol);
+                                              }
+                                            });
+                                          },
+                                        );
+                                      }).toList(),
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: selected.isEmpty
+                                            ? null
+                                            : () => Navigator.of(ctx).pop(),
+                                        child: const Text('Aceptar'),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                            },
+                          );
+                          // Construir la lista de monedas seleccionadas con símbolo y tasa
+                          final selectedCurrencies = selected
+                              .map(
+                                (symbol) => {
+                                  'symbol': symbol,
+                                  'rate': rates[symbol] ?? 1.0,
+                                },
+                              )
+                              .toList();
                           if (isMobile) {
                             await exportAndShareGeneralReceiptWithMovementsPDF(
                               filtered,
-                              convertCurrency: shouldConvertToSecondary,
-                              conversionRate: conversionRate,
-                              currencySymbol: selectedCurrency,
+                              selectedCurrencies: selectedCurrencies,
                             );
                           } else {
                             await exportGeneralReceiptWithMovementsPDF(
                               filtered,
-                              convertCurrency: shouldConvertToSecondary,
-                              conversionRate: conversionRate,
-                              currencySymbol: selectedCurrency,
+                              selectedCurrencies: selectedCurrencies,
                             );
                           }
                         },

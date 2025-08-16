@@ -55,9 +55,13 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
   String? _type;
-  String _currencyCode = 'USD';
+  String? _currencyCode;
   // FIX: Normalizar la fecha inicial a medianoche para evitar que la hora interfiera con el ordenamiento.
-  DateTime _selectedDate = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+  DateTime _selectedDate = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+    DateTime.now().day,
+  );
   Client? _selectedClient;
   String? _error;
   bool _loading = false;
@@ -90,7 +94,7 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
       logError('Debes seleccionar Deuda o Abono');
       return;
     }
-    if (_currencyCode.isEmpty) {
+    if (_currencyCode == null || _currencyCode!.isEmpty) {
       setState(() {
         _error = 'Debes seleccionar una moneda';
         _loading = false;
@@ -107,12 +111,21 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
       logError('Monto inválido');
       return;
     }
-    if (_descriptionController.text.trim().isEmpty) {
+    final descText = _descriptionController.text.trim();
+    if (descText.isEmpty) {
       setState(() {
         _error = 'Descripción obligatoria';
         _loading = false;
       });
       logError('Descripción obligatoria');
+      return;
+    }
+    if (descText.length > 30) {
+      setState(() {
+        _error = 'La descripción no puede tener más de 30 caracteres';
+        _loading = false;
+      });
+      logError('Descripción muy larga');
       return;
     }
     // Validar y guardar tasa solo si el campo está visible
@@ -132,15 +145,13 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
           listen: false,
         );
         // Agregar la moneda manualmente si no existe
-        if (!currencyProvider.availableCurrencies.contains(
-          _currencyCode.toUpperCase(),
-        )) {
-          currencyProvider.addManualCurrency(_currencyCode.toUpperCase());
+        if (_currencyCode != null) {
+          final codeUC = _currencyCode!.toUpperCase();
+          if (!currencyProvider.availableCurrencies.contains(codeUC)) {
+            currencyProvider.addManualCurrency(codeUC);
+          }
+          currencyProvider.setRateForCurrency(codeUC, rateValue);
         }
-        currencyProvider.setRateForCurrency(
-          _currencyCode.toUpperCase(),
-          rateValue,
-        );
       }
     }
 
@@ -165,26 +176,36 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
         context,
         listen: false,
       );
-      final rate = currencyProvider.exchangeRates[_currencyCode.toUpperCase()];
-      if (rate != null && rate > 0) {
-        anchorUsdValue = amount / rate;
-        debugPrint(
-          '\u001b[41m[GLOBAL_FORM][CALC] amount=$amount, currency=$_currencyCode, rate=$rate, anchorUsdValue=$anchorUsdValue\u001b[0m',
-        );
-      } else if (_currencyCode.toUpperCase() == 'USD') {
-        anchorUsdValue = amount;
-        debugPrint(
-          '\u001b[41m[GLOBAL_FORM][CALC] amount=$amount, currency=USD, anchorUsdValue=$anchorUsdValue\u001b[0m',
-        );
+      double? rate;
+      if (_currencyCode != null) {
+        final codeUC = _currencyCode!.toUpperCase();
+        rate = currencyProvider.exchangeRates[codeUC];
+        if (rate != null && rate > 0) {
+          anchorUsdValue = amount / rate;
+          debugPrint(
+            '\u001b[41m[GLOBAL_FORM][CALC] amount=$amount, currency=$_currencyCode, rate=$rate, anchorUsdValue=$anchorUsdValue\u001b[0m',
+          );
+        } else if (codeUC == 'USD') {
+          anchorUsdValue = amount;
+          debugPrint(
+            '\u001b[41m[GLOBAL_FORM][CALC] amount=$amount, currency=USD, anchorUsdValue=$anchorUsdValue\u001b[0m',
+          );
+        } else {
+          anchorUsdValue = null;
+          debugPrint(
+            '\u001b[41m[GLOBAL_FORM][CALC][WARN] No rate for currency=$_currencyCode, anchorUsdValue=null\u001b[0m',
+          );
+        }
       } else {
         anchorUsdValue = null;
-        debugPrint(
-          '\u001b[41m[GLOBAL_FORM][CALC][WARN] No rate for currency=$_currencyCode, anchorUsdValue=null\u001b[0m',
-        );
       }
       // FIX: Asegurar que la fecha de la transacción siempre se guarde sin la hora (a medianoche).
       // La hora real de creación se guarda en `createdAt`. Esto es crucial para la consistencia del ordenamiento.
-      final normalizedDate = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+      final normalizedDate = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+      );
 
       final transaction = Transaction(
         id: localId, // id local único
@@ -196,7 +217,7 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
         date: normalizedDate,
         createdAt: now,
         localId: localId,
-        currencyCode: _currencyCode,
+        currencyCode: _currencyCode!, // safe because already validated
         anchorUsdValue: anchorUsdValue,
       );
       debugPrint(
@@ -217,7 +238,10 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
       // estado inmediatamente y con el orden correcto. La lista de transacciones
       // necesita ser reconstruida para mostrar el nuevo ítem.
       if (!mounted) return;
-      final clientProvider = Provider.of<ClientProvider>(context, listen: false);
+      final clientProvider = Provider.of<ClientProvider>(
+        context,
+        listen: false,
+      );
       // Se recargan las transacciones para que la nueva aparezca inmediatamente.
       await txProvider.loadTransactions(widget.userId);
       // Se recargan los clientes para actualizar los saldos.
@@ -272,10 +296,12 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
     // final availableCurrencies = currencyProvider.availableCurrencies; // Eliminada variable no usada
     final allowedCurrencies = CurrencyProvider.allowedCurrencies;
     // Eliminada variable no usada: nonUsdCurrencies
+    final codeUC = _currencyCode?.toUpperCase();
     final rateMissing =
-        _currencyCode.toUpperCase() != 'USD' &&
-        (currencyProvider.exchangeRates[_currencyCode.toUpperCase()] == null ||
-            currencyProvider.exchangeRates[_currencyCode.toUpperCase()] == 0);
+        codeUC != null &&
+        codeUC != 'USD' &&
+        (currencyProvider.exchangeRates[codeUC] == null ||
+            currencyProvider.exchangeRates[codeUC] == 0);
     _rateFieldVisible = rateMissing;
     final rateValid =
         double.tryParse(_rateController.text.replaceAll(',', '.')) != null &&
@@ -499,16 +525,17 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
                   border: OutlineInputBorder(),
                   isDense: true,
                 ),
-                items:
-                    ['USD', ...allowedCurrencies.where((code) => code != 'USD')]
-                        .map(
-                          (code) =>
-                              DropdownMenuItem(value: code, child: Text(code)),
-                        )
-                        .toList(),
+                items: [
+                  ...[
+                    'USD',
+                    ...allowedCurrencies.where((code) => code != 'USD'),
+                  ].map(
+                    (code) => DropdownMenuItem(value: code, child: Text(code)),
+                  ),
+                ],
                 onChanged: (code) {
                   setState(() {
-                    _currencyCode = code ?? 'VES';
+                    _currencyCode = code;
                     _rateController.text = '';
                   });
                 },
@@ -524,7 +551,9 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
             child: TextField(
               controller: _rateController,
               decoration: InputDecoration(
-                labelText: 'Tasa ${_currencyCode.toUpperCase()} a USD',
+                labelText:
+                    'Tasa  {_currencyCode?.toUpperCase() ?? '
+                    '} a USD',
                 border: OutlineInputBorder(),
                 isDense: true,
                 prefixIcon: Icon(Icons.attach_money_rounded),
@@ -559,11 +588,13 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
         const SizedBox(height: 12),
         TextField(
           controller: _descriptionController,
+          maxLength: 30,
           decoration: InputDecoration(
             labelText: 'Descripción',
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             prefixIcon: Icon(Icons.description),
             isDense: true,
+            counterText: '',
           ),
           maxLines: 2,
         ),

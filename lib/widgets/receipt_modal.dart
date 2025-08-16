@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:provider/provider.dart';
 import '../models/client.dart';
 import '../models/transaction.dart';
 import '../utils/pdf_utils.dart';
@@ -110,24 +111,101 @@ class ReceiptModal extends StatelessWidget {
                               Theme.of(context).platform ==
                                   TargetPlatform.iOS) ||
                           MediaQuery.of(context).size.width < 600;
+                      Future<void> showCurrencyDialogAndExport({
+                        required bool share,
+                      }) async {
+                        // Obtener monedas disponibles y tasas desde el provider
+                        final currencyProvider = Provider.of<dynamic>(
+                          context,
+                          listen: false,
+                        );
+                        final availableCurrencies =
+                            currencyProvider.availableCurrencies;
+                        final getRateFor = currencyProvider.getRateFor;
+                        List<String> selectedSymbols = [];
+                        await showDialog(
+                          context: context,
+                          builder: (context) {
+                            return StatefulBuilder(
+                              builder: (context, setState) {
+                                return AlertDialog(
+                                  title: const Text(
+                                    'Selecciona hasta 2 monedas',
+                                  ),
+                                  content: Wrap(
+                                    spacing: 8,
+                                    children: [
+                                      for (final c in availableCurrencies)
+                                        ChoiceChip(
+                                          label: Text(c),
+                                          selected: selectedSymbols.contains(c),
+                                          onSelected: (selected) {
+                                            setState(() {
+                                              if (selected) {
+                                                if (selectedSymbols.length <
+                                                    2) {
+                                                  selectedSymbols.add(c);
+                                                }
+                                              } else {
+                                                selectedSymbols.remove(c);
+                                              }
+                                            });
+                                          },
+                                        ),
+                                    ],
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(context).pop(),
+                                      child: const Text('Cancelar'),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: selectedSymbols.isEmpty
+                                          ? null
+                                          : () => Navigator.of(context).pop(),
+                                      child: const Text('Aceptar'),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
+                        );
+                        if (selectedSymbols.isEmpty) return;
+                        final selectedCurrencies = selectedSymbols
+                            .map(
+                              (symbol) => {
+                                'symbol': symbol,
+                                'rate': getRateFor(symbol),
+                              },
+                            )
+                            .toList();
+                        if (share) {
+                          await exportAndShareClientReceiptPDF(
+                            client,
+                            filteredTransactions,
+                          );
+                        } else {
+                          await exportClientReceiptToPDF(
+                            client,
+                            filteredTransactions,
+                            selectedCurrencies: selectedCurrencies,
+                          );
+                        }
+                      }
+
                       if (isMobileOrSmall && !kIsWeb) {
                         return ElevatedButton.icon(
                           icon: const Icon(Icons.share),
                           label: const Text('Compartir'),
-                          onPressed: () async {
-                            // Exportar y compartir el PDF
-                            await exportAndShareClientReceiptPDF(
-                              client,
-                              filteredTransactions,
-                            );
-                          },
+                          onPressed: () =>
+                              showCurrencyDialogAndExport(share: true),
                         );
                       } else {
                         return ElevatedButton(
-                          onPressed: () => exportClientReceiptToPDF(
-                            client,
-                            filteredTransactions,
-                          ),
+                          onPressed: () =>
+                              showCurrencyDialogAndExport(share: false),
                           child: const Text('Exportar a PDF'),
                         );
                       }

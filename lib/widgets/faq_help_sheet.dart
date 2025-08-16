@@ -44,7 +44,7 @@ class FaqHelpSheet extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             const Text(
-              'Sección Moneda:',
+              'Seccion monedas:',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             ListTile(
@@ -52,9 +52,9 @@ class FaqHelpSheet extends StatelessWidget {
                 Icons.attach_money_rounded,
                 color: Colors.indigo,
               ),
-              title: const Text('Toggle USD:'),
+              title: const Text('Gestion de Monedas'),
               subtitle: const Text(
-                'Los montos en moneda local pueden convertirse a USD según la tasa que definas en la app.',
+                'Puedes registrar la tasa de cambio de la moneda que desee. La app realiza la conversión automáticamente.',
               ),
             ),
             const SizedBox(height: 16),
@@ -120,6 +120,15 @@ class FaqHelpSheet extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.calendar_today, color: Colors.indigo),
               title: const Text('Calendario: Filtra transacciones por fecha.'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.monetization_on, color: Colors.indigo),
+              title: const Text(
+                'Selector de moneda: Cambia la moneda en la que ves los montos.',
+              ),
+              subtitle: const Text(
+                'Toca la moneda (ej: USD, EUR, etc.) para ver todos los valores y totales en esa moneda.',
+              ),
             ),
             ListTile(
               leading: const Icon(Icons.delete, color: Colors.red),

@@ -230,7 +230,7 @@ class _ClientFormState extends State<ClientForm> {
     'NZD',
     'ZAR',
   ];
-  String? _selectedCurrency = 'USD';
+  String? _selectedCurrency;
   @override
   void initState() {
     super.initState();
@@ -254,9 +254,17 @@ class _ClientFormState extends State<ClientForm> {
   void _save() async {
     if (!mounted) return;
     // Validaciones antes de mostrar loading
-    if (_nameController.text.trim().isEmpty) {
+    final nameText = _nameController.text.trim();
+    if (nameText.isEmpty) {
       setState(() {
         _error = 'El nombre es obligatorio';
+        _isSaving = false;
+      });
+      return;
+    }
+    if (nameText.length > 27) {
+      setState(() {
+        _error = 'El nombre no puede tener más de 27 caracteres';
         _isSaving = false;
       });
       return;
@@ -307,13 +315,14 @@ class _ClientFormState extends State<ClientForm> {
       }
       // --- Cálculo de anchorUsdValue ---
       final provider = Provider.of<CurrencyProvider>(context, listen: false);
-      final rate = provider.exchangeRates[_selectedCurrency!.toUpperCase()];
+      final codeUC = _selectedCurrency!.toUpperCase();
+      final rate = provider.exchangeRates[codeUC];
       if (rate != null && rate > 0) {
         anchorUsdValue = balance / rate;
         debugPrint(
           '\u001b[41m[FORM][CALC] balance=$balance, currency=$_selectedCurrency, rate=$rate, anchorUsdValue=$anchorUsdValue\u001b[0m',
         );
-      } else if (_selectedCurrency!.toUpperCase() == 'USD') {
+      } else if (codeUC == 'USD') {
         anchorUsdValue = balance;
         debugPrint(
           '\u001b[41m[FORM][CALC] balance=$balance, currency=USD, anchorUsdValue=$anchorUsdValue\u001b[0m',
@@ -348,7 +357,7 @@ class _ClientFormState extends State<ClientForm> {
       balance: type == 'debt' ? -balance : balance,
       synced: widget.initialClient?.synced ?? false,
       pendingDelete: widget.initialClient?.pendingDelete ?? false,
-      currencyCode: _selectedCurrency ?? 'USD',
+      currencyCode: _selectedCurrency!, // safe, ya validado
       anchorUsdValue: anchorUsdValue, // <-- Ahora sí se pasa correctamente
     );
     debugPrint(
@@ -456,6 +465,7 @@ class _ClientFormState extends State<ClientForm> {
                   const SizedBox(height: 14),
                   TextField(
                     controller: _nameController,
+                    maxLength: 27,
                     decoration: InputDecoration(
                       labelText: 'Nombre',
                       prefixIcon: const Icon(Icons.person_outline),
@@ -477,6 +487,7 @@ class _ClientFormState extends State<ClientForm> {
                         vertical: 16,
                         horizontal: 12,
                       ),
+                      counterText: '',
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -803,12 +814,14 @@ class _ClientFormState extends State<ClientForm> {
                                 border: OutlineInputBorder(),
                                 isDense: true,
                               ),
-                              items: currencyList.map((currency) {
-                                return DropdownMenuItem<String>(
-                                  value: currency,
-                                  child: Text(currency),
-                                );
-                              }).toList(),
+                              items: [
+                                ...currencyList.map(
+                                  (currency) => DropdownMenuItem<String>(
+                                    value: currency,
+                                    child: Text(currency),
+                                  ),
+                                ),
+                              ],
                               onChanged: (value) async {
                                 if (value == null) return;
 

@@ -27,6 +27,7 @@ class TransactionForm extends StatefulWidget {
 class _TransactionFormState extends State<TransactionForm> {
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
+  static const int _descriptionMaxLength = 30;
   String? _type; // No seleccionado por defecto
   String? _currencyCode;
   DateTime _selectedDate = DateTime.now();
@@ -93,12 +94,22 @@ class _TransactionFormState extends State<TransactionForm> {
       logError('Monto inválido');
       return;
     }
-    if (_descriptionController.text.trim().isEmpty) {
+    final descriptionText = _descriptionController.text.trim();
+    if (descriptionText.isEmpty) {
       setState(() {
         _error = 'Descripción obligatoria';
         _loading = false;
       });
       logError('Descripción obligatoria');
+      return;
+    }
+    if (descriptionText.length > _descriptionMaxLength) {
+      setState(() {
+        _error =
+            'La descripción no puede superar los $_descriptionMaxLength caracteres';
+        _loading = false;
+      });
+      logError('Descripción demasiado larga');
       return;
     }
     // Validar y guardar tasa solo si el campo está visible
@@ -553,8 +564,33 @@ class _TransactionFormState extends State<TransactionForm> {
                         ),
                         prefixIcon: Icon(Icons.description),
                         isDense: true,
+                        counterText: '',
                       ),
                       maxLines: 2,
+                      maxLength: _descriptionMaxLength,
+                      buildCounter:
+                          (
+                            BuildContext context, {
+                            required int currentLength,
+                            required bool isFocused,
+                            required int? maxLength,
+                          }) {
+                            return Padding(
+                              padding: const EdgeInsets.only(
+                                right: 8.0,
+                                top: 2.0,
+                              ),
+                              child: Text(
+                                '$currentLength/$_descriptionMaxLength',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: currentLength > _descriptionMaxLength
+                                      ? Colors.red
+                                      : Colors.grey,
+                                ),
+                              ),
+                            );
+                          },
                     ),
                     if (_error != null)
                       Padding(

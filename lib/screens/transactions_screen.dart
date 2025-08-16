@@ -745,7 +745,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             double totalAbono = 0;
             double totalDeuda = 0;
             for (var tx in transactions) {
-                            final valueInUsd = tx.anchorUsdValue ?? tx.amount;
+              final valueInUsd = tx.anchorUsdValue ?? tx.amount;
               if (tx.type == 'payment') {
                 totalAbono += valueInUsd;
               } else if (tx.type == 'debt') {

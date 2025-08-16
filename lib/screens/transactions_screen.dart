@@ -180,86 +180,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final double topPadding = isMobile ? 24.0 : 70.0;
     final double? maxCardWidth = isMobile ? null : 500.0;
 
-    Widget content;
-    GestureDetector gestureWrapper({required Widget child}) {
-      return GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: () {
-          if (_searchFocusNode.hasFocus) {
-            _searchFocusNode.unfocus();
-          }
-        },
-        child: child,
-      );
-    }
-
-    if (isMobile) {
-      content = gestureWrapper(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.white.withAlpha((0.92 * 255).toInt()),
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha((0.08 * 255).toInt()),
-                      blurRadius: 14,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.only(
-                  top: 24,
-                  bottom: 8,
-                  left: 10,
-                  right: 10,
-                ),
-                child: _buildTransactionColumn(
-                  format,
-                  clients,
-                  transactions,
-                  effectiveClientId,
-                  selectedType,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    } else {
-      content = gestureWrapper(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxCardWidth ?? 500.0),
-            child: Card(
-              elevation: 8,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              color: Colors.white,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 28,
-                ),
-                child: _buildTransactionColumn(
-                  format,
-                  clients,
-                  transactions,
-                  effectiveClientId,
-                  selectedType,
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
+    // Refactor: Layout fijo arriba, lista virtualizada abajo
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {
@@ -271,10 +192,271 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           ? const Center(child: CircularProgressIndicator())
           : ScrollConfiguration(
               behavior: const NoScrollbarBehavior(),
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(0, topPadding, 0, 8),
-                  child: content,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(0, topPadding, 0, 8),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: maxCardWidth ?? 500.0,
+                    ),
+                    child: Card(
+                      elevation: 8,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      color: Colors.white,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 28,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Filtros, chips y stats
+                            _buildTransactionFilters(
+                              context,
+                              clients,
+                              format,
+                              effectiveClientId,
+                              selectedType,
+                            ),
+                            const SizedBox(height: 10),
+                            // Lista virtualizada
+                            Expanded(
+                              child: transactions.isEmpty
+                                  ? Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 8,
+                                        ),
+                                        child: Text(
+                                          'No hay transacciones para mostrar',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  : ListView.separated(
+                                      itemCount: transactions.length,
+                                      separatorBuilder: (_, __) =>
+                                          const SizedBox(height: 6),
+                                      itemBuilder: (context, i) {
+                                        final t = transactions[i];
+                                        final client = clients.firstWhere(
+                                          (c) => c.id == t.clientId,
+                                          orElse: () => Client(
+                                            id: '',
+                                            name: '',
+                                            balance: 0,
+                                          ),
+                                        );
+                                        final currencyProvider =
+                                            Provider.of<CurrencyProvider>(
+                                              context,
+                                              listen: false,
+                                            );
+                                        SyncMessageStateTX? syncMsg =
+                                            _txSyncStates[t.id];
+                                        bool clientPendingDelete = false;
+                                        final clientProvider =
+                                            Provider.of<ClientProvider>(
+                                              context,
+                                              listen: false,
+                                            );
+                                        if (client.id.isEmpty) {
+                                          try {
+                                            final box = Hive.box('clients');
+                                            final hiveClient = box.get(
+                                              t.clientId,
+                                            );
+                                            if (hiveClient != null &&
+                                                hiveClient.pendingDelete ==
+                                                    true) {
+                                              clientPendingDelete = true;
+                                            }
+                                          } catch (_) {}
+                                        } else {
+                                          try {
+                                            final box = Hive.box('clients');
+                                            final hiveClient = box.get(
+                                              t.clientId,
+                                            );
+                                            if (hiveClient != null &&
+                                                hiveClient.pendingDelete ==
+                                                    true &&
+                                                hiveClient.id is String &&
+                                                hiveClient.id.length == 36) {
+                                              clientPendingDelete = true;
+                                            }
+                                          } catch (_) {}
+                                        }
+                                        final syncProvider =
+                                            Provider.of<SyncProvider?>(
+                                              context,
+                                              listen: false,
+                                            );
+                                        bool isOffline = false;
+                                        if (syncProvider != null) {
+                                          isOffline = !syncProvider.isOnline;
+                                        }
+                                        return Dismissible(
+                                          key: ValueKey(t.id),
+                                          direction:
+                                              DismissDirection.endToStart,
+                                          background: Container(
+                                            alignment: Alignment.centerRight,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 24,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.red.withAlpha(
+                                                (0.12 * 255).toInt(),
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                            ),
+                                            child: const Icon(
+                                              Icons.delete,
+                                              color: Colors.red,
+                                              size: 32,
+                                            ),
+                                          ),
+                                          confirmDismiss: (direction) async {
+                                            return await showDialog<bool>(
+                                                  context: context,
+                                                  builder: (dialogContext) =>
+                                                      AlertDialog(
+                                                        title: const Text(
+                                                          'Eliminar transacción',
+                                                        ),
+                                                        content: const Text(
+                                                          '¿Estás seguro de eliminar esta transacción?',
+                                                        ),
+                                                        actions: [
+                                                          TextButton(
+                                                            onPressed: () =>
+                                                                Navigator.of(
+                                                                  dialogContext,
+                                                                ).pop(false),
+                                                            child: const Text(
+                                                              'Cancelar',
+                                                            ),
+                                                          ),
+                                                          ElevatedButton(
+                                                            onPressed: () =>
+                                                                Navigator.of(
+                                                                  dialogContext,
+                                                                ).pop(true),
+                                                            child: const Text(
+                                                              'Eliminar',
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                ) ??
+                                                false;
+                                          },
+                                          onDismissed: (direction) async {
+                                            final txProvider =
+                                                Provider.of<
+                                                  TransactionProvider
+                                                >(context, listen: false);
+                                            final cp =
+                                                Provider.of<ClientProvider>(
+                                                  context,
+                                                  listen: false,
+                                                );
+                                            final transactionIdToDelete = t.id;
+                                            final transactionDescription =
+                                                t.description;
+                                            txProvider.removeTransactionLocally(
+                                              transactionIdToDelete,
+                                            );
+                                            if (!mounted) return;
+                                            final messenger =
+                                                ScaffoldMessenger.maybeOf(
+                                                  context,
+                                                );
+                                            messenger?.showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  'Transacción "$transactionDescription" eliminada. Pendiente de sincronizar.',
+                                                ),
+                                                backgroundColor: Colors.orange,
+                                                duration: const Duration(
+                                                  seconds: 2,
+                                                ),
+                                              ),
+                                            );
+                                            try {
+                                              await txProvider
+                                                  .markTransactionForDeletionAndSync(
+                                                    transactionIdToDelete,
+                                                    widget.userId,
+                                                  );
+                                              if (!mounted) return;
+                                              await txProvider
+                                                  .cleanLocalPendingDeletedTransactions();
+                                              if (!mounted) return;
+                                              await cp.loadClients(
+                                                widget.userId,
+                                              );
+                                              if (!mounted) return;
+                                              await cp.refreshClientsFromHive();
+                                            } catch (e, stack) {
+                                              debugPrint(
+                                                'Error al marcar/sincronizar eliminación: $transactionIdToDelete -> \\${e.toString()}',
+                                              );
+                                              debugPrint(
+                                                'Stacktrace: \n$stack',
+                                              );
+                                              if (mounted) {
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      'Error al sincronizar eliminación: [\\${e.toString()}]',
+                                                    ),
+                                                    backgroundColor: Colors.red,
+                                                  ),
+                                                );
+                                              }
+                                            }
+                                          },
+                                          child: TransactionCard(
+                                            transaction: t,
+                                            client: client,
+                                            format: format,
+                                            clientPendingDelete:
+                                                clientPendingDelete,
+                                            isOffline: isOffline,
+                                            availableCurrencies:
+                                                currencyProvider
+                                                    .availableCurrencies,
+                                            exchangeRates:
+                                                currencyProvider.exchangeRates,
+                                            selectedCurrency:
+                                                currencyProvider.currency,
+                                            onCurrencySelected: (currency) {
+                                              currencyProvider.setCurrency(
+                                                currency,
+                                              );
+                                            },
+                                            syncMessage: syncMsg,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -298,64 +480,24 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     });
   }
 
-  Widget _buildTransactionColumn(
-    String Function(dynamic) format,
+  // Nuevo: Widget para filtros, chips y stats fijos arriba
+  Widget _buildTransactionFilters(
+    BuildContext context,
     List<Client> clients,
-    List transactions,
+    String Function(dynamic) format,
     String? selectedClientId,
     String? selectedType,
   ) {
-    // Ordenar por fecha de transacción descendente (más reciente primero).
-    // Si las fechas son iguales, se ordena por fecha de creación.
+    final currencyProvider = Provider.of<CurrencyProvider>(context);
+    final transactions = Provider.of<TransactionProvider>(
+      context,
+    ).transactions.where((t) => t.pendingDelete != true).toList();
+    // Ordenar igual que en la lista
     transactions.sort((a, b) {
       final dateCmp = b.date.compareTo(a.date);
       if (dateCmp != 0) return dateCmp;
-      // Para transacciones en el mismo día, la más nueva (recién creada) va primero.
       return b.createdAt.compareTo(a.createdAt);
     });
-
-    final clientProvider = Provider.of<ClientProvider>(context, listen: false);
-    final syncProvider = Provider.of<SyncProvider?>(context, listen: false);
-    bool isOffline = false;
-    bool clientPendingDelete = false;
-
-    if (selectedClientId != null && selectedClientId.isNotEmpty) {
-      final client = clientProvider.clients.firstWhere(
-        (c) => c.id == selectedClientId,
-        orElse: () => Client(id: '', name: '', balance: 0),
-      );
-      if (client.id.isEmpty) {
-        try {
-          final box = Hive.box('clients');
-          final hiveClient = box.get(selectedClientId);
-          if (hiveClient != null && hiveClient.pendingDelete == true) {
-            clientPendingDelete = true;
-          }
-        } catch (_) {}
-      } else {
-        try {
-          final box = Hive.box('clients');
-          final hiveClient = box.get(selectedClientId);
-          if (hiveClient != null &&
-              hiveClient.pendingDelete == true &&
-              hiveClient.id is String &&
-              hiveClient.id.length == 36) {
-            clientPendingDelete = true;
-          }
-        } catch (_) {}
-      }
-    }
-    if (syncProvider != null) {
-      isOffline = !syncProvider.isOnline;
-    }
-
-    // --- Ajuste manual de padding para ListView ---
-    // Permite al usuario ajustar el espacio superior/inferior del ListView
-    double listViewTopPadding = 10.0; // Ajusta este valor manualmente
-    double listViewBottomPadding =
-        75.0; // Ajusta este valor para que el último item sea visible
-
-    final currencyProvider = Provider.of<CurrencyProvider>(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -543,7 +685,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             ),
           ],
         ),
-        // Espacio después de la fila de filtros
         const SizedBox(height: 0),
         // Chips de monedas justo debajo de la fila de filtros
         SingleChildScrollView(
@@ -596,36 +737,31 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           ),
         ),
         const SizedBox(height: 10),
-        // ...existing code for stats, list, etc...
+        // Estadísticas
         Builder(
           builder: (context) {
             final selectedCurrency = currencyProvider.currency;
             final rate = currencyProvider.getRateFor(selectedCurrency) ?? 1.0;
-
             double totalAbono = 0;
             double totalDeuda = 0;
             for (var tx in transactions) {
-              final valueInUsd = tx.anchorUsdValue ?? tx.amount ?? 0.0;
+              final valueInUsd = tx.anchorUsdValue ?? tx.amount;
               if (tx.type == 'payment') {
                 totalAbono += valueInUsd;
               } else if (tx.type == 'debt') {
                 totalDeuda += valueInUsd;
               }
             }
-
             final displayAbono = selectedCurrency == 'USD'
                 ? totalAbono
                 : totalAbono * rate;
             final displayDeuda = selectedCurrency == 'USD'
                 ? totalDeuda
                 : totalDeuda * rate;
-
             final showAbono = selectedType == null || selectedType == 'payment';
             final showDeuda = selectedType == null || selectedType == 'debt';
             if (!showAbono && !showDeuda) return const SizedBox.shrink();
-            // Espacio externo entre stats/fecha y ListView ajustado
             return Container(
-              // Elimina el borde de depuración
               decoration: BoxDecoration(),
               child: Container(
                 decoration: BoxDecoration(
@@ -649,13 +785,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   ),
                 ),
                 padding: const EdgeInsets.symmetric(
-                  vertical: 4, // Espacio interno entre stats y fecha ajustado
+                  vertical: 4,
                   horizontal: 20,
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Fila original de estadísticas
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -751,7 +886,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           ),
                       ],
                     ),
-                    // Widget de fecha movido aquí dentro
                     if (_selectedRange != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 8.0),
@@ -780,156 +914,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             );
           },
         ),
-        transactions.isEmpty
-            ? Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    'No hay transacciones para mostrar',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
-                ),
-              )
-            : Container(
-                decoration: BoxDecoration(),
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  padding: EdgeInsets.only(
-                    top: listViewTopPadding,
-                    bottom: listViewBottomPadding,
-                  ),
-                  itemCount: transactions.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 6),
-                  itemBuilder: (context, i) {
-                    final t = transactions[i];
-                    final client = clients.firstWhere(
-                      (c) => c.id == t.clientId,
-                      orElse: () => Client(id: '', name: '', balance: 0),
-                    );
-                    final currencyProvider = Provider.of<CurrencyProvider>(
-                      context,
-                      listen: false,
-                    );
-
-                    // Buscar mensaje temporal de sincronización solo por id real
-                    SyncMessageStateTX? syncMsg = _txSyncStates[t.id];
-
-                    return Dismissible(
-                      key: ValueKey(t.id),
-                      direction: DismissDirection.endToStart,
-                      background: Container(
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withAlpha((0.12 * 255).toInt()),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Icon(
-                          Icons.delete,
-                          color: Colors.red,
-                          size: 32,
-                        ),
-                      ),
-                      confirmDismiss: (direction) async {
-                        return await showDialog<bool>(
-                              context: context,
-                              builder: (dialogContext) => AlertDialog(
-                                title: const Text('Eliminar transacción'),
-                                content: const Text(
-                                  '¿Estás seguro de eliminar esta transacción?',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.of(dialogContext).pop(false),
-                                    child: const Text('Cancelar'),
-                                  ),
-                                  ElevatedButton(
-                                    onPressed: () =>
-                                        Navigator.of(dialogContext).pop(true),
-                                    child: const Text('Eliminar'),
-                                  ),
-                                ],
-                              ),
-                            ) ??
-                            false;
-                      },
-                      onDismissed: (direction) async {
-                        final txProvider = Provider.of<TransactionProvider>(
-                          context,
-                          listen: false,
-                        );
-                        final cp = Provider.of<ClientProvider>(
-                          context,
-                          listen: false,
-                        );
-                        final transactionIdToDelete = t.id;
-                        final transactionDescription = t.description;
-                        txProvider.removeTransactionLocally(
-                          transactionIdToDelete,
-                        );
-                        if (!mounted) return;
-                        final messenger = ScaffoldMessenger.maybeOf(context);
-                        messenger?.showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Transacción "$transactionDescription" eliminada. Pendiente de sincronizar.',
-                            ),
-                            backgroundColor: Colors.orange,
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
-
-                        try {
-                          await txProvider.markTransactionForDeletionAndSync(
-                            transactionIdToDelete,
-                            widget.userId,
-                          );
-                          if (!mounted) return;
-                          await txProvider
-                              .cleanLocalPendingDeletedTransactions();
-                          if (!mounted) return;
-                          await cp.loadClients(widget.userId);
-                          if (!mounted) return;
-                          await cp.refreshClientsFromHive();
-                        } catch (e, stack) {
-                          debugPrint(
-                            'Error al marcar/sincronizar eliminación: $transactionIdToDelete -> \\${e.toString()}',
-                          );
-                          debugPrint('Stacktrace: \n$stack');
-                          if (mounted) {
-                            // ignore: use_build_context_synchronously
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Error al sincronizar eliminación: [\\${e.toString()}]',
-                                ),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        }
-                      },
-                      child: TransactionCard(
-                        transaction: t,
-                        client: client,
-                        format: format,
-                        clientPendingDelete: clientPendingDelete,
-                        isOffline: isOffline,
-                        availableCurrencies:
-                            currencyProvider.availableCurrencies,
-                        exchangeRates: currencyProvider.exchangeRates,
-                        selectedCurrency: currencyProvider.currency,
-                        onCurrencySelected: (currency) {
-                          currencyProvider.setCurrency(currency);
-                        },
-                        syncMessage: syncMsg,
-                      ),
-                    );
-                  },
-                ),
-              ), // End of ListView Container
       ],
     );
   }

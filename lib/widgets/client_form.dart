@@ -254,9 +254,17 @@ class _ClientFormState extends State<ClientForm> {
   void _save() async {
     if (!mounted) return;
     // Validaciones antes de mostrar loading
-    if (_nameController.text.trim().isEmpty) {
+    final nameText = _nameController.text.trim();
+    if (nameText.isEmpty) {
       setState(() {
         _error = 'El nombre es obligatorio';
+        _isSaving = false;
+      });
+      return;
+    }
+    if (nameText.length > 27) {
+      setState(() {
+        _error = 'El nombre no puede tener más de 27 caracteres';
         _isSaving = false;
       });
       return;
@@ -457,6 +465,7 @@ class _ClientFormState extends State<ClientForm> {
                   const SizedBox(height: 14),
                   TextField(
                     controller: _nameController,
+                    maxLength: 27,
                     decoration: InputDecoration(
                       labelText: 'Nombre',
                       prefixIcon: const Icon(Icons.person_outline),
@@ -478,6 +487,7 @@ class _ClientFormState extends State<ClientForm> {
                         vertical: 16,
                         horizontal: 12,
                       ),
+                      counterText: '',
                     ),
                   ),
                   const SizedBox(height: 14),

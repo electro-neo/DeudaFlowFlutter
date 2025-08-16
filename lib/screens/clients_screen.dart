@@ -21,6 +21,8 @@ import '../providers/tab_provider.dart';
 import '../widgets/add_global_transaction_modal.dart';
 import '../widgets/sync_message_state.dart';
 
+import '../widgets/scale_on_tap.dart';
+
 class ClientsScreen extends StatefulWidget {
   final String userId;
   final void Function(String clientId)? onViewMovements;
@@ -32,6 +34,55 @@ class ClientsScreen extends StatefulWidget {
 
 class ClientsScreenState extends State<ClientsScreen>
     with SingleTickerProviderStateMixin {
+  // Botón reutilizable compacto con fondo y marco traslúcido (estilo ClientDetailsModal)
+  Widget _mainActionBtn({
+    required String tooltip,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+    double size = 40,
+    double iconSize = 22,
+    bool enabled = true,
+    String? heroTag,
+    Widget? child,
+    bool wrapWithScaleOnTap = false,
+  }) {
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(10),
+      side: BorderSide(color: color.withOpacity(0.5), width: 1),
+    );
+    Widget button = Tooltip(
+      message: tooltip,
+      child: Material(
+        color: color.withOpacity(0.09),
+        shape: shape,
+        child: InkWell(
+          customBorder: shape,
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+          onTap: enabled && !wrapWithScaleOnTap ? onPressed : null,
+          child: SizedBox(
+            width: size,
+            height: size,
+            child: Center(
+              child:
+                  child ??
+                  Icon(
+                    icon,
+                    color: enabled ? color : Colors.grey,
+                    size: iconSize,
+                  ),
+            ),
+          ),
+        ),
+      ),
+    );
+    if (wrapWithScaleOnTap && enabled) {
+      button = ScaleOnTap(onTap: onPressed, child: button);
+    }
+    return button;
+  }
+
   // Permite cerrar la expansión del cliente desde fuera (por ejemplo, MainScaffold)
   void closeExpansion() {
     if (_expandedClientId != null) {
@@ -585,28 +636,24 @@ class ClientsScreenState extends State<ClientsScreen>
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      FloatingActionButton(
-                                        heroTag: 'registrarCliente',
-                                        mini: true,
-                                        backgroundColor: Theme.of(
+                                      _mainActionBtn(
+                                        tooltip: 'Registrar Cliente',
+                                        icon: Icons.add,
+                                        color: Theme.of(
                                           context,
                                         ).colorScheme.primary,
-                                        foregroundColor: Colors.white,
-                                        elevation: 2,
                                         onPressed: () => showClientForm(),
-                                        tooltip: 'Registrar Cliente',
-                                        child: const Icon(Icons.add),
+                                        heroTag: 'registrarCliente',
+                                        wrapWithScaleOnTap: true,
                                       ),
                                       if (allClients.isNotEmpty) ...[
                                         const SizedBox(width: 12),
-                                        FloatingActionButton(
-                                          heroTag: 'reciboGeneral',
-                                          mini: true,
-                                          backgroundColor: Theme.of(
+                                        _mainActionBtn(
+                                          tooltip: 'Recibo general',
+                                          icon: Icons.receipt_long,
+                                          color: Theme.of(
                                             context,
                                           ).colorScheme.primary,
-                                          foregroundColor: Colors.white,
-                                          elevation: 2,
                                           onPressed: () {
                                             final clientData = allClients
                                                 .map(
@@ -633,8 +680,8 @@ class ClientsScreenState extends State<ClientsScreen>
                                                   ),
                                             );
                                           },
-                                          tooltip: 'Recibo general',
-                                          child: const Icon(Icons.receipt_long),
+                                          heroTag: 'reciboGeneral',
+                                          wrapWithScaleOnTap: true,
                                         ),
                                         const SizedBox(width: 12),
                                         FutureBuilder<bool>(
@@ -649,19 +696,18 @@ class ClientsScreenState extends State<ClientsScreen>
                                             if (!online) {
                                               return const SizedBox.shrink();
                                             }
-                                            return FloatingActionButton(
-                                              heroTag: 'syncClientes',
-                                              mini: true,
-                                              backgroundColor: Theme.of(
-                                                context,
-                                              ).colorScheme.primary,
-                                              foregroundColor: Colors.white,
-                                              elevation: 2,
-                                              onPressed: _isSyncing
-                                                  ? null
-                                                  : _syncAll,
+                                            return _mainActionBtn(
                                               tooltip:
                                                   'Forzar sincronización de clientes y transacciones',
+                                              icon: Icons.sync,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.primary,
+                                              onPressed: _isSyncing
+                                                  ? () {}
+                                                  : _syncAll,
+                                              enabled: !_isSyncing,
+                                              heroTag: 'syncClientes',
                                               child: AnimatedBuilder(
                                                 animation: _syncController,
                                                 builder: (context, child) {
@@ -675,36 +721,36 @@ class ClientsScreenState extends State<ClientsScreen>
                                                       Icons.sync,
                                                       color: _isSyncing
                                                           ? Colors.green
-                                                          : Colors.white,
+                                                          : Theme.of(context)
+                                                                .colorScheme
+                                                                .primary,
                                                     ),
                                                   );
                                                 },
                                               ),
+                                              wrapWithScaleOnTap: true,
                                             );
                                           },
                                         ),
                                         const SizedBox(width: 12),
-                                        FloatingActionButton(
-                                          heroTag: 'buscarCliente',
-                                          mini: true,
-                                          backgroundColor: Theme.of(
-                                            context,
-                                          ).colorScheme.primary,
-                                          foregroundColor: Colors.white,
-                                          elevation: 2,
-                                          onPressed: _toggleSearch,
+                                        _mainActionBtn(
                                           tooltip: _showSearch
                                               ? 'Ocultar buscador'
                                               : 'Buscar cliente',
-                                          child: const Icon(Icons.search),
+                                          icon: Icons.search,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                          onPressed: _toggleSearch,
+                                          heroTag: 'buscarCliente',
+                                          wrapWithScaleOnTap: true,
                                         ),
                                         const SizedBox(width: 12),
-                                        FloatingActionButton(
-                                          heroTag: 'eliminarTodos',
-                                          mini: true,
-                                          backgroundColor: Colors.red[700],
-                                          foregroundColor: Colors.white,
-                                          elevation: 2,
+                                        _mainActionBtn(
+                                          tooltip:
+                                              'Eliminar TODOS los clientes',
+                                          icon: Icons.delete_forever,
+                                          color: Colors.red[700] ?? Colors.red,
                                           onPressed: () async {
                                             final provider =
                                                 Provider.of<ClientProvider>(
@@ -720,7 +766,6 @@ class ClientsScreenState extends State<ClientsScreen>
                                             );
                                             final allClients = box.values
                                                 .toList();
-
                                             if (allClients.isEmpty) {
                                               ScaffoldMessenger.of(
                                                 context,
@@ -733,7 +778,6 @@ class ClientsScreenState extends State<ClientsScreen>
                                               );
                                               return;
                                             }
-
                                             // Estilos de botones (mismo ancho)
                                             final indigoStyle =
                                                 ElevatedButton.styleFrom(
@@ -789,7 +833,6 @@ class ClientsScreenState extends State<ClientsScreen>
                                                     44,
                                                   ),
                                                 );
-
                                             final String?
                                             choice = await showDialog<String>(
                                               context: context,
@@ -798,7 +841,6 @@ class ClientsScreenState extends State<ClientsScreen>
                                                   borderRadius:
                                                       BorderRadius.circular(16),
                                                 ),
-                                                // Usamos un título claro y botones con mismo ancho
                                                 title: const Text(
                                                   '¿Qué deseas eliminar?',
                                                   style: TextStyle(
@@ -809,7 +851,6 @@ class ClientsScreenState extends State<ClientsScreen>
                                                   mainAxisSize:
                                                       MainAxisSize.min,
                                                   children: [
-                                                    // Solo transacciones (de todos los clientes)
                                                     SizedBox(
                                                       width: double.infinity,
                                                       child: ElevatedButton(
@@ -824,7 +865,6 @@ class ClientsScreenState extends State<ClientsScreen>
                                                       ),
                                                     ),
                                                     const SizedBox(height: 8),
-                                                    // Clientes y transacciones
                                                     SizedBox(
                                                       width: double.infinity,
                                                       child: ElevatedButton(
@@ -841,7 +881,6 @@ class ClientsScreenState extends State<ClientsScreen>
                                                       ),
                                                     ),
                                                     const SizedBox(height: 8),
-                                                    // Cancelar
                                                     SizedBox(
                                                       width: double.infinity,
                                                       child: ElevatedButton(
@@ -859,19 +898,15 @@ class ClientsScreenState extends State<ClientsScreen>
                                                 ),
                                               ),
                                             );
-
                                             if (choice == null) return;
-
                                             try {
                                               if (choice == 'txOnlyAll') {
-                                                // Eliminar TODAS las transacciones (reutilizando la lógica existente por transacción)
                                                 final allTx = List.of(
                                                   txProvider.transactions,
                                                 );
                                                 if (allTx.isEmpty) {
                                                   if (mounted) {
                                                     ScaffoldMessenger.of(
-                                                      // ignore: use_build_context_synchronously
                                                       context,
                                                     ).showSnackBar(
                                                       const SnackBar(
@@ -903,13 +938,11 @@ class ClientsScreenState extends State<ClientsScreen>
                                                 );
                                                 await txProvider
                                                     .cleanLocalOrphanTransactions();
-
                                                 if (!mounted) return;
                                                 final isOnline =
                                                     await txProvider.isOnline();
                                                 if (!mounted) return;
                                                 ScaffoldMessenger.of(
-                                                  // ignore: use_build_context_synchronously
                                                   context,
                                                 ).showSnackBar(
                                                   SnackBar(
@@ -922,7 +955,6 @@ class ClientsScreenState extends State<ClientsScreen>
                                                 );
                                               } else if (choice ==
                                                   'clientsAndTxAll') {
-                                                // Eliminar TODOS los clientes (y sus transacciones) – lógica existente
                                                 for (final c in allClients) {
                                                   provider.deleteClient(
                                                     c.id,
@@ -930,14 +962,12 @@ class ClientsScreenState extends State<ClientsScreen>
                                                   );
                                                 }
                                                 await _syncAll();
-
                                                 if (mounted) {
                                                   final isOnline =
                                                       await txProvider
                                                           .isOnline();
                                                   if (!mounted) return;
                                                   ScaffoldMessenger.of(
-                                                    // ignore: use_build_context_synchronously
                                                     context,
                                                   ).showSnackBar(
                                                     SnackBar(
@@ -953,7 +983,6 @@ class ClientsScreenState extends State<ClientsScreen>
                                             } catch (e) {
                                               if (!mounted) return;
                                               ScaffoldMessenger.of(
-                                                // ignore: use_build_context_synchronously
                                                 context,
                                               ).showSnackBar(
                                                 SnackBar(
@@ -964,11 +993,8 @@ class ClientsScreenState extends State<ClientsScreen>
                                               );
                                             }
                                           },
-                                          tooltip:
-                                              'Eliminar TODOS los clientes',
-                                          child: const Icon(
-                                            Icons.delete_forever,
-                                          ),
+                                          heroTag: 'eliminarTodos',
+                                          wrapWithScaleOnTap: true,
                                         ),
                                       ],
                                     ],

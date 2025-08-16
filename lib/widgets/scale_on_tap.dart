@@ -44,9 +44,8 @@ class _ScaleOnTapState extends State<ScaleOnTap>
 
   void _onTap() async {
     await _controller.reverse();
-    await Future.delayed(widget.duration);
-    widget.onTap();
-    if (mounted) _controller.forward();
+    await _controller.forward();
+    if (mounted) widget.onTap();
   }
 
   @override

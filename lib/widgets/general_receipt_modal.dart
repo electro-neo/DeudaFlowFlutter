@@ -425,7 +425,7 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                             ),
                           );
                           // Diálogo de selección de monedas
-                          List<String> selected = [registeredCurrencies.first];
+                          List<String> selected = [];
                           await showDialog(
                             context: context,
                             builder: (ctx) {
@@ -433,7 +433,7 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                                 builder: (ctx, setStateDialog) {
                                   return AlertDialog(
                                     title: const Text(
-                                      'Selecciona monedas (máx 2)',
+                                      'Selecciona monedas (máximo 2)',
                                     ),
                                     content: Wrap(
                                       spacing: 8,
@@ -453,9 +453,7 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                                                   selected.add(symbol);
                                                 }
                                               } else {
-                                                if (selected.length > 1) {
-                                                  selected.remove(symbol);
-                                                }
+                                                selected.remove(symbol);
                                               }
                                             });
                                           },
@@ -464,8 +462,9 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                                     ),
                                     actions: [
                                       TextButton(
-                                        onPressed: () =>
-                                            Navigator.of(ctx).pop(),
+                                        onPressed: selected.isEmpty
+                                            ? null
+                                            : () => Navigator.of(ctx).pop(),
                                         child: const Text('Aceptar'),
                                       ),
                                     ],

@@ -474,6 +474,9 @@ class _TransactionFormState extends State<TransactionForm> {
                               decimal: true,
                             ),
                             textInputAction: TextInputAction.next,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                            ],
                           ),
                         ),
                         const SizedBox(width: 8),

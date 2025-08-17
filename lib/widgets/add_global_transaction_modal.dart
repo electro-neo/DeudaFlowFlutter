@@ -513,6 +513,9 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
                 ),
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
                 textInputAction: TextInputAction.next,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                ],
               ),
             ),
             const SizedBox(width: 8),

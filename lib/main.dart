@@ -35,7 +35,7 @@ Future<void> _initializeApp() async {
     // Captura errores globales de Supabase y de Flutter
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exception.toString().contains('SocketException')) {
-        debugPrint('Supabase offline: \n[${details.exception}]');
+        debugPrint('Supabase offline: \n[${details.exception}]');
       } else {
         FlutterError.presentError(details);
       }

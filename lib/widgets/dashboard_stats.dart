@@ -151,10 +151,13 @@ class _DashboardStatsState extends State<DashboardStats> {
       color: Colors.red, // Color rojo
       isButton: true, // Es un botón
       onTap: goToDeudaTab, // Acción al pulsar
-      contentPadding: const EdgeInsets.symmetric(
-        vertical: 12.0,
-        horizontal: 16.0,
-      ), // Padding reducido
+      // Padding personalizado: puedes ajustar cada lado de forma independiente
+      contentPadding: const EdgeInsets.fromLTRB(
+        16.0, // padding izquierdo
+        25.0, // padding superior
+        16.0, // padding derecho
+        5.0, // padding inferior
+      ),
     );
     final statAbonado = _StatCard(
       label: 'Total abonado', // Título del statcard
@@ -164,10 +167,13 @@ class _DashboardStatsState extends State<DashboardStats> {
       color: Colors.green, // Color verde
       isButton: true, // Es un botón
       onTap: goToAbonoTab, // Acción al pulsar
-      contentPadding: const EdgeInsets.symmetric(
-        vertical: 12.0,
-        horizontal: 16.0,
-      ), // Padding reducido
+      // Padding personalizado: puedes ajustar cada lado de forma independiente
+      contentPadding: const EdgeInsets.fromLTRB(
+        16.0, // padding izquierdo
+        25.0, // padding superior
+        16.0, // padding derecho
+        5.0, // padding inferior
+      ),
     );
     // StatCard Clientes con deudas (balance < 0)
     final statClientesConDeuda = _StatCard(
@@ -222,7 +228,7 @@ class _DashboardStatsState extends State<DashboardStats> {
     // marginLeftDeuda: margen izquierdo del statcard de deuda total
     // marginRightDeuda: margen derecho del statcard de deuda total (espacio entre deuda y abonado)
     // marginTopDeuda: margen superior del statcard de deuda total (espacio arriba de la tarjeta)
-    const double widthDeuda = 180;
+    const double widthDeuda = 160;
     const double heightDeuda = 180;
     const double marginLeftDeuda = 0;
     const double marginRightDeuda = 1;
@@ -234,7 +240,7 @@ class _DashboardStatsState extends State<DashboardStats> {
     // marginLeftAbonado: margen izquierdo del statcard de total abonado (espacio entre deuda y abonado)
     // marginRightAbonado: margen derecho del statcard de total abonado
     // marginTopAbonado: margen superior del statcard de total abonado
-    const double widthAbonado = 180;
+    const double widthAbonado = 160;
     const double heightAbonado = 180;
     const double marginLeftAbonado = 1;
     const double marginRightAbonado = 0;
@@ -360,8 +366,7 @@ class _StatCard extends StatelessWidget {
     // - El ancho máximo del label depende del ancho real del statcard
     final cardContent = Padding(
       padding:
-          contentPadding ??
-          const EdgeInsets.symmetric(vertical: 15.0, horizontal: 16.0),
+          contentPadding ?? const EdgeInsets.fromLTRB(16.0, 25.0, 16.0, 5.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,

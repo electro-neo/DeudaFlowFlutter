@@ -569,7 +569,7 @@ class _MainScaffoldState extends State<MainScaffold>
                                                 const SizedBox(height: 16),
                                                 Consumer<CurrencyProvider>(
                                                   builder: (context, currencyProvider, _) {
-                                                    onPressedAction() {
+                                                    onPressedAction() async {
                                                       final monedasConTasa =
                                                           currencyProvider
                                                               .exchangeRates
@@ -587,10 +587,8 @@ class _MainScaffoldState extends State<MainScaffold>
                                                       debugPrint(
                                                         '[DEBUG][GESTION MONEDAS] Monedas con tasa registrada: ${monedasConTasa.join(', ')}',
                                                       );
-                                                      showDialog(
-                                                        context: context,
-                                                        builder: (ctx2) =>
-                                                            const CurrencyManagerDialog(),
+                                                      await CurrencyManagerDialog.show(
+                                                        context,
                                                       );
                                                     }
 

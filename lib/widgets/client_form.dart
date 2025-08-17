@@ -675,7 +675,9 @@ class _ClientFormState extends State<ClientForm> {
                     ),
                     keyboardType: TextInputType.phone,
                     inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[0-9 +\-]')),  //
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'[0-9 +\-]'),
+                      ), //
                     ],
                   ),
                   const SizedBox(height: 14),

@@ -222,7 +222,7 @@ class _DashboardStatsState extends State<DashboardStats> {
     // marginLeftDeuda: margen izquierdo del statcard de deuda total
     // marginRightDeuda: margen derecho del statcard de deuda total (espacio entre deuda y abonado)
     // marginTopDeuda: margen superior del statcard de deuda total (espacio arriba de la tarjeta)
-    const double widthDeuda = 160;
+    const double widthDeuda = 180;
     const double heightDeuda = 180;
     const double marginLeftDeuda = 0;
     const double marginRightDeuda = 1;
@@ -234,7 +234,7 @@ class _DashboardStatsState extends State<DashboardStats> {
     // marginLeftAbonado: margen izquierdo del statcard de total abonado (espacio entre deuda y abonado)
     // marginRightAbonado: margen derecho del statcard de total abonado
     // marginTopAbonado: margen superior del statcard de total abonado
-    const double widthAbonado = 160;
+    const double widthAbonado = 180;
     const double heightAbonado = 180;
     const double marginLeftAbonado = 1;
     const double marginRightAbonado = 0;
@@ -395,7 +395,7 @@ class _StatCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 4),
           // Columna para el valor principal y el símbolo de la moneda
           Column(
             mainAxisSize: MainAxisSize.min,
@@ -447,7 +447,7 @@ class _StatCard extends StatelessWidget {
                 width: double.infinity,
                 alignment: Alignment.center,
                 constraints: BoxConstraints(
-                  minHeight: 28, // Altura mínima reducida para el label
+                  minHeight: 10, // Altura mínima aún más reducida para el label
                   minWidth: 0,
                   maxWidth: maxLabelWidth,
                 ),
@@ -457,6 +457,7 @@ class _StatCard extends StatelessWidget {
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
                     color: Color.fromARGB(255, 252, 252, 252),
+                    height: 1.05, // Reduce el espacio entre líneas
                     shadows: [
                       Shadow(
                         color: Color.fromARGB(0, 0, 0, 0),

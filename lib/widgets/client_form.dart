@@ -252,36 +252,11 @@ class _ClientFormState extends State<ClientForm> {
   String? _error;
 
   void _save() async {
-    if (!mounted) return;
-    // Validaciones antes de mostrar loading
-    final nameText = _nameController.text.trim();
-    if (nameText.isEmpty) {
-      setState(() {
-        _error = 'El nombre es obligatorio';
-        _isSaving = false;
-      });
-      return;
-    }
-    if (nameText.length > 27) {
-      setState(() {
-        _error = 'El nombre no puede tener más de 27 caracteres';
-        _isSaving = false;
-      });
-      return;
-    }
     final phoneText = _phoneController.text.trim();
-    if (phoneText.isEmpty) {
-      setState(() {
-        _error = 'El teléfono es obligatorio';
-        _isSaving = false;
-      });
-      return;
-    }
-
     double balance = 0.0;
     String? type = _initialType;
     double? anchorUsdValue;
-    // Validar moneda seleccionada
+    String? currencyCode;
     if (_showInitialBalanceFields) {
       if (_selectedCurrency == null || _selectedCurrency!.isEmpty) {
         setState(() {
@@ -290,6 +265,7 @@ class _ClientFormState extends State<ClientForm> {
         });
         return;
       }
+      currencyCode = _selectedCurrency;
       if (type == null) {
         setState(() {
           _error = 'Debes seleccionar Deuda o Abono';
@@ -334,10 +310,11 @@ class _ClientFormState extends State<ClientForm> {
         );
       }
     } else {
-      // Si no se presionó el botón, balance 0 y tipo null
+      // Si no se muestran los campos de saldo inicial, no se requiere moneda
       balance = 0.0;
       type = null;
       anchorUsdValue = null;
+      currencyCode = null;
     }
     setState(() {
       _error = null;
@@ -357,8 +334,8 @@ class _ClientFormState extends State<ClientForm> {
       balance: type == 'debt' ? -balance : balance,
       synced: widget.initialClient?.synced ?? false,
       pendingDelete: widget.initialClient?.pendingDelete ?? false,
-      currencyCode: _selectedCurrency!, // safe, ya validado
-      anchorUsdValue: anchorUsdValue, // <-- Ahora sí se pasa correctamente
+      currencyCode: currencyCode ?? 'VES', // Nunca null, por defecto VES
+      anchorUsdValue: anchorUsdValue, // Puede ser null si no hay saldo inicial
     );
     debugPrint(
       '\u001b[41m[FORM][SAVE] Cliente id=$newId, balance=$balance, currency=$_selectedCurrency, anchorUsdValue=$anchorUsdValue\u001b[0m',

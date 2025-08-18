@@ -12,7 +12,9 @@ class Transaction {
   final bool? synced;
   final bool? pendingDelete;
   final String? localId;
-  final String currencyCode;
+
+  /// Puede ser null solo si el cliente no tiene transacción inicial
+  final String? currencyCode;
   final double? anchorUsdValue;
 
   Transaction({
@@ -27,7 +29,7 @@ class Transaction {
     this.synced,
     this.pendingDelete,
     this.localId,
-    required this.currencyCode,
+    this.currencyCode,
     this.anchorUsdValue,
   }) {
     debugPrint(

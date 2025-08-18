@@ -6,6 +6,9 @@ import '../models/client_hive.dart';
 import '../models/transaction_hive.dart';
 import '../services/supabase_service.dart';
 import '../main.dart';
+import 'package:provider/provider.dart';
+import '../providers/client_provider.dart';
+import '../providers/transaction_provider.dart';
 
 /// Representa el estado de autoridad evaluado.
 /// Usado por Login y por SyncProvider durante reconexiones.
@@ -32,6 +35,74 @@ enum AuthorityState {
 /// Usado por Login y por SyncProvider durante reconexiones.
 
 class SessionAuthorityService {
+  /// Cierra sesión y detiene el listener de device_id en tiempo real.
+  Future<void> signOutAndDisposeListener() async {
+    disposeDeviceIdListener();
+    await Supabase.instance.client.auth.signOut();
+  }
+
+  // --- Realtime device_id listener ---
+  RealtimeChannel? _deviceIdChannel;
+
+  /// Inicia la escucha en tiempo real del device_id para el usuario dado.
+  /// Si el device_id remoto cambia y no coincide con el local, dispara la lógica de conflicto en tiempo real.
+  void listenToDeviceIdChanges(String userId, BuildContext context) {
+    _deviceIdChannel?.unsubscribe();
+
+    _deviceIdChannel = Supabase.instance.client
+        .channel('public:user_settings')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'user_settings',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user_id',
+            value: userId,
+          ),
+          callback: (payload) async {
+            debugPrint(
+              '[AUTH-DEVICE][Realtime] Evento recibido: newRecord =\n${payload.newRecord.toString()}',
+            );
+            final newDeviceId =
+                (payload.newRecord['value']?['device_id']) as String?;
+            debugPrint(
+              '[AUTH-DEVICE][Realtime] newDeviceId extraído: '
+              '[33m$newDeviceId[0m',
+            );
+            if (newDeviceId != null) {
+              final localId = await getOrCreateLocalDeviceId();
+              debugPrint(
+                '[AUTH-DEVICE][Realtime] localId actual: '
+                '[36m$localId[0m',
+              );
+              if (newDeviceId != localId) {
+                debugPrint(
+                  '[AUTH-DEVICE][Realtime] ¡Conflicto detectado! Ejecutando validateDeviceAuthorityOrLogout...',
+                );
+                // Reutiliza la lógica de conflicto
+                await validateDeviceAuthorityOrLogout(context, userId);
+              } else {
+                debugPrint(
+                  '[AUTH-DEVICE][Realtime] device_id coincide, no hay conflicto.',
+                );
+              }
+            } else {
+              debugPrint(
+                '[AUTH-DEVICE][Realtime] newDeviceId es null, no se procesa.',
+              );
+            }
+          },
+        )
+        .subscribe();
+  }
+
+  /// Detiene la escucha en tiempo real del device_id.
+  void disposeDeviceIdListener() {
+    _deviceIdChannel?.unsubscribe();
+    _deviceIdChannel = null;
+  }
+
   /// Valida que el device_id local coincida con el remoto antes de sincronizar.
   /// Si no coincide, muestra un diálogo y cierra sesión automáticamente tras 4 segundos.
   Future<bool> validateDeviceAuthorityOrLogout(
@@ -40,34 +111,66 @@ class SessionAuthorityService {
   ) async {
     final localId = await getOrCreateLocalDeviceId();
     final remoteId = await fetchServerDeviceId(userId);
+    debugPrint(
+      '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] localId: $localId, remoteId: $remoteId',
+    );
     if (remoteId != null && remoteId.isNotEmpty && remoteId != localId) {
-      if (context is Element && !context.mounted) return false;
+      debugPrint(
+        '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Conflicto detectado, context: $context',
+      );
+      // Si el context local no está montado, usar navigatorKey.currentContext como fallback global
+      // Esto permite mostrar diálogos o navegar incluso si el widget original ya no existe
+      BuildContext? safeContext = context;
+      if (context is Element && !context.mounted) {
+        debugPrint(
+          '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Context no montado, usando navigatorKey.currentContext como fallback.',
+        );
+        safeContext = navigatorKey.currentContext;
+        if (safeContext == null) {
+          debugPrint(
+            '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] navigatorKey.currentContext también es null, abortando.',
+          );
+          return false;
+        }
+      }
       // Detectar si es reconexión tras autorizado offline
       final box = await Hive.openBox('session');
       final prevFlag = box.get(kSessionFlagKey);
       final wasAuthorizedOffline = prevFlag == 'authorized';
+      debugPrint(
+        '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] wasAuthorizedOffline: $wasAuthorizedOffline',
+      );
       if (wasAuthorizedOffline) {
+        debugPrint(
+          '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Mostrando diálogo de conflicto (reconexión offline)',
+        );
         // Mostrar diálogo de opciones en vez de cerrar sesión automática
         final ok = await SessionAuthorityService.instance.handleConflictDialog(
           // ignore: use_build_context_synchronously
-          context,
+          safeContext,
           userId,
           isLoginFlow: false,
           wasAuthorizedOffline: true,
         );
+        debugPrint(
+          '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] handleConflictDialog retornó: $ok',
+        );
         return ok;
       }
+      debugPrint(
+        '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Mostrando diálogo de cierre de sesión automática',
+      );
       // Si no es reconexión offline, cerrar sesión automática
       await showDialog(
         // ignore: use_build_context_synchronously
-        context: context,
+        context: safeContext,
         barrierDismissible: false,
         builder: (ctx) {
           Future.delayed(const Duration(seconds: 4), () async {
             // ignore: use_build_context_synchronously
             if (Navigator.of(ctx).canPop()) Navigator.of(ctx).pop();
             try {
-              await Supabase.instance.client.auth.signOut();
+              await signOutAndDisposeListener();
             } catch (_) {}
             // Navegar a login tras cerrar sesión
             try {
@@ -85,8 +188,14 @@ class SessionAuthorityService {
           );
         },
       );
+      debugPrint(
+        '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] showDialog de cierre de sesión automática mostrado',
+      );
       return false;
     }
+    debugPrint(
+      '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] No hay conflicto, todo ok.',
+    );
     return true;
   }
 
@@ -284,7 +393,7 @@ class SessionAuthorityService {
             ElevatedButton.icon(
               icon: const Icon(Icons.delete_forever, size: 18),
               label: const Text(
-                'Eliminar cambios locales y continuar',
+                'Borrar cambios locales y continuar',
                 style: TextStyle(fontSize: 13),
               ),
               onPressed: () => Navigator.of(ctx).pop('discard'),
@@ -299,7 +408,7 @@ class SessionAuthorityService {
             ElevatedButton.icon(
               icon: const Icon(Icons.sync, size: 18),
               label: const Text(
-                'Sincroniza y continua en este equipo',
+                'Guardar cambios locales y continuar',
                 style: TextStyle(fontSize: 13),
               ),
               onPressed: () => Navigator.of(ctx).pop('claim'),
@@ -337,6 +446,26 @@ class SessionAuthorityService {
       final localId = await getOrCreateLocalDeviceId();
       await setServerDeviceId(userId, localId);
       await markSessionFlag('authorized');
+      // --- Sincroniza automáticamente los cambios locales pendientes ---
+      try {
+        final ctx = navigatorKey.currentContext;
+        if (ctx != null) {
+          final clientProvider = Provider.of<ClientProvider>(
+            ctx,
+            listen: false,
+          );
+          final txProvider = Provider.of<TransactionProvider>(
+            ctx,
+            listen: false,
+          );
+          await clientProvider.syncPendingClients(userId);
+          await txProvider.syncPendingTransactions(userId);
+        }
+      } catch (e, st) {
+        debugPrint(
+          '[AUTH-DEVICE][handleConflictDialog] Error al sincronizar automáticamente: $e\n$st',
+        );
+      }
       return true; // se puede continuar con sync
     }
     if (result == 'discard') {
@@ -349,7 +478,20 @@ class SessionAuthorityService {
     }
     if (result == 'logout') {
       try {
-        await Supabase.instance.client.auth.signOut();
+        await signOutAndDisposeListener();
+        // Cerrar el diálogo antes de navegar
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+        // Navegar a login tras cerrar sesión en el siguiente microtask
+        Future.microtask(() {
+          final ctx = navigatorKey.currentContext;
+          if (ctx != null) {
+            Navigator.of(
+              ctx,
+            ).pushNamedAndRemoveUntil('/login', (route) => false);
+          }
+        });
       } catch (_) {}
       return false;
     }

@@ -22,7 +22,7 @@ class TransactionHive extends HiveObject {
   @HiveField(8)
   String? userId;
   @HiveField(9)
-  String currencyCode; // Código de moneda (ej: 'USD', 'VES', 'COP')
+  String? currencyCode; // Código de moneda (ej: 'USD', 'VES', 'COP'), ahora nullable
   @HiveField(10)
   String? localId; // <-- Agregado para compatibilidad con Transaction
   @HiveField(11)
@@ -38,7 +38,7 @@ class TransactionHive extends HiveObject {
     this.synced = false,
     this.pendingDelete = false,
     this.userId,
-    this.currencyCode = 'VES', // Valor por defecto para datos antiguos
+    this.currencyCode,
     this.localId,
     this.anchorUsdValue,
   });
@@ -102,7 +102,7 @@ class TransactionHive extends HiveObject {
           ? map['pendingDelete'] as bool
           : (map['pendingDelete'] is int ? (map['pendingDelete'] == 1) : false),
       userId: map['userId']?.toString(),
-      currencyCode: map['currency_code']?.toString() ?? 'VES',
+      currencyCode: map['currency_code']?.toString(),
       localId: map['local_id']?.toString(),
       anchorUsdValue: (map['anchor_usd_value'] is num)
           ? (map['anchor_usd_value'] as num).toDouble()

@@ -92,14 +92,48 @@ class _LoginScreenState extends State<LoginScreen> {
     } else {
       // No hay sesión guardada, requiere internet la primera vez
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'No es posible usar el modo invitado sin conexión la primera vez. Por favor, conéctate a internet e inicia sesión como invitado para habilitar el acceso offline.',
+      try {
+        final res = await Supabase.instance.client.auth.signInWithPassword(
+          email: _guestEmail,
+          password: _guestPassword,
+        );
+        final user = res.user;
+        if (user != null) {
+          // Guardar usuario en Hive para saludo offline
+          final userMeta = user.userMetadata;
+          final userName =
+              (userMeta != null &&
+                  userMeta['name'] != null &&
+                  userMeta['name'].toString().trim().isNotEmpty)
+              ? userMeta['name']
+              : null;
+          await sessionBox.put('userName', userName ?? '');
+          await sessionBox.put('email', _guestEmail);
+          // Iniciar escucha de cambios en device_id para invitado
+          SessionAuthorityService.instance.listenToDeviceIdChanges(
+            user.id,
+            context,
+          );
+          if (!mounted) return;
+          Navigator.of(context).pushReplacementNamed('/dashboard');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No se pudo iniciar sesión como invitado.'),
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+      } catch (_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No es posible usar el modo invitado sin conexión la primera vez. Por favor, conéctate a internet e inicia sesión como invitado para habilitar el acceso offline.',
+            ),
+            duration: Duration(seconds: 4),
           ),
-          duration: Duration(seconds: 4),
-        ),
-      );
+        );
+      }
     }
   }
 
@@ -217,6 +251,11 @@ class _LoginScreenState extends State<LoginScreen> {
           await txProvider.syncPendingTransactions(user.id);
         } catch (_) {}
         if (!mounted) return;
+        // Iniciar escucha de cambios en device_id para este usuario
+        SessionAuthorityService.instance.listenToDeviceIdChanges(
+          user.id,
+          context,
+        );
         // ignore: use_build_context_synchronously
         Navigator.of(context).pushReplacementNamed('/dashboard');
       }
@@ -431,6 +470,11 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       } catch (_) {}
       debugPrint('DEBUG: Login con Google exitoso, navegando a dashboard.');
+      // Iniciar escucha de cambios en device_id para este usuario
+      SessionAuthorityService.instance.listenToDeviceIdChanges(
+        user.id,
+        context,
+      );
       // ignore: use_build_context_synchronously
       Navigator.of(context).pushReplacementNamed('/dashboard');
     } catch (e) {

@@ -22,7 +22,7 @@ class ClientHive extends HiveObject {
   String? localId;
 
   @HiveField(8)
-  String currencyCode; // Código de moneda (ej: 'USD', 'VES', 'COP')
+  String? currencyCode; // Código de moneda (ej: 'USD', 'VES', 'COP'), ahora nullable
 
   @HiveField(9)
   double? anchorUsdValue; // Valor USD de saldo inicial (opcional)
@@ -36,7 +36,7 @@ class ClientHive extends HiveObject {
     this.synced = false,
     this.pendingDelete = false,
     this.localId,
-    this.currencyCode = 'VES', // Valor por defecto para datos antiguos
+    this.currencyCode,
     this.anchorUsdValue,
   });
 

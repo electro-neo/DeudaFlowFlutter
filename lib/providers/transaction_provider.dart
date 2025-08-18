@@ -350,12 +350,14 @@ class TransactionProvider extends ChangeNotifier {
     }
     // DEBUG: Mostrar tipos de monedas detectadas en Supabase y Hive
     final hiveCurrencies = box.values
-        .map((t) => t.currencyCode.trim().toUpperCase())
-        .where((c) => c.isNotEmpty)
+        .map((t) => t.currencyCode)
+        .where((c) => c != null && c.trim().isNotEmpty)
+        .map((c) => c!.trim().toUpperCase())
         .toSet();
     final supabaseCurrencies = remoteTxs
-        .map((t) => t.currencyCode.trim().toUpperCase())
-        .where((c) => c.isNotEmpty)
+        .map((t) => t.currencyCode)
+        .where((c) => c != null && c.trim().isNotEmpty)
+        .map((c) => c!.trim().toUpperCase())
         .toSet();
     debugPrint(
       '[MONEDAS][HIVE] Tipos detectados: ${hiveCurrencies.join(', ')}',

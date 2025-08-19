@@ -7,13 +7,11 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import '../services/session_authority_service.dart';
-// import '../services/network_warmup.dart';
 import '../providers/client_provider.dart';
 import '../providers/transaction_provider.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 import '../widgets/budgeto_colors.dart';
-import '../main.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -28,6 +26,7 @@ class _LoginScreenState extends State<LoginScreen> {
   // Animación simple para los botones: escala al presionar
   double _loginBtnScale = 1.0;
   double _offlineBtnScale = 1.0;
+  double _guestBtnScale = 1.0;
   double _googleBtnScale = 1.0;
 
   @override
@@ -79,9 +78,30 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // Datos de invitado (ajusta si es necesario)
   static const String _guestEmail = 'invitado@deudaflow.com';
+  static const String _guestPassword = 'invitado123';
 
-  // Botón y lógica de invitado ocultos/deshabilitados
-  // void _loginAsGuest() async {}
+  Future<void> _loginAsGuest() async {
+    _emailController.text = _guestEmail;
+    _passwordController.text = _guestPassword;
+    // Verifica si ya hay sesión guardada para invitado
+    final sessionBox = await Hive.openBox('session');
+    final savedEmail = sessionBox.get('email');
+    if (savedEmail == _guestEmail) {
+      // Ya hay sesión guardada, permite acceso offline
+      await _login();
+    } else {
+      // No hay sesión guardada, requiere internet la primera vez
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No es posible usar el modo invitado sin conexión la primera vez. Por favor, conéctate a internet e inicia sesión como invitado para habilitar el acceso offline.',
+          ),
+          duration: Duration(seconds: 4),
+        ),
+      );
+    }
+  }
 
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -90,38 +110,23 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // Verifica rápidamente si hay conectividad y acceso real a internet.
   Future<bool> _hasConnectivity() async {
-    final sw = Stopwatch()..start();
     try {
       final results = await Connectivity().checkConnectivity();
       final hasAnyNetwork = results.any((r) => r != ConnectivityResult.none);
-      debugPrint(
-        '[LOGIN][conn] checkConnectivity en ${sw.elapsedMilliseconds}ms -> ${hasAnyNetwork ? 'alguna red' : 'sin red'}',
-      );
       if (!hasAnyNetwork) return false;
       // Verifica acceso real a internet (no solo red local/portal cautivo)
       final hasInternet = await InternetConnectionChecker().hasConnection;
-      debugPrint(
-        '[LOGIN][conn] hasConnection en ${sw.elapsedMilliseconds}ms -> ${hasInternet ? 'internet OK' : 'sin internet'}',
-      );
       return hasInternet;
-    } catch (e) {
-      debugPrint('[LOGIN][conn] error conectividad: $e');
+    } catch (_) {
       // En caso de error del plugin, no bloquear el flujo existente
       return true;
     }
   }
 
   Future<void> _login() async {
-    final req = DateTime.now().millisecondsSinceEpoch.toString();
-    final sw = Stopwatch()..start();
-    debugPrint('[LOGIN][$req] Inicio login con email');
     setState(() {
       _loading = true;
       _error = null;
-    });
-    // Calentamiento de red (no bloqueante), por si el primer request tarda por DNS/TLS
-    Future.microtask(() async {
-      // await NetworkWarmup.warmSupabase();
     });
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
@@ -132,28 +137,32 @@ class _LoginScreenState extends State<LoginScreen> {
       });
       return;
     }
+    debugPrint('[LOGIN] Antes de signInWithPassword');
     // Intentar login online primero
     try {
-      final authSw = Stopwatch()..start();
+      final swLogin = Stopwatch()..start();
       final res = await Supabase.instance.client.auth.signInWithPassword(
         email: email,
         password: password,
       );
+      swLogin.stop();
       debugPrint(
-        '[LOGIN][$req] signInWithPassword completó en ${authSw.elapsedMilliseconds}ms',
+        '[LOGIN] signInWithPassword completado en [32m${swLogin.elapsedMilliseconds}ms[0m',
       );
       if (!mounted) return;
       final user = res.user;
       if (user == null) {
+        if (!mounted) return;
         setState(() {
           _error = 'Login fallido';
         });
       } else {
-        // Guardar usuario en Hive para saludo offline
-        final hiveSw = Stopwatch()..start();
+        debugPrint('[LOGIN] Antes de abrir Hive box session');
+        final swHive = Stopwatch()..start();
         final sessionBox = await Hive.openBox('session');
+        swHive.stop();
         debugPrint(
-          '[LOGIN][$req] Hive.openBox(session) ${hiveSw.elapsedMilliseconds}ms',
+          '[LOGIN] Hive box session abierto en [32m${swHive.elapsedMilliseconds}ms[0m',
         );
         final userMeta = user.userMetadata;
         final userName =
@@ -162,32 +171,33 @@ class _LoginScreenState extends State<LoginScreen> {
                 userMeta['name'].toString().trim().isNotEmpty)
             ? userMeta['name']
             : null;
-        final saveSw = Stopwatch()..start();
         await sessionBox.put('userName', userName ?? '');
         // Guarda email normalizado para evitar fallas por diferencia de mayúsculas
         final normalizedEmail = (user.email ?? email).trim().toLowerCase();
         await sessionBox.put('email', normalizedEmail);
-        debugPrint(
-          '[LOGIN][$req] Guardado en Hive (userName/email) ${saveSw.elapsedMilliseconds}ms',
-        );
         if (!mounted) return;
+        debugPrint('[LOGIN] Antes de SessionAuthorityService.evaluate');
+        final swEval = Stopwatch()..start();
         // Verificación de sesión única por dispositivo
         try {
-          final evalSw = Stopwatch()..start();
           final state = await SessionAuthorityService.instance.evaluate(
             userId: user.id,
             hasInternet: true,
           );
+          swEval.stop();
           debugPrint(
-            '[LOGIN][$req] evaluate() => $state en ${evalSw.elapsedMilliseconds}ms',
+            '[LOGIN] evaluate completado en [32m${swEval.elapsedMilliseconds}ms[0m',
           );
           if (state == AuthorityState.conflict) {
-            final dlgSw = Stopwatch()..start();
+            debugPrint('[LOGIN] Antes de handleConflictDialog');
+            final swDialog = Stopwatch()..start();
+            // ignore: use_build_context_synchronously
             final proceed = await SessionAuthorityService.instance
                 // ignore: use_build_context_synchronously
                 .handleConflictDialog(context, user.id, isLoginFlow: true);
+            swDialog.stop();
             debugPrint(
-              '[LOGIN][$req] handleConflictDialog() result=$proceed en ${dlgSw.elapsedMilliseconds}ms',
+              '[LOGIN] handleConflictDialog completado en [32m${swDialog.elapsedMilliseconds}ms[0m',
             );
             if (!proceed) {
               // Usuario canceló o cerró sesión
@@ -197,105 +207,61 @@ class _LoginScreenState extends State<LoginScreen> {
               return;
             }
           } else {
-            // En primer login: marcar autorizado y hacer el bind de device_id en segundo plano
-            final markSw = Stopwatch()..start();
+            debugPrint('[LOGIN] Antes de getOrCreateLocalDeviceId');
+            final localId = await SessionAuthorityService.instance
+                .getOrCreateLocalDeviceId();
+            debugPrint('[LOGIN] Antes de fetchServerDeviceId');
+            final remote = await SessionAuthorityService.instance
+                .fetchServerDeviceId(user.id);
+            debugPrint('[LOGIN] Después de fetchServerDeviceId');
+            if (remote == null || remote.isEmpty) {
+              debugPrint('[LOGIN] Antes de setServerDeviceId');
+              await SessionAuthorityService.instance.setServerDeviceId(
+                user.id,
+                localId,
+              );
+              debugPrint('[LOGIN] Después de setServerDeviceId');
+            }
+            debugPrint('[LOGIN] Antes de markSessionFlag');
             await SessionAuthorityService.instance.markSessionFlag(
               'authorized',
             );
-            debugPrint(
-              '[LOGIN][$req] markSessionFlag("authorized") ${markSw.elapsedMilliseconds}ms',
-            );
-            final alreadyBound = (sessionBox.get('device_bound') == true);
-            if (!alreadyBound) {
-              final lidSw = Stopwatch()..start();
-              final localId = await SessionAuthorityService.instance
-                  .getOrCreateLocalDeviceId();
-              debugPrint(
-                '[LOGIN][$req] getOrCreateLocalDeviceId() ${lidSw.elapsedMilliseconds}ms -> $localId',
-              );
-              // No bloquear la UI: realizar el guardado remoto en background
-              Future.microtask(() async {
-                try {
-                  final bindSw = Stopwatch()..start();
-                  await SessionAuthorityService.instance.setServerDeviceId(
-                    user.id,
-                    localId,
-                  );
-                  await sessionBox.put('device_bound', true);
-                  debugPrint(
-                    '[LOGIN][$req] setServerDeviceId + flag device_bound en ${bindSw.elapsedMilliseconds}ms (bg)',
-                  );
-                } catch (_) {}
-              });
-            } else {
-              debugPrint('[LOGIN][$req] device ya estaba bound');
-            }
+            debugPrint('[LOGIN] Después de markSessionFlag');
           }
-        } catch (e) {
-          debugPrint('[LOGIN][$req] Error durante evaluación/autoridad: $e');
+        } catch (e, st) {
+          debugPrint('[LOGIN] Error en evaluate o autoridad: $e\n$st');
         }
 
-        debugPrint(
-          '[LOGIN][$req] Navegando a /dashboard t+${sw.elapsedMilliseconds}ms',
-        );
-        // Mostrar dashboard inmediatamente
+        // Sincronizar datos locales si hay internet (solo si no hubo bloqueo por conflicto)
+        try {
+          debugPrint('[LOGIN] Antes de syncPendingClients/Transactions');
+          final clientProvider = Provider.of<ClientProvider>(
+            // ignore: use_build_context_synchronously
+            context,
+            listen: false,
+          );
+          final txProvider = Provider.of<TransactionProvider>(
+            // ignore: use_build_context_synchronously
+            context,
+            listen: false,
+          );
+          final swSync = Stopwatch()..start();
+          await clientProvider.syncPendingClients(user.id);
+          await txProvider.syncPendingTransactions(user.id);
+          swSync.stop();
+          debugPrint(
+            '[LOGIN] syncPendingClients/Transactions completado en [32m${swSync.elapsedMilliseconds}ms[0m',
+          );
+        } catch (e, st) {
+          debugPrint('[LOGIN] Error en syncPending: $e\n$st');
+        }
+        if (!mounted) return;
+        debugPrint('[LOGIN] Antes de pushReplacementNamed /dashboard');
         // ignore: use_build_context_synchronously
         Navigator.of(context).pushReplacementNamed('/dashboard');
-        return;
-
-        // Iniciar escucha de cambios en device_id para este usuario (no bloquear UI)
-        Future.microtask(() {
-          debugPrint(
-            '[LOGIN][$req] Iniciando listener realtime de device_id (microtask)',
-          );
-          final ctx = navigatorKey.currentContext ?? context;
-          SessionAuthorityService.instance.listenToDeviceIdChanges(
-            user.id,
-            ctx,
-          );
-        });
-
-        // Sincronizar datos locales en segundo plano (ligera demora para no interferir con el primer frame)
-        Future(() async {
-          await Future.delayed(const Duration(milliseconds: 500));
-          final syncSw = Stopwatch()..start();
-          try {
-            // Cortocircuito: si no hay cambios locales, omitir sync inicial
-            final hasPending = await SessionAuthorityService.instance
-                .hasLocalPendingChanges();
-            if (!hasPending) {
-              debugPrint(
-                '[LOGIN][$req] No hay cambios locales; se omite sync inicial.',
-              );
-              return;
-            }
-            final ctx = navigatorKey.currentContext;
-            if (ctx != null) {
-              final clientProvider = Provider.of<ClientProvider>(
-                ctx,
-                listen: false,
-              );
-              final txProvider = Provider.of<TransactionProvider>(
-                ctx,
-                listen: false,
-              );
-              await Future.wait([
-                clientProvider.syncPendingClients(user.id),
-                txProvider.syncPendingTransactions(user.id),
-              ]);
-              debugPrint(
-                '[LOGIN][$req] Background sync completada en ${syncSw.elapsedMilliseconds}ms',
-              );
-            }
-          } catch (e) {
-            debugPrint('[LOGIN][$req] Error en background sync: $e');
-          }
-        });
       }
     } on AuthException catch (e) {
-      debugPrint(
-        '[LOGIN][$req] AuthException: ${e.message} (t+${sw.elapsedMilliseconds}ms)',
-      );
+      debugPrint('[LOGIN] AuthException: ${e.message}');
       // Si es error de red, permitir login offline si hay datos guardadas
       if (e.message.toLowerCase().contains('network') ||
           e.message.toLowerCase().contains('internet')) {
@@ -307,7 +273,6 @@ class _LoginScreenState extends State<LoginScreen> {
           // Login offline permitido
           // ignore: use_build_context_synchronously
           Navigator.of(context).pushReplacementNamed('/dashboard');
-          return;
         } else {
           // Si es invitado, mensaje especial
           if (email == _guestEmail) {
@@ -338,10 +303,8 @@ class _LoginScreenState extends State<LoginScreen> {
           });
         }
       }
-    } catch (e) {
-      debugPrint(
-        '[LOGIN][$req] Error inesperado en login: $e (t+${sw.elapsedMilliseconds}ms)',
-      );
+    } catch (e, st) {
+      debugPrint('[LOGIN] Error inesperado: $e\n$st');
       // Si es error de red, permitir login offline si hay datos guardadas
       if (e.toString().toLowerCase().contains('network') ||
           e.toString().toLowerCase().contains('internet')) {
@@ -379,9 +342,6 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
     } finally {
-      debugPrint(
-        '[LOGIN][$req] Fin login (setState loading=false) total=${sw.elapsedMilliseconds}ms',
-      );
       setState(() {
         _loading = false;
       });
@@ -389,9 +349,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _loginWithGoogle() async {
-    final req = 'G${DateTime.now().millisecondsSinceEpoch}';
-    final sw = Stopwatch()..start();
-    debugPrint('[LOGIN-GOOGLE][$req] Inicio login con Google');
     setState(() {
       _loading = true;
       _error = null;
@@ -405,56 +362,38 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
     debugPrint(
-      '[LOGIN-GOOGLE][$req] Iniciando login con Google (Android, OAuth Web Client ID)...',
+      'DEBUG: Iniciando login con Google (Android, OAuth tipo Web Client ID, no WebApp)...',
     );
     try {
       final googleSignIn = GoogleSignIn.instance;
-      debugPrint('[LOGIN-GOOGLE][$req] googleSignIn.initialize...');
-      final initSw = Stopwatch()..start();
+      debugPrint(
+        'DEBUG: Llamando a googleSignIn.initialize con serverClientId (Android, tipo Web)...',
+      );
       await googleSignIn.initialize(
         serverClientId:
             '1059073312131-hj2t8nus9buk7ii3j7cj37bptsfonh8k.apps.googleusercontent.com',
       );
-      debugPrint(
-        '[LOGIN-GOOGLE][$req] googleSignIn.initialize completado en ${initSw.elapsedMilliseconds}ms',
-      );
-      debugPrint('[LOGIN-GOOGLE][$req] googleSignIn.authenticate...');
+      debugPrint('DEBUG: googleSignIn.initialize completado');
+      debugPrint('DEBUG: Llamando a googleSignIn.authenticate...');
       GoogleSignInAccount? googleUser;
       try {
-        final gauthSw = Stopwatch()..start();
         googleUser = await googleSignIn.authenticate();
         debugPrint(
-          '[LOGIN-GOOGLE][$req] authenticate seleccionó: email=${googleUser.email}, id=${googleUser.id} en ${gauthSw.elapsedMilliseconds}ms',
+          'DEBUG: googleSignIn.authenticate: usuario seleccionó cuenta: email=[32m[1m[4m[0m[0m${googleUser.email}, id=${googleUser.id}',
         );
-        debugPrint('[LOGIN-GOOGLE][$req] googleUser (raw): $googleUser');
+        debugPrint('DEBUG: googleUser (raw): $googleUser');
       } catch (e) {
-        debugPrint(
-          '[LOGIN-GOOGLE][$req] googleSignIn.authenticate lanzó excepción: $e',
-        );
+        debugPrint('DEBUG: googleSignIn.authenticate lanzó excepción: $e');
         rethrow;
       }
 
       GoogleSignInAuthentication? googleAuth;
       try {
-        final tokSw = Stopwatch()..start();
         googleAuth = googleUser.authentication;
-        debugPrint(
-          '[LOGIN-GOOGLE][$req] googleUser.authentication completado en ${tokSw.elapsedMilliseconds}ms',
-        );
-        // Evitar imprimir el token completo para no saturar logs
-        final idTokDbg = googleAuth.idToken;
-        if (idTokDbg != null) {
-          final preview = idTokDbg.length > 12
-              ? idTokDbg.substring(0, 12)
-              : idTokDbg;
-          debugPrint(
-            '[LOGIN-GOOGLE][$req] googleAuth.idToken(preview): $preview...',
-          );
-        }
+        debugPrint('DEBUG: googleUser.authentication completado: $googleAuth');
+        debugPrint('DEBUG: googleAuth.idToken: ${googleAuth.idToken}');
       } catch (e) {
-        debugPrint(
-          '[LOGIN-GOOGLE][$req] googleUser.authentication lanzó excepción: $e',
-        );
+        debugPrint('DEBUG: googleUser.authentication lanzó excepción: $e');
         setState(() {
           _loading = false;
           _error = 'No se pudo obtener el token de Google.';
@@ -464,9 +403,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final idToken = googleAuth.idToken;
       if (idToken == null) {
-        debugPrint(
-          '[LOGIN-GOOGLE][$req] idToken es null después de seleccionar cuenta.',
-        );
+        debugPrint('DEBUG: idToken es null después de seleccionar cuenta.');
         setState(() {
           _loading = false;
           _error = 'No se pudo obtener el token de Google.';
@@ -474,19 +411,16 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
       debugPrint(
-        '[LOGIN-GOOGLE][$req] Llamando a Supabase signInWithIdToken...',
+        'DEBUG: Llamando a Supabase signInWithIdToken con idToken: $idToken',
       );
-      final authSw = Stopwatch()..start();
       final res = await Supabase.instance.client.auth.signInWithIdToken(
         provider: OAuthProvider.google,
         idToken: idToken,
       );
-      debugPrint(
-        '[LOGIN-GOOGLE][$req] signInWithIdToken completó en ${authSw.elapsedMilliseconds}ms',
-      );
+      debugPrint('DEBUG: Supabase signInWithIdToken completado: $res');
       final user = res.user;
       if (user == null) {
-        debugPrint('[LOGIN-GOOGLE][$req] Supabase devolvió user == null');
+        debugPrint('DEBUG: Supabase devolvió user == null');
         setState(() {
           _loading = false;
           _error = 'No se pudo iniciar sesión con Google.';
@@ -494,11 +428,7 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
       // Guardar usuario en Hive para saludo offline
-      final hiveSw = Stopwatch()..start();
       final sessionBox = await Hive.openBox('session');
-      debugPrint(
-        '[LOGIN-GOOGLE][$req] Hive.openBox(session) ${hiveSw.elapsedMilliseconds}ms',
-      );
       final userMeta = user.userMetadata;
       final userName =
           (userMeta != null &&
@@ -506,33 +436,22 @@ class _LoginScreenState extends State<LoginScreen> {
               userMeta['name'].toString().trim().isNotEmpty)
           ? userMeta['name']
           : null;
-      final saveSw = Stopwatch()..start();
       await sessionBox.put('userName', userName ?? '');
       // Guarda email normalizado para consistencia con el botón offline
       final normalizedEmail = (user.email ?? '').trim().toLowerCase();
       await sessionBox.put('email', normalizedEmail);
-      debugPrint(
-        '[LOGIN-GOOGLE][$req] Guardado en Hive (userName/email) ${saveSw.elapsedMilliseconds}ms',
-      );
       if (!mounted) return;
 
       // Verificación de sesión única por dispositivo
       try {
-        final evalSw = Stopwatch()..start();
         final state = await SessionAuthorityService.instance.evaluate(
           userId: user.id,
           hasInternet: true,
-        );
-        debugPrint(
-          '[LOGIN-GOOGLE][$req] evaluate() => $state en ${evalSw.elapsedMilliseconds}ms',
         );
         if (state == AuthorityState.conflict) {
           final proceed = await SessionAuthorityService.instance
               // ignore: use_build_context_synchronously
               .handleConflictDialog(context, user.id, isLoginFlow: true);
-          debugPrint(
-            '[LOGIN-GOOGLE][$req] handleConflictDialog() result=$proceed',
-          );
           if (!proceed) {
             setState(() {
               _loading = false;
@@ -540,84 +459,26 @@ class _LoginScreenState extends State<LoginScreen> {
             return;
           }
         } else {
-          // Marcar autorizado y hacer bind en segundo plano (idempotente si ya coincide)
-          final markSw = Stopwatch()..start();
-          await SessionAuthorityService.instance.markSessionFlag('authorized');
-          debugPrint(
-            '[LOGIN-GOOGLE][$req] markSessionFlag("authorized") ${markSw.elapsedMilliseconds}ms',
-          );
           final localId = await SessionAuthorityService.instance
               .getOrCreateLocalDeviceId();
-          Future.microtask(() async {
-            try {
-              final bindSw = Stopwatch()..start();
-              await SessionAuthorityService.instance.setServerDeviceId(
-                user.id,
-                localId,
-              );
-              await sessionBox.put('device_bound', true);
-              debugPrint(
-                '[LOGIN-GOOGLE][$req] setServerDeviceId + flag device_bound en ${bindSw.elapsedMilliseconds}ms (bg)',
-              );
-            } catch (_) {}
-          });
+          final remote = await SessionAuthorityService.instance
+              .fetchServerDeviceId(user.id);
+          if (remote == null || remote.isEmpty) {
+            await SessionAuthorityService.instance.setServerDeviceId(
+              user.id,
+              localId,
+            );
+          }
+          await SessionAuthorityService.instance.markSessionFlag('authorized');
         }
       } catch (_) {}
-      debugPrint(
-        '[LOGIN-GOOGLE][$req] Login con Google exitoso, navegando a dashboard t+${sw.elapsedMilliseconds}ms',
-      );
-      // Navegar primero
+      debugPrint('DEBUG: Login con Google exitoso, navegando a dashboard.');
       // ignore: use_build_context_synchronously
       Navigator.of(context).pushReplacementNamed('/dashboard');
-      return;
-      // Iniciar escucha en microtask para no bloquear UI
-      Future.microtask(() {
-        debugPrint(
-          '[LOGIN-GOOGLE][$req] Iniciando listener realtime de device_id (microtask)',
-        );
-        final ctx = navigatorKey.currentContext ?? context;
-        SessionAuthorityService.instance.listenToDeviceIdChanges(user.id, ctx);
-      });
-      // Sincronizar en segundo plano (paralelo) con pequeña demora para no afectar el primer frame
-      Future(() async {
-        await Future.delayed(const Duration(milliseconds: 500));
-        final syncSw = Stopwatch()..start();
-        try {
-          // Cortocircuito: si no hay cambios locales, omitir sync inicial
-          final hasPending = await SessionAuthorityService.instance
-              .hasLocalPendingChanges();
-          if (!hasPending) {
-            debugPrint(
-              '[LOGIN-GOOGLE][$req] No hay cambios locales; se omite sync inicial.',
-            );
-            return;
-          }
-          final ctx = navigatorKey.currentContext;
-          if (ctx != null) {
-            final clientProvider = Provider.of<ClientProvider>(
-              ctx,
-              listen: false,
-            );
-            final txProvider = Provider.of<TransactionProvider>(
-              ctx,
-              listen: false,
-            );
-            await Future.wait([
-              clientProvider.syncPendingClients(user.id),
-              txProvider.syncPendingTransactions(user.id),
-            ]);
-            debugPrint(
-              '[LOGIN-GOOGLE][$req] Background sync completada en ${syncSw.elapsedMilliseconds}ms',
-            );
-          }
-        } catch (e) {
-          debugPrint('[LOGIN-GOOGLE][$req] Error en background sync: $e');
-        }
-      });
     } catch (e) {
       if (e is GoogleSignInException) {
         if (e.code == GoogleSignInExceptionCode.canceled) {
-          debugPrint('[LOGIN-GOOGLE][$req] Login cancelado por el usuario');
+          debugPrint('DEBUG: Login cancelado por el usuario');
           setState(() {
             _error = 'Selección de cuenta cancelada.';
           });
@@ -635,7 +496,7 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       } else {
         debugPrint(
-          '[LOGIN-GOOGLE][$req] Error inesperado en login con Google: ${e.toString()}',
+          'DEBUG: Error inesperado en login con Google: ${e.toString()}',
         );
         final msg = e.toString().toLowerCase();
         final isNet =
@@ -649,9 +510,6 @@ class _LoginScreenState extends State<LoginScreen> {
         });
       }
     } finally {
-      debugPrint(
-        '[LOGIN-GOOGLE][$req] Fin login Google (setState loading=false) total=${sw.elapsedMilliseconds}ms',
-      );
       setState(() {
         _loading = false;
       });
@@ -921,8 +779,58 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         ),
-                        // const SizedBox(height: 6),
-                        // Botón "Probar como invitado" oculto
+                        const SizedBox(height: 6),
+                        SizedBox(
+                          width: double.infinity,
+                          child: GestureDetector(
+                            onTapDown: (_) =>
+                                setState(() => _guestBtnScale = 0.93),
+                            onTapUp: (_) =>
+                                setState(() => _guestBtnScale = 1.0),
+                            onTapCancel: () =>
+                                setState(() => _guestBtnScale = 1.0),
+                            onTap: _loading
+                                ? null
+                                : () {
+                                    setState(() => _guestBtnScale = 1.0);
+                                    _loginAsGuest();
+                                  },
+                            child: AnimatedScale(
+                              scale: _guestBtnScale,
+                              duration: const Duration(milliseconds: 120),
+                              curve: Curves.easeOut,
+                              child: OutlinedButton.icon(
+                                onPressed:
+                                    null, // Desactivado, solo GestureDetector ejecuta la acción
+                                icon: const Icon(
+                                  Icons.person_outline,
+                                  size: 18,
+                                  color: Colors.white,
+                                ),
+                                label: const Text(
+                                  'Probar como invitado',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(
+                                    color: Colors.white70,
+                                    width: 1.2,
+                                  ),
+                                  minimumSize: const Size(0, 38),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                         const SizedBox(height: 6),
                         SizedBox(
                           width: double.infinity,

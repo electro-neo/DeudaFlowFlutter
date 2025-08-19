@@ -6,6 +6,7 @@ class Client {
   final double balance;
   final String? localId;
   final double? anchorUsdValue;
+  final String? currencyCode;
 
   const Client({
     required this.id,
@@ -15,6 +16,7 @@ class Client {
     required this.balance,
     this.localId,
     this.anchorUsdValue,
+    this.currencyCode,
   });
 
   factory Client.fromMap(Map<String, dynamic> map) => Client(
@@ -27,6 +29,7 @@ class Client {
     anchorUsdValue: map['anchor_usd_value'] != null
         ? (map['anchor_usd_value'] as num?)?.toDouble()
         : null,
+    currencyCode: map['currency_code']?.toString(),
   );
 
   // Permite convertir un ClientHive a Client para compatibilidad
@@ -38,6 +41,7 @@ class Client {
     balance: hive.balance,
     localId: hive.localId,
     anchorUsdValue: hive.anchorUsdValue,
+    currencyCode: hive.currencyCode,
   );
 
   Map<String, dynamic> toMap() => {
@@ -48,5 +52,6 @@ class Client {
     'balance': balance,
     'local_id': localId,
     'anchor_usd_value': anchorUsdValue,
+    'currency_code': currencyCode,
   };
 }

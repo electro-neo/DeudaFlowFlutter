@@ -47,6 +47,20 @@ class ExpandableClientCard extends StatefulWidget {
 
 class _ExpandableClientCardState extends State<ExpandableClientCard> {
   bool _isAnimating = false;
+  // Controller for the Scrollbar with thumbVisibility=true
+  late final ScrollController _balanceScrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _balanceScrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _balanceScrollController.dispose();
+    super.dispose();
+  }
 
   void _handleExpand() {
     if (widget.onExpand != null) {
@@ -365,7 +379,9 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                                     18.0, // USD + 3 monedas visibles, luego scroll
                                 child: Scrollbar(
                                   thumbVisibility: true,
+                                  controller: _balanceScrollController,
                                   child: SingleChildScrollView(
+                                    controller: _balanceScrollController,
                                     child: Table(
                                       columnWidths: const {
                                         0: IntrinsicColumnWidth(),

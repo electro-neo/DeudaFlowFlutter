@@ -14,6 +14,7 @@ import '../widgets/cyclic_animated_fade_list.dart';
 import '../widgets/dashboard_stats.dart';
 import '../widgets/sync_banner.dart';
 import '../services/supabase_service.dart';
+import '../services/session_authority_service.dart';
 
 // Para kIsWeb
 class DashboardScreen extends StatefulWidget {
@@ -98,6 +99,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // Comprobar diferencias de balance tras cargar datos
     Future.delayed(const Duration(milliseconds: 800), _checkBalanceDifferences);
     // El FAQ solo se mostrará después de cargar datos y si el usuario está autenticado
+
+    // --- INICIO LISTENER DE DEVICE_ID ---
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      // Se recomienda usar addPostFrameCallback para asegurar que el context es válido
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        SessionAuthorityService.instance.listenToDeviceIdChanges(
+          user.id,
+          context,
+        );
+      });
+    }
   }
 
   Future<void> _showFaqIfFirstTime() async {

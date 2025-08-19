@@ -47,6 +47,9 @@ class SessionAuthorityService {
   /// Inicia la escucha en tiempo real del device_id para el usuario dado.
   /// Si el device_id remoto cambia y no coincide con el local, dispara la lógica de conflicto en tiempo real.
   void listenToDeviceIdChanges(String userId, BuildContext context) {
+    debugPrint(
+      '[AUTH-DEVICE][Realtime] Suscribiendo listener de device_id para user: $userId',
+    );
     _deviceIdChannel?.unsubscribe();
 
     _deviceIdChannel = Supabase.instance.client
@@ -81,7 +84,11 @@ class SessionAuthorityService {
                   '[AUTH-DEVICE][Realtime] ¡Conflicto detectado! Ejecutando validateDeviceAuthorityOrLogout...',
                 );
                 // Reutiliza la lógica de conflicto
-                await validateDeviceAuthorityOrLogout(context, userId);
+                await validateDeviceAuthorityOrLogout(
+                  context,
+                  userId,
+                  knownRemoteId: newDeviceId,
+                );
               } else {
                 debugPrint(
                   '[AUTH-DEVICE][Realtime] device_id coincide, no hay conflicto.',
@@ -95,6 +102,9 @@ class SessionAuthorityService {
           },
         )
         .subscribe();
+    debugPrint(
+      '[AUTH-DEVICE][Realtime] Listener suscrito (canal public:user_settings)',
+    );
   }
 
   /// Detiene la escucha en tiempo real del device_id.
@@ -107,13 +117,52 @@ class SessionAuthorityService {
   /// Si no coincide, muestra un diálogo y cierra sesión automáticamente tras 4 segundos.
   Future<bool> validateDeviceAuthorityOrLogout(
     BuildContext context,
-    String userId,
-  ) async {
+    String userId, {
+    String? knownRemoteId, // Opcional: evita fetch si ya lo tenemos (realtime)
+  }) async {
+    final totalSw = Stopwatch()..start();
+    // Conteo de ráfaga: cuántas veces se llama en una ventana corta
+    final now = DateTime.now();
+    int deltaMs = -1;
+    if (_lastValidateCallAt != null) {
+      deltaMs = now.difference(_lastValidateCallAt!).inMilliseconds;
+      if (deltaMs <= _validateBurstWindowMs) {
+        _validateBurstCount += 1;
+      } else {
+        _validateBurstCount = 1;
+      }
+    } else {
+      _validateBurstCount = 1;
+    }
+    _lastValidateCallAt = now;
+    debugPrint(
+      '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Inicio de validación para user: $userId | burst#=$_validateBurstCount (Δ ${deltaMs}ms, ventana ${_validateBurstWindowMs}ms)',
+    );
+
+    // Si acabamos de hacer un bind exitoso, saltar validaciones por una ventana corta
+    if (_skipValidationsUntil != null && now.isBefore(_skipValidationsUntil!)) {
+      debugPrint(
+        '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Saltando validación por bind reciente hasta ${_skipValidationsUntil!.toIso8601String()}',
+      );
+      totalSw.stop();
+      debugPrint(
+        '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Fin (omitido por ventana de skip). Duración total: ${totalSw.elapsedMilliseconds} ms',
+      );
+      return true;
+    }
     final localId = await getOrCreateLocalDeviceId();
-    final remoteId = await fetchServerDeviceId(userId);
+    final remoteId = await _getRemoteDeviceIdCached(
+      userId,
+      knownRemoteId: knownRemoteId,
+    );
     debugPrint(
       '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] localId: $localId, remoteId: $remoteId',
     );
+    if (remoteId == null || remoteId.isEmpty) {
+      debugPrint(
+        '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Sin device_id remoto para este usuario (posible primer inicio). Se permite continuar.',
+      );
+    }
     if (remoteId != null && remoteId.isNotEmpty && remoteId != localId) {
       debugPrint(
         '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Conflicto detectado, context: $context',
@@ -191,16 +240,37 @@ class SessionAuthorityService {
       debugPrint(
         '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] showDialog de cierre de sesión automática mostrado',
       );
+      totalSw.stop();
+      debugPrint(
+        '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Fin (conflicto-auto-logout). Duración total: ${totalSw.elapsedMilliseconds} ms',
+      );
       return false;
     }
     debugPrint(
       '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] No hay conflicto, todo ok.',
+    );
+    totalSw.stop();
+    debugPrint(
+      '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Fin (sin conflicto). Duración total: ${totalSw.elapsedMilliseconds} ms',
     );
     return true;
   }
 
   SessionAuthorityService._();
   static final SessionAuthorityService instance = SessionAuthorityService._();
+
+  // --- Burst/debug counters (solo diagnóstico) ---
+  static DateTime? _lastValidateCallAt;
+  static int _validateBurstCount = 0;
+  static const int _validateBurstWindowMs = 2000; // 2s
+  static DateTime? _lastFetchCallAt;
+  static int _fetchBurstCount = 0;
+  // Cache ligero del device_id remoto para evitar fetch redundantes en ráfaga
+  static String? _cachedRemoteId;
+  static DateTime? _cachedRemoteIdAt;
+  static const int _remoteCacheTtlMs = 2500; // 2.5s
+  // Ventana de gracia tras bind para no revalidar inmediatamente
+  static DateTime? _skipValidationsUntil;
 
   /// Estados de autoridad de sesión.
   ///
@@ -214,14 +284,27 @@ class SessionAuthorityService {
   /// Obtiene o crea un deviceId local estable.
   /// Persistencia: Hive box 'session', clave 'device_id'.
   Future<String> getOrCreateLocalDeviceId() async {
+    final sw = Stopwatch()..start();
     final box = await Hive.openBox('session');
+    sw.stop();
+    debugPrint(
+      '[AUTH-DEVICE][getOrCreateLocalDeviceId] openBox(session) tomó ${sw.elapsedMilliseconds} ms',
+    );
     final existing = box.get('device_id');
-    if (existing is String && existing.trim().isNotEmpty) return existing;
+    if (existing is String && existing.trim().isNotEmpty) {
+      debugPrint(
+        '[AUTH-DEVICE][getOrCreateLocalDeviceId] device_id local existente: $existing',
+      );
+      return existing;
+    }
     // Genera un id simple y suficientemente único sin dependencia extra.
     final rnd = Random();
     final id =
         '${DateTime.now().microsecondsSinceEpoch.toRadixString(16)}-${rnd.nextInt(1 << 32).toRadixString(16)}';
     await box.put('device_id', id);
+    debugPrint(
+      '[AUTH-DEVICE][getOrCreateLocalDeviceId] No existía device_id local. Generado nuevo: $id',
+    );
     return id;
   }
 
@@ -229,7 +312,36 @@ class SessionAuthorityService {
   Future<String?> fetchServerDeviceId(String userId) async {
     try {
       // Centralizado en SupabaseService
-      return await SupabaseService().getDeviceId();
+      final sw = Stopwatch()..start();
+      // Burst info
+      final now = DateTime.now();
+      int deltaMs = -1;
+      if (_lastFetchCallAt != null) {
+        deltaMs = now.difference(_lastFetchCallAt!).inMilliseconds;
+        if (deltaMs <= _validateBurstWindowMs) {
+          _fetchBurstCount += 1;
+        } else {
+          _fetchBurstCount = 1;
+        }
+      } else {
+        _fetchBurstCount = 1;
+      }
+      _lastFetchCallAt = now;
+      debugPrint(
+        '[AUTH-DEVICE][fetchServerDeviceId] Iniciando consulta para user: $userId | burst#=$_fetchBurstCount (Δ ${deltaMs}ms)',
+      );
+      final value = await SupabaseService().getDeviceId();
+      sw.stop();
+      final printable = value == null
+          ? 'null'
+          : (value.isEmpty ? '<empty>' : value);
+      debugPrint(
+        '[AUTH-DEVICE][fetchServerDeviceId] Completado en ${sw.elapsedMilliseconds} ms. Valor remoto: $printable',
+      );
+      // Actualiza cache
+      _cachedRemoteId = value;
+      _cachedRemoteIdAt = DateTime.now();
+      return value;
     } catch (e) {
       debugPrint('[AUTH-DEVICE] fetchServerDeviceId error: $e');
       return null;
@@ -239,7 +351,19 @@ class SessionAuthorityService {
   /// Establece/actualiza el device_id remoto en Supabase (upsert por (user_id,key)).
   Future<void> setServerDeviceId(String userId, String deviceId) async {
     // Centralizado en SupabaseService
+    final sw = Stopwatch()..start();
+    debugPrint(
+      '[AUTH-DEVICE][setServerDeviceId] Guardando device_id remoto para user: $userId => $deviceId',
+    );
     await SupabaseService().saveDeviceId(deviceId);
+    sw.stop();
+    debugPrint(
+      '[AUTH-DEVICE][setServerDeviceId] guardado en ${sw.elapsedMilliseconds} ms',
+    );
+    // Actualiza cache y aplica ventana de gracia
+    _cachedRemoteId = deviceId;
+    _cachedRemoteIdAt = DateTime.now();
+    _skipValidationsUntil = DateTime.now().add(const Duration(seconds: 2));
   }
 
   /// Evalúa el estado de autoridad dadas la conectividad y el userId actual.
@@ -256,11 +380,52 @@ class SessionAuthorityService {
       return AuthorityState.unverifiedOffline;
     }
     final localId = await getOrCreateLocalDeviceId();
-    final remoteId = await fetchServerDeviceId(userId);
+    // Nota: En primer login es común que device_id remoto no exista; tratar null/empty como autorizado
+    final remoteId = await _getRemoteDeviceIdCached(userId);
     if (remoteId == null || remoteId.isEmpty || remoteId == localId) {
+      if (remoteId == null || remoteId.isEmpty) {
+        debugPrint(
+          '[AUTH-DEVICE][evaluate] remoteId null/empty (posible primer inicio). localId=$localId',
+        );
+      } else {
+        debugPrint(
+          '[AUTH-DEVICE][evaluate] remoteId coincide con localId. Autorizado.',
+        );
+      }
       return AuthorityState.authorized;
     }
+    debugPrint(
+      '[AUTH-DEVICE][evaluate] Conflicto: remoteId=$remoteId, localId=$localId',
+    );
     return AuthorityState.conflict;
+  }
+
+  /// Devuelve el device_id remoto usando un cache de corta duración.
+  /// Si [knownRemoteId] se provee (p.ej., desde realtime), se usa y se cachea sin hacer red.
+  Future<String?> _getRemoteDeviceIdCached(
+    String userId, {
+    String? knownRemoteId,
+    int? ttlMs,
+  }) async {
+    final now = DateTime.now();
+    final ttl = ttlMs ?? _remoteCacheTtlMs;
+    if (knownRemoteId != null) {
+      // Normaliza empty a '' y cachea
+      _cachedRemoteId = knownRemoteId;
+      _cachedRemoteIdAt = now;
+      return knownRemoteId;
+    }
+    if (_cachedRemoteIdAt != null) {
+      final age = now.difference(_cachedRemoteIdAt!).inMilliseconds;
+      if (age <= ttl) {
+        debugPrint(
+          '[AUTH-DEVICE][_getRemoteDeviceIdCached] Usando cache (${age}ms) => ${_cachedRemoteId ?? 'null'}',
+        );
+        return _cachedRemoteId;
+      }
+    }
+    // Cache caduco: ir a red
+    return await fetchServerDeviceId(userId);
   }
 
   /// Marca una bandera de sesión en Hive 'session' para reflejar el estado más reciente.
@@ -322,7 +487,8 @@ class SessionAuthorityService {
           balance: c.balance,
           synced: true,
           pendingDelete: false,
-          currencyCode: 'VES',
+          // Respetar la moneda del servidor (puede ser null)
+          currencyCode: c.currencyCode,
         ),
       );
     }

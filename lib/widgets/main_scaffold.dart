@@ -1,7 +1,6 @@
 import 'scale_on_tap.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../screens/dashboard_screen.dart';
 import '../screens/clients_screen.dart';
 import '../screens/transactions_screen.dart';
@@ -15,6 +14,7 @@ import 'add_global_transaction_modal.dart';
 import 'faq_help_sheet.dart';
 
 import '../providers/transaction_provider.dart';
+import '../services/session_authority_service.dart';
 import '../utils/currency_manager_dialog.dart';
 
 // Banner de debug para mostrar un número aleatorio que cambia en cada hot reload
@@ -256,12 +256,10 @@ class _MainScaffoldState extends State<MainScaffold>
     if (guestCleanup != null) {
       await guestCleanup();
     }
-    // Intenta cerrar sesión en Supabase; si no hay internet, evita crashear
     try {
-      await Supabase.instance.client.auth.signOut();
+      await SessionAuthorityService.instance.signOutAndDisposeListener();
     } catch (e) {
-      // Offline u otros errores de red no deben detener el logout local
-      debugPrint('[LOGOUT] Error al cerrar sesión en Supabase: $e');
+      debugPrint('[LOGOUT] Error al cerrar sesión: $e');
     }
     if (mounted) {
       Navigator.of(context).pushReplacementNamed('/');

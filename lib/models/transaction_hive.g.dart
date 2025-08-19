@@ -26,7 +26,7 @@ class TransactionHiveAdapter extends TypeAdapter<TransactionHive> {
       synced: fields[5] as bool,
       pendingDelete: fields[7] as bool,
       userId: fields[8] as String?,
-      currencyCode: fields[9] as String,
+      currencyCode: fields[9] as String?,
       localId: fields[10] as String?,
       anchorUsdValue: fields[11] as double?,
     );

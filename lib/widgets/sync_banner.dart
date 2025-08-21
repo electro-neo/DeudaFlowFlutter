@@ -39,13 +39,43 @@ class _RealConnectivityBannerState extends State<_RealConnectivityBanner> {
         'google.com',
       ).timeout(const Duration(seconds: 2));
       final online = result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+      final prev = _isReallyOnline;
+      // Notificar transición sin bloquear UI
+      _handleConnectivityChange(prev, online);
       if (mounted) setState(() => _isReallyOnline = online);
     } catch (_) {
+      final prev = _isReallyOnline;
+      // Notificar transición a offline sin bloquear UI
+      _handleConnectivityChange(prev, false);
       if (mounted) setState(() => _isReallyOnline = false);
     }
     // Repetir cada 5 segundos
     if (mounted) {
       Future.delayed(const Duration(seconds: 5), _checkRealInternet);
+    }
+  }
+
+  /// Marca en Hive cuando pasamos de online -> offline para habilitar
+  /// la lógica de "authorized offline" sin tocar otras partes.
+  Future<void> _handleConnectivityChange(bool? prev, bool curr) async {
+    if (prev == true && curr == false) {
+      try {
+        final box = await Hive.openBox('session');
+        final current = box.get('session_state');
+        if (current == 'authorized') {
+          await box.put('session_state', 'authorized_offline');
+          await box.put('was_authorized_offline', true);
+          debugPrint(
+            '[SYNC-BANNER] Marcado session_state=authorized_offline y was_authorized_offline=true',
+          );
+        } else if (current == 'authorized_offline') {
+          // Asegurar la bandera incluso si ya quedó en authorized_offline previamente
+          await box.put('was_authorized_offline', true);
+          debugPrint('[SYNC-BANNER] Refuerzo: was_authorized_offline=true');
+        }
+      } catch (e) {
+        debugPrint('[SYNC-BANNER] Error marcando authorized_offline: $e');
+      }
     }
   }
 

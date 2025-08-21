@@ -26,7 +26,6 @@ class _LoginScreenState extends State<LoginScreen> {
   // Animación simple para los botones: escala al presionar
   double _loginBtnScale = 1.0;
   double _offlineBtnScale = 1.0;
-  double _guestBtnScale = 1.0;
   double _googleBtnScale = 1.0;
 
   @override
@@ -77,31 +76,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   // Datos de invitado (ajusta si es necesario)
-  static const String _guestEmail = 'invitado@deudaflow.com';
-  static const String _guestPassword = 'invitado123';
-
-  Future<void> _loginAsGuest() async {
-    _emailController.text = _guestEmail;
-    _passwordController.text = _guestPassword;
-    // Verifica si ya hay sesión guardada para invitado
-    final sessionBox = await Hive.openBox('session');
-    final savedEmail = sessionBox.get('email');
-    if (savedEmail == _guestEmail) {
-      // Ya hay sesión guardada, permite acceso offline
-      await _login();
-    } else {
-      // No hay sesión guardada, requiere internet la primera vez
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'No es posible usar el modo invitado sin conexión la primera vez. Por favor, conéctate a internet e inicia sesión como invitado para habilitar el acceso offline.',
-          ),
-          duration: Duration(seconds: 4),
-        ),
-      );
-    }
-  }
 
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -137,17 +111,19 @@ class _LoginScreenState extends State<LoginScreen> {
       });
       return;
     }
-    debugPrint('[LOGIN] Antes de signInWithPassword');
+    // Verificar conectividad antes de intentar login online
+    if (!await _hasConnectivity()) {
+      setState(() {
+        _error = 'Sin conexión a internet.';
+        _loading = false;
+      });
+      return;
+    }
     // Intentar login online primero
     try {
-      final swLogin = Stopwatch()..start();
       final res = await Supabase.instance.client.auth.signInWithPassword(
         email: email,
         password: password,
-      );
-      swLogin.stop();
-      debugPrint(
-        '[LOGIN] signInWithPassword completado en [32m${swLogin.elapsedMilliseconds}ms[0m',
       );
       if (!mounted) return;
       final user = res.user;
@@ -157,13 +133,8 @@ class _LoginScreenState extends State<LoginScreen> {
           _error = 'Login fallido';
         });
       } else {
-        debugPrint('[LOGIN] Antes de abrir Hive box session');
-        final swHive = Stopwatch()..start();
+        // Guardar usuario en Hive para saludo offline
         final sessionBox = await Hive.openBox('session');
-        swHive.stop();
-        debugPrint(
-          '[LOGIN] Hive box session abierto en [32m${swHive.elapsedMilliseconds}ms[0m',
-        );
         final userMeta = user.userMetadata;
         final userName =
             (userMeta != null &&
@@ -176,29 +147,17 @@ class _LoginScreenState extends State<LoginScreen> {
         final normalizedEmail = (user.email ?? email).trim().toLowerCase();
         await sessionBox.put('email', normalizedEmail);
         if (!mounted) return;
-        debugPrint('[LOGIN] Antes de SessionAuthorityService.evaluate');
-        final swEval = Stopwatch()..start();
         // Verificación de sesión única por dispositivo
         try {
           final state = await SessionAuthorityService.instance.evaluate(
             userId: user.id,
             hasInternet: true,
           );
-          swEval.stop();
-          debugPrint(
-            '[LOGIN] evaluate completado en [32m${swEval.elapsedMilliseconds}ms[0m',
-          );
           if (state == AuthorityState.conflict) {
-            debugPrint('[LOGIN] Antes de handleConflictDialog');
-            final swDialog = Stopwatch()..start();
             // ignore: use_build_context_synchronously
             final proceed = await SessionAuthorityService.instance
                 // ignore: use_build_context_synchronously
                 .handleConflictDialog(context, user.id, isLoginFlow: true);
-            swDialog.stop();
-            debugPrint(
-              '[LOGIN] handleConflictDialog completado en [32m${swDialog.elapsedMilliseconds}ms[0m',
-            );
             if (!proceed) {
               // Usuario canceló o cerró sesión
               setState(() {
@@ -207,34 +166,25 @@ class _LoginScreenState extends State<LoginScreen> {
               return;
             }
           } else {
-            debugPrint('[LOGIN] Antes de getOrCreateLocalDeviceId');
+            // Si el device_id remoto está vacío, fijarlo a este dispositivo
             final localId = await SessionAuthorityService.instance
                 .getOrCreateLocalDeviceId();
-            debugPrint('[LOGIN] Antes de fetchServerDeviceId');
             final remote = await SessionAuthorityService.instance
                 .fetchServerDeviceId(user.id);
-            debugPrint('[LOGIN] Después de fetchServerDeviceId');
             if (remote == null || remote.isEmpty) {
-              debugPrint('[LOGIN] Antes de setServerDeviceId');
               await SessionAuthorityService.instance.setServerDeviceId(
                 user.id,
                 localId,
               );
-              debugPrint('[LOGIN] Después de setServerDeviceId');
             }
-            debugPrint('[LOGIN] Antes de markSessionFlag');
             await SessionAuthorityService.instance.markSessionFlag(
               'authorized',
             );
-            debugPrint('[LOGIN] Después de markSessionFlag');
           }
-        } catch (e, st) {
-          debugPrint('[LOGIN] Error en evaluate o autoridad: $e\n$st');
-        }
+        } catch (_) {}
 
         // Sincronizar datos locales si hay internet (solo si no hubo bloqueo por conflicto)
         try {
-          debugPrint('[LOGIN] Antes de syncPendingClients/Transactions');
           final clientProvider = Provider.of<ClientProvider>(
             // ignore: use_build_context_synchronously
             context,
@@ -245,23 +195,14 @@ class _LoginScreenState extends State<LoginScreen> {
             context,
             listen: false,
           );
-          final swSync = Stopwatch()..start();
           await clientProvider.syncPendingClients(user.id);
           await txProvider.syncPendingTransactions(user.id);
-          swSync.stop();
-          debugPrint(
-            '[LOGIN] syncPendingClients/Transactions completado en [32m${swSync.elapsedMilliseconds}ms[0m',
-          );
-        } catch (e, st) {
-          debugPrint('[LOGIN] Error en syncPending: $e\n$st');
-        }
+        } catch (_) {}
         if (!mounted) return;
-        debugPrint('[LOGIN] Antes de pushReplacementNamed /dashboard');
         // ignore: use_build_context_synchronously
         Navigator.of(context).pushReplacementNamed('/dashboard');
       }
     } on AuthException catch (e) {
-      debugPrint('[LOGIN] AuthException: ${e.message}');
       // Si es error de red, permitir login offline si hay datos guardadas
       if (e.message.toLowerCase().contains('network') ||
           e.message.toLowerCase().contains('internet')) {
@@ -275,36 +216,20 @@ class _LoginScreenState extends State<LoginScreen> {
           Navigator.of(context).pushReplacementNamed('/dashboard');
         } else {
           // Si es invitado, mensaje especial
-          if (email == _guestEmail) {
-            setState(() {
-              _error =
-                  'No es posible usar el modo invitado sin conexión la primera vez. Conéctate a internet e inicia sesión como invitado para habilitar el acceso offline.';
-            });
-          } else {
-            setState(() {
-              _error = 'No hay sesión guardada para este usuario.';
-            });
-          }
+          setState(() {
+            _error = 'No hay sesión guardada para este usuario.';
+          });
         }
       } else {
         if (!mounted) return;
         // Si es invitado, mensaje más amigable
-        if (email == _guestEmail) {
-          setState(() {
-            _error =
-                'No se pudo acceder como invitado. Verifica tu conexión o intenta más tarde.';
-          });
-        } else {
-          setState(() {
-            _error =
-                e.message.toLowerCase().contains('invalid login credentials')
-                ? 'Credenciales incorrectas. Verifica tu email y contraseña.'
-                : e.message;
-          });
-        }
+        setState(() {
+          _error = e.message.toLowerCase().contains('invalid login credentials')
+              ? 'Credenciales incorrectas. Verifica tu email y contraseña.'
+              : e.message;
+        });
       }
-    } catch (e, st) {
-      debugPrint('[LOGIN] Error inesperado: $e\n$st');
+    } catch (e) {
       // Si es error de red, permitir login offline si hay datos guardadas
       if (e.toString().toLowerCase().contains('network') ||
           e.toString().toLowerCase().contains('internet')) {
@@ -317,29 +242,15 @@ class _LoginScreenState extends State<LoginScreen> {
           Navigator.of(context).pushReplacementNamed('/dashboard');
         } else {
           // Si es invitado, mensaje especial
-          if (email == _guestEmail) {
-            setState(() {
-              _error =
-                  'No es posible usar el modo invitado sin conexión la primera vez. Conéctate a internet e inicia sesión como invitado para habilitar el acceso offline.';
-            });
-          } else {
-            setState(() {
-              _error = 'No hay sesión guardada para este usuario.';
-            });
-          }
+          setState(() {
+            _error = 'No hay sesión guardada para este usuario.';
+          });
         }
       } else {
         // Si es invitado, mensaje más amigable
-        if (email == _guestEmail) {
-          setState(() {
-            _error =
-                'No se pudo acceder como invitado. Verifica tu conexión o intenta más tarde.';
-          });
-        } else {
-          setState(() {
-            _error = 'Error inesperado: ${e.toString()}';
-          });
-        }
+        setState(() {
+          _error = 'Error inesperado: ${e.toString()}';
+        });
       }
     } finally {
       setState(() {
@@ -780,58 +691,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         const SizedBox(height: 6),
-                        SizedBox(
-                          width: double.infinity,
-                          child: GestureDetector(
-                            onTapDown: (_) =>
-                                setState(() => _guestBtnScale = 0.93),
-                            onTapUp: (_) =>
-                                setState(() => _guestBtnScale = 1.0),
-                            onTapCancel: () =>
-                                setState(() => _guestBtnScale = 1.0),
-                            onTap: _loading
-                                ? null
-                                : () {
-                                    setState(() => _guestBtnScale = 1.0);
-                                    _loginAsGuest();
-                                  },
-                            child: AnimatedScale(
-                              scale: _guestBtnScale,
-                              duration: const Duration(milliseconds: 120),
-                              curve: Curves.easeOut,
-                              child: OutlinedButton.icon(
-                                onPressed:
-                                    null, // Desactivado, solo GestureDetector ejecuta la acción
-                                icon: const Icon(
-                                  Icons.person_outline,
-                                  size: 18,
-                                  color: Colors.white,
-                                ),
-                                label: const Text(
-                                  'Probar como invitado',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(
-                                    color: Colors.white70,
-                                    width: 1.2,
-                                  ),
-                                  minimumSize: const Size(0, 38),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 8,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
+                        // ...guest login button removed...
                         SizedBox(
                           width: double.infinity,
                           child: GestureDetector(

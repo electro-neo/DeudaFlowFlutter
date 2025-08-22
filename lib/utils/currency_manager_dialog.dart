@@ -278,8 +278,8 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: (0.08 * 255).toDouble()),                
-                blurRadius: 10,
+                color: const Color.fromARGB(255, 255, 255, 255).withValues(alpha: (0.08 * 255).toDouble()),                
+                blurRadius: 0,
                 offset: const Offset(0, -2),
               ),
             ],

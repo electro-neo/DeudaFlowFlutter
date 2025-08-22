@@ -37,7 +37,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         _emailController.text.trim(),
       );
       if (!mounted) return;
-      ToastHelper.showToast(context, 'Correo de recuperación enviado.');
+      ToastHelper.showToast(
+        context,
+        'Correo de recuperación enviado. Recuerda revisar la carpeta de spam o correo no deseado',
+      );
+      await Future.delayed(Duration(seconds: 6));
       Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;

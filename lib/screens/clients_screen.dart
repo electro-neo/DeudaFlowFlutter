@@ -49,12 +49,12 @@ class ClientsScreenState extends State<ClientsScreen>
   }) {
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(10),
-      side: BorderSide(color: color.withOpacity(0.5), width: 1),
+      side: BorderSide(color: color.withValues(alpha: 0.5), width: 1),
     );
     Widget button = Tooltip(
       message: tooltip,
       child: Material(
-        color: color.withOpacity(0.09),
+        color: color.withValues(alpha: 0.09),
         shape: shape,
         child: InkWell(
           customBorder: shape,
@@ -907,6 +907,7 @@ class ClientsScreenState extends State<ClientsScreen>
                                                 if (allTx.isEmpty) {
                                                   if (mounted) {
                                                     ScaffoldMessenger.of(
+                                                      // ignore: use_build_context_synchronously
                                                       context,
                                                     ).showSnackBar(
                                                       const SnackBar(
@@ -943,6 +944,7 @@ class ClientsScreenState extends State<ClientsScreen>
                                                     await txProvider.isOnline();
                                                 if (!mounted) return;
                                                 ScaffoldMessenger.of(
+                                                  // ignore: use_build_context_synchronously
                                                   context,
                                                 ).showSnackBar(
                                                   SnackBar(
@@ -968,6 +970,7 @@ class ClientsScreenState extends State<ClientsScreen>
                                                           .isOnline();
                                                   if (!mounted) return;
                                                   ScaffoldMessenger.of(
+                                                    // ignore: use_build_context_synchronously
                                                     context,
                                                   ).showSnackBar(
                                                     SnackBar(
@@ -983,6 +986,7 @@ class ClientsScreenState extends State<ClientsScreen>
                                             } catch (e) {
                                               if (!mounted) return;
                                               ScaffoldMessenger.of(
+                                                // ignore: use_build_context_synchronously
                                                 context,
                                               ).showSnackBar(
                                                 SnackBar(

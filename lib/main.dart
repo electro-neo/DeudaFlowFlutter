@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:app_links/app_links.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -74,8 +76,59 @@ void main() async {
   await _initializeApp();
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  StreamSubscription? _sub;
+  AppLinks? _appLinks;
+
+  @override
+  void initState() {
+    super.initState();
+    _handleIncomingLinks();
+  }
+
+  void _handleIncomingLinks() {
+    _appLinks = AppLinks();
+    // Handle initial link (cold start)
+    _appLinks!
+        .getInitialLink()
+        .then((uri) {
+          if (uri != null &&
+              uri.scheme == 'deudaflow' &&
+              uri.host == 'reset-password') {
+            navigatorKey.currentState?.pushNamed('/reset-password');
+          }
+        })
+        .catchError((err) {
+          debugPrint('Deep link initial error: $err');
+          return null;
+        });
+
+    // Listen for subsequent links
+    _sub = _appLinks!.uriLinkStream.listen(
+      (Uri uri) {
+        if (uri.scheme == 'deudaflow' && uri.host == 'reset-password') {
+          navigatorKey.currentState?.pushNamed('/reset-password');
+        }
+      },
+      onError: (err) {
+        debugPrint('Deep link error: $err');
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    _appLinks = null;
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

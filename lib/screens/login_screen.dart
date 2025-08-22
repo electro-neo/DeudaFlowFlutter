@@ -601,95 +601,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: TextButton(
-                                onPressed: () => Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => const RegisterScreen(),
-                                  ),
-                                ),
-                                child: const Text(
-                                  'Registrarse',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: TextButton(
-                                onPressed: () => Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        const ForgotPasswordScreen(),
-                                  ),
-                                ),
-                                child: const Text(
-                                  '¿Olvidaste tu contraseña?',
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          width: double.infinity,
-                          child: GestureDetector(
-                            onTapDown: (_) =>
-                                setState(() => _offlineBtnScale = 0.93),
-                            onTapUp: (_) =>
-                                setState(() => _offlineBtnScale = 1.0),
-                            onTapCancel: () =>
-                                setState(() => _offlineBtnScale = 1.0),
-                            onTap: _loading
-                                ? null
-                                : () {
-                                    setState(() => _offlineBtnScale = 1.0);
-                                    _loginOffline();
-                                  },
-                            child: AnimatedScale(
-                              scale: _offlineBtnScale,
-                              duration: const Duration(milliseconds: 120),
-                              curve: Curves.easeOut,
-                              child: OutlinedButton.icon(
-                                onPressed:
-                                    null, // Desactivado, solo GestureDetector ejecuta la acción
-                                icon: const Icon(
-                                  Icons.wifi_off,
-                                  size: 18,
-                                  color: Colors.white,
-                                ),
-                                label: const Text(
-                                  'Ingresar sin conexión',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(
-                                    color: Colors.white70,
-                                    width: 1.2,
-                                  ),
-                                  minimumSize: const Size(0, 38),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 8,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
                         const SizedBox(height: 6),
                         // ...guest login button removed...
                         SizedBox(
@@ -745,7 +656,93 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         const SizedBox(height: 6),
-                        // ...existing code...
+                        SizedBox(
+                          width: double.infinity,
+                          child: GestureDetector(
+                            onTapDown: (_) =>
+                                setState(() => _offlineBtnScale = 0.93),
+                            onTapUp: (_) =>
+                                setState(() => _offlineBtnScale = 1.0),
+                            onTapCancel: () =>
+                                setState(() => _offlineBtnScale = 1.0),
+                            onTap: _loading
+                                ? null
+                                : () {
+                                    setState(() => _offlineBtnScale = 1.0);
+                                    _loginOffline();
+                                  },
+                            child: AnimatedScale(
+                              scale: _offlineBtnScale,
+                              duration: const Duration(milliseconds: 120),
+                              curve: Curves.easeOut,
+                              child: OutlinedButton.icon(
+                                onPressed:
+                                    null, // Desactivado, solo GestureDetector ejecuta la acción
+                                icon: const Icon(
+                                  Icons.wifi_off,
+                                  size: 18,
+                                  color: Colors.white,
+                                ),
+                                label: const Text(
+                                  'Ingresar sin conexión',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(
+                                    color: Colors.white70,
+                                    width: 1.2,
+                                  ),
+                                  minimumSize: const Size(0, 38),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: TextButton(
+                                onPressed: () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const RegisterScreen(),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Registrarse',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: TextButton(
+                                onPressed: () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const ForgotPasswordScreen(),
+                                  ),
+                                ),
+                                child: const Text(
+                                  '¿Olvidaste tu contraseña?',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),// ...existing code...
                       ],
                     ),
                   ),

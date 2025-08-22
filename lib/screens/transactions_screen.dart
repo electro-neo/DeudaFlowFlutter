@@ -261,11 +261,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                         SyncMessageStateTX? syncMsg =
                                             _txSyncStates[t.id];
                                         bool clientPendingDelete = false;
-                                        final clientProvider =
-                                            Provider.of<ClientProvider>(
-                                              context,
-                                              listen: false,
-                                            );
+                                        // Deshabilitado: provider local no usado (dejado como referencia por si se necesita en el futuro)
+                                        // final clientProvider =
+                                        //     Provider.of<ClientProvider>(
+                                        //       context,
+                                        //       listen: false,
+                                        //     );
                                         if (client.id.isEmpty) {
                                           try {
                                             final box = Hive.box('clients');
@@ -415,6 +416,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                               );
                                               if (mounted) {
                                                 ScaffoldMessenger.of(
+                                                  // ignore: use_build_context_synchronously
                                                   context,
                                                 ).showSnackBar(
                                                   SnackBar(

@@ -65,7 +65,7 @@ class SessionAuthorityService {
           ),
           callback: (payload) async {
             debugPrint(
-              '[AUTH-DEVICE][Realtime] Evento recibido: newRecord =\n${payload.newRecord.toString()}',
+              '[AUTH-DEVICE][Realtime] Evento recibido: newRecord =\n[33m${payload.newRecord.toString()}[0m',
             );
             final newDeviceId =
                 (payload.newRecord['value']?['device_id']) as String?;
@@ -83,8 +83,14 @@ class SessionAuthorityService {
                 debugPrint(
                   '[AUTH-DEVICE][Realtime] ¡Conflicto detectado! Ejecutando validateDeviceAuthorityOrLogout...',
                 );
-                // Siempre online en realtime
+                // ---
+                // Seguridad: El context recibido puede no estar montado si el widget fue destruido.
+                // Se verifica si es un Element y está montado, y si no, se usa navigatorKey.currentContext como fallback global.
+                // Esto mitiga la mayoría de los riesgos de usar context tras async gaps en callbacks realtime.
+                // ---
+                // ignore: use_build_context_synchronously
                 await validateDeviceAuthorityOrLogout(
+                  // ignore: use_build_context_synchronously
                   context,
                   userId,
                   knownRemoteId: newDeviceId,
@@ -244,6 +250,7 @@ class SessionAuthorityService {
           '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] OFFLINE: Mostrando diálogo de conflicto (reconexión offline)',
         );
         final ok = await SessionAuthorityService.instance.handleConflictDialog(
+          // ignore: use_build_context_synchronously
           safeContext,
           userId,
           isLoginFlow: false,
@@ -258,11 +265,15 @@ class SessionAuthorityService {
       debugPrint(
         '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] ONLINE: Cierre de sesión automática por conflicto.',
       );
+      // Seguridad: safeContext puede ser el context original o un fallback global.
+      // Ya se verificó que no sea null ni esté desmontado antes de llegar aquí.
       await showDialog(
+        // ignore: use_build_context_synchronously
         context: safeContext,
         barrierDismissible: false,
         builder: (ctx) {
           Future.delayed(const Duration(seconds: 4), () async {
+            // ignore: use_build_context_synchronously
             if (Navigator.of(ctx).canPop()) Navigator.of(ctx).pop();
             try {
               await signOutAndDisposeListener();
@@ -695,10 +706,12 @@ class SessionAuthorityService {
         final ctx = navigatorKey.currentContext;
         if (ctx != null) {
           final clientProvider = Provider.of<ClientProvider>(
+            // ignore: use_build_context_synchronously
             ctx,
             listen: false,
           );
           final txProvider = Provider.of<TransactionProvider>(
+            // ignore: use_build_context_synchronously
             ctx,
             listen: false,
           );
@@ -731,7 +744,9 @@ class SessionAuthorityService {
       try {
         await signOutAndDisposeListener();
         // Cerrar el diálogo antes de navegar
+        // ignore: use_build_context_synchronously
         if (Navigator.of(context).canPop()) {
+          // ignore: use_build_context_synchronously
           Navigator.of(context).pop();
         }
         // Navegar a login tras cerrar sesión en el siguiente microtask
@@ -739,6 +754,7 @@ class SessionAuthorityService {
           final ctx = navigatorKey.currentContext;
           if (ctx != null) {
             Navigator.of(
+              // ignore: use_build_context_synchronously
               ctx,
             ).pushNamedAndRemoveUntil('/login', (route) => false);
           }

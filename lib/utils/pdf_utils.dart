@@ -223,7 +223,7 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
               headers.add('Monto ${getCurrencyLabel(currency['symbol'])}');
             }
             widgets.add(
-              pw.Table.fromTextArray(
+              pw.TableHelper.fromTextArray(
                 headers: headers,
                 headerStyle: pw.TextStyle(
                   fontWeight: pw.FontWeight.bold,
@@ -510,7 +510,7 @@ Future<void> exportAndShareClientReceiptPDF(
             ),
             pw.Text('ID: ${client.id}'),
             pw.SizedBox(height: 10),
-            pw.Table.fromTextArray(
+            pw.TableHelper.fromTextArray(
               headers: ['Fecha', 'Descripción', 'Tipo', 'Monto'],
               headerStyle: pw.TextStyle(
                 fontWeight: pw.FontWeight.bold,
@@ -607,7 +607,7 @@ Future<void> exportClientReceiptToPDF(
             ),
             pw.Text('ID: ${client.id}'),
             pw.SizedBox(height: 10),
-            pw.Table.fromTextArray(
+            pw.TableHelper.fromTextArray(
               headers: [
                 'Fecha',
                 'Descripción',

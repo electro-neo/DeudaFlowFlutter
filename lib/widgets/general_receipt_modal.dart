@@ -111,9 +111,6 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
       context,
       listen: false,
     );
-    final selectedCurrency = currencyProvider.currency;
-    // FIX: Se usa el método getRateFor para obtener la tasa correcta.
-    final conversionRate = currencyProvider.getRateFor(selectedCurrency) ?? 1.0;
     final filtered = filteredClientBalances();
     String title;
     if (widget.clientData.length == 1 &&
@@ -344,14 +341,13 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                                       style: const TextStyle(fontSize: 14),
                                       textAlign: TextAlign.left,
                                     ),
-                                    if (selectedCurrency != 'USD' &&
-                                        conversionRate > 0) ...[
+                                    if (currencyProvider.currency != 'USD') ...[
                                       const SizedBox(height: 2),
                                       Text(
                                         CurrencyUtils.format(
                                           context,
-                                          usdValue * conversionRate,
-                                          currencyCode: selectedCurrency,
+                                          usdValue * (currencyProvider.getRateFor(currencyProvider.currency) ?? 1.0),
+                                          currencyCode: currencyProvider.currency,
                                         ),
                                         style: const TextStyle(fontSize: 14),
                                         textAlign: TextAlign.left,
@@ -424,48 +420,173 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                               ),
                             ),
                           );
-                          // Diálogo de selección de monedas
+                          // Diálogo de selección de monedas mejorado
                           List<String> selected = [];
                           await showDialog(
                             context: context,
+                            barrierDismissible: false,
                             builder: (ctx) {
                               return StatefulBuilder(
                                 builder: (ctx, setStateDialog) {
                                   return AlertDialog(
-                                    title: const Text(
-                                      'Selecciona monedas (máximo 2)',
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
                                     ),
-                                    content: Wrap(
-                                      spacing: 8,
-                                      children: registeredCurrencies.map((
-                                        symbol,
-                                      ) {
-                                        final isSelected = selected.contains(
-                                          symbol,
-                                        );
-                                        return ChoiceChip(
-                                          label: Text(symbol),
-                                          selected: isSelected,
-                                          onSelected: (val) {
-                                            setStateDialog(() {
-                                              if (val) {
-                                                if (selected.length < 2) {
-                                                  selected.add(symbol);
-                                                }
-                                              } else {
-                                                selected.remove(symbol);
-                                              }
-                                            });
-                                          },
-                                        );
-                                      }).toList(),
+                                    title: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Text(
+                                          'Seleccionar monedas para el PDF',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Selecciona entre 1 y 2 monedas (${selected.length}/2)',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey[600],
+                                            fontWeight: FontWeight.normal,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    content: Container(
+                                      width: double.maxFinite,
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          if (selected.isEmpty)
+                                            Container(
+                                              padding: const EdgeInsets.all(12),
+                                              margin: const EdgeInsets.only(bottom: 16),
+                                              decoration: BoxDecoration(
+                                                color: Colors.orange.shade50,
+                                                border: Border.all(color: Colors.orange.shade200),
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.info_outline,
+                                                    color: Colors.orange.shade700,
+                                                    size: 20,
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Expanded(
+                                                    child: Text(
+                                                      'Debes seleccionar al menos una moneda',
+                                                      style: TextStyle(
+                                                        color: Colors.orange.shade700,
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          Wrap(
+                                            spacing: 10,
+                                            runSpacing: 10,
+                                            children: registeredCurrencies.map((symbol) {
+                                              final isSelected = selected.contains(symbol);
+                                              final rate = rates[symbol] ?? 1.0;
+                                              return Container(
+                                                decoration: BoxDecoration(
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  border: Border.all(
+                                                    color: isSelected 
+                                                      ? Theme.of(context).primaryColor
+                                                      : Colors.grey.shade300,
+                                                    width: isSelected ? 2 : 1,
+                                                  ),
+                                                  color: isSelected 
+                                                    ? Theme.of(context).primaryColor.withOpacity(0.1)
+                                                    : Colors.white,
+                                                ),
+                                                child: InkWell(
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  onTap: () {
+                                                    setStateDialog(() {
+                                                      if (isSelected) {
+                                                        selected.remove(symbol);
+                                                      } else {
+                                                        if (selected.length < 2) {
+                                                          selected.add(symbol);
+                                                        }
+                                                      }
+                                                    });
+                                                  },
+                                                  child: Container(
+                                                    padding: const EdgeInsets.symmetric(
+                                                      horizontal: 16,
+                                                      vertical: 12,
+                                                    ),
+                                                    child: Column(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        Row(
+                                                          mainAxisSize: MainAxisSize.min,
+                                                          children: [
+                                                            if (isSelected)
+                                                              Icon(
+                                                                Icons.check_circle,
+                                                                color: Theme.of(context).primaryColor,
+                                                                size: 16,
+                                                              ),
+                                                            if (isSelected) const SizedBox(width: 4),
+                                                            Text(
+                                                              symbol,
+                                                              style: TextStyle(
+                                                                fontWeight: FontWeight.bold,
+                                                                color: isSelected 
+                                                                  ? Theme.of(context).primaryColor
+                                                                  : Colors.black87,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        if (symbol != 'USD') ...[
+                                                          const SizedBox(height: 4),
+                                                          Text(
+                                                            'Tasa: ${rate.toStringAsFixed(2)}',
+                                                            style: TextStyle(
+                                                              fontSize: 12,
+                                                              color: Colors.grey[600],
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            }).toList(),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                     actions: [
                                       TextButton(
+                                        onPressed: () => Navigator.of(ctx).pop(),
+                                        child: const Text('Cancelar'),
+                                      ),
+                                      ElevatedButton.icon(
                                         onPressed: selected.isEmpty
                                             ? null
                                             : () => Navigator.of(ctx).pop(),
-                                        child: const Text('Aceptar'),
+                                        icon: const Icon(Icons.picture_as_pdf, size: 18),
+                                        label: const Text('Generar PDF'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Theme.of(context).primaryColor,
+                                          foregroundColor: Colors.white,
+                                          disabledBackgroundColor: Colors.grey.shade300,
+                                          disabledForegroundColor: Colors.grey.shade500,
+                                        ),
                                       ),
                                     ],
                                   );
@@ -473,25 +594,30 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                               );
                             },
                           );
-                          // Construir la lista de monedas seleccionadas con símbolo y tasa
-                          final selectedCurrencies = selected
-                              .map(
-                                (symbol) => {
-                                  'symbol': symbol,
-                                  'rate': rates[symbol] ?? 1.0,
-                                },
-                              )
-                              .toList();
-                          if (isMobile) {
-                            await exportAndShareGeneralReceiptWithMovementsPDF(
-                              filtered,
-                              selectedCurrencies: selectedCurrencies,
-                            );
-                          } else {
-                            await exportGeneralReceiptWithMovementsPDF(
-                              filtered,
-                              selectedCurrencies: selectedCurrencies,
-                            );
+                          
+                          // Solo proceder si se seleccionaron monedas
+                          if (selected.isNotEmpty) {
+                            // Construir la lista de monedas seleccionadas con símbolo y tasa
+                            final selectedCurrencies = selected
+                                .map(
+                                  (symbol) => {
+                                    'symbol': symbol,
+                                    'rate': rates[symbol] ?? 1.0,
+                                  },
+                                )
+                                .toList();
+                            
+                            if (isMobile) {
+                              await exportAndShareGeneralReceiptWithMovementsPDF(
+                                filtered,
+                                selectedCurrencies: selectedCurrencies,
+                              );
+                            } else {
+                              await exportGeneralReceiptWithMovementsPDF(
+                                filtered,
+                                selectedCurrencies: selectedCurrencies,
+                              );
+                            }
                           }
                         },
                         label: Text(isMobile ? 'Compartir Recibo' : 'Imprimir'),

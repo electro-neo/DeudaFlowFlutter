@@ -185,6 +185,7 @@ class ReceiptModal extends StatelessWidget {
                           await exportAndShareClientReceiptPDF(
                             client,
                             filteredTransactions,
+                            selectedCurrencies: selectedCurrencies,
                           );
                         } else {
                           await exportClientReceiptToPDF(

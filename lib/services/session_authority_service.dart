@@ -644,6 +644,8 @@ class SessionAuthorityService {
                 'Borrar cambios locales y continuar',
                 style: TextStyle(fontSize: 13),
               ),
+              // Uso seguro: ctx es el contexto del builder del diálogo, garantizado como válido para Navigator.of(ctx).pop().
+              // ignore: use_build_context_synchronously
               onPressed: () => Navigator.of(ctx).pop('discard'),
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(0, 36),
@@ -659,6 +661,8 @@ class SessionAuthorityService {
                 'Guardar cambios locales y continuar',
                 style: TextStyle(fontSize: 13),
               ),
+              // Uso seguro: ctx es el contexto del builder del diálogo, garantizado como válido para Navigator.of(ctx).pop().
+              // ignore: use_build_context_synchronously
               onPressed: () => Navigator.of(ctx).pop('claim'),
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(0, 36),
@@ -674,6 +678,8 @@ class SessionAuthorityService {
                 'Cerrar sesión',
                 style: TextStyle(fontSize: 13, color: Colors.white),
               ),
+              // Uso seguro: ctx es el contexto del builder del diálogo, garantizado como válido para Navigator.of(ctx).pop().
+              // ignore: use_build_context_synchronously
               onPressed: () => Navigator.of(ctx).pop('logout'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,

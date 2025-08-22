@@ -274,11 +274,11 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
       builder: (context, scrollSheetController) {
         return Container(
           decoration: BoxDecoration(
-            color: Theme.of(context).dialogBackgroundColor,
+            color: Theme.of(context).dialogTheme.backgroundColor,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.08),
+                color: Colors.black.withValues(alpha: (0.08 * 255).toDouble()),                
                 blurRadius: 10,
                 offset: const Offset(0, -2),
               ),

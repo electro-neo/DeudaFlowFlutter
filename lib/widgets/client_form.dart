@@ -675,7 +675,7 @@ class _ClientFormState extends State<ClientForm> {
                                 vertical: 12,
                               ),
                               decoration: BoxDecoration(
-                                color: colorScheme.primary.withOpacity(0.08),
+                                color: colorScheme.primary.withValues(alpha: 0.08 * 255),                                
                                 borderRadius: BorderRadius.circular(18),
                                 border: Border.all(
                                   color: colorScheme.primary,

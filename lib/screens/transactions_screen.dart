@@ -175,6 +175,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       }).toList();
     }
 
+    // Asegurar orden: transacciones más nuevas primero (fecha desc, si empatan usar createdAt)
+    transactions.sort((a, b) {
+      final dateCmp = b.date.compareTo(a.date);
+      if (dateCmp != 0) return dateCmp;
+      return b.createdAt.compareTo(a.createdAt);
+    });
+
     final mediaQuery = MediaQuery.of(context);
     final isMobile = mediaQuery.size.width < 600;
     final double topPadding = isMobile ? 24.0 : 70.0;

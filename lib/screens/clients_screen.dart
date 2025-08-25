@@ -899,6 +899,56 @@ class ClientsScreenState extends State<ClientsScreen>
                                               ),
                                             );
                                             if (choice == null) return;
+
+                                            // SEGUNDO DIÁLOGO DE CONFIRMACIÓN
+                                            bool confirmed = true;
+                                            if (choice == 'txOnlyAll' ||
+                                                choice == 'clientsAndTxAll') {
+                                              String warningMsg =
+                                                  choice == 'txOnlyAll'
+                                                  ? '¿Estás seguro de que deseas eliminar TODAS las transacciones? Esta acción no se puede deshacer.'
+                                                  : '¿Estás seguro de que deseas eliminar TODOS los clientes y sus transacciones? Esta acción no se puede deshacer.';
+                                              confirmed =
+                                                  await showDialog<bool>(
+                                                    context: context,
+                                                    builder: (ctx) => AlertDialog(
+                                                      shape: RoundedRectangleBorder(
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              16,
+                                                            ),
+                                                      ),
+                                                      title: const Text(
+                                                        'Confirmar eliminación',
+                                                      ),
+                                                      content: Text(warningMsg),
+                                                      actions: [
+                                                        TextButton(
+                                                          onPressed: () =>
+                                                              Navigator.of(
+                                                                ctx,
+                                                              ).pop(false),
+                                                          child: const Text(
+                                                            'Cancelar',
+                                                          ),
+                                                        ),
+                                                        ElevatedButton(
+                                                          style: dangerStyle,
+                                                          onPressed: () =>
+                                                              Navigator.of(
+                                                                ctx,
+                                                              ).pop(true),
+                                                          child: const Text(
+                                                            'Eliminar',
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ) ??
+                                                  false;
+                                              if (!confirmed) return;
+                                            }
+
                                             try {
                                               if (choice == 'txOnlyAll') {
                                                 final allTx = List.of(
@@ -907,7 +957,6 @@ class ClientsScreenState extends State<ClientsScreen>
                                                 if (allTx.isEmpty) {
                                                   if (mounted) {
                                                     ScaffoldMessenger.of(
-                                                      // ignore: use_build_context_synchronously
                                                       context,
                                                     ).showSnackBar(
                                                       const SnackBar(
@@ -944,7 +993,6 @@ class ClientsScreenState extends State<ClientsScreen>
                                                     await txProvider.isOnline();
                                                 if (!mounted) return;
                                                 ScaffoldMessenger.of(
-                                                  // ignore: use_build_context_synchronously
                                                   context,
                                                 ).showSnackBar(
                                                   SnackBar(
@@ -970,7 +1018,6 @@ class ClientsScreenState extends State<ClientsScreen>
                                                           .isOnline();
                                                   if (!mounted) return;
                                                   ScaffoldMessenger.of(
-                                                    // ignore: use_build_context_synchronously
                                                     context,
                                                   ).showSnackBar(
                                                     SnackBar(
@@ -986,7 +1033,6 @@ class ClientsScreenState extends State<ClientsScreen>
                                             } catch (e) {
                                               if (!mounted) return;
                                               ScaffoldMessenger.of(
-                                                // ignore: use_build_context_synchronously
                                                 context,
                                               ).showSnackBar(
                                                 SnackBar(

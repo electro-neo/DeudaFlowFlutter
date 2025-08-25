@@ -555,8 +555,7 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
               controller: _rateController,
               decoration: InputDecoration(
                 labelText:
-                    'Tasa  {_currencyCode?.toUpperCase() ?? '
-                    '} a USD',
+                    'Tasa ${_currencyCode?.toUpperCase() ?? ''} a USD',
                 border: OutlineInputBorder(),
                 isDense: true,
                 prefixIcon: Icon(Icons.attach_money_rounded),

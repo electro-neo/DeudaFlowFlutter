@@ -34,59 +34,8 @@ class _ClientFormState extends State<ClientForm> {
     return provider.exchangeRates.containsKey(currency.toUpperCase());
   }
 
-  Future<void> _showRegisterRateDialog(String currency) async {
-    final controller = TextEditingController();
-    double? rate;
-    final result = await showDialog<double>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) {
-        return AlertDialog(
-          title: Text('Registrar tasa para $currency'),
-          content: TextField(
-            controller: controller,
-            keyboardType: TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(
-              labelText: 'Tasa de cambio',
-              hintText: 'Ej: 36.5',
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final text = controller.text.trim();
-                final value = double.tryParse(text);
-                if (value == null || value <= 0) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Ingresa una tasa válida.')),
-                  );
-                  return;
-                }
-                rate = value;
-                Navigator.of(ctx).pop(rate);
-              },
-              child: Text('Guardar'),
-            ),
-          ],
-        );
-      },
-    );
-    if (result != null) {
-      // ignore: use_build_context_synchronously
-      final provider = Provider.of<CurrencyProvider>(context, listen: false);
-      provider.setRateForCurrency(currency, result);
-      // Asegura que la moneda esté en availableCurrencies si no hay transacción aún
-      final upper = currency.toUpperCase();
-      if (!provider.availableCurrencies.contains(upper)) {
-        provider.addManualCurrency(upper);
-      }
-      setState(() {}); // Para refrescar el widget
-    }
-  }
+  final TextEditingController _rateController = TextEditingController();
+  String? _rateError;
 
   Future<Contact?> _selectContactModal(BuildContext context) async {
     List<Contact> contacts = welcome_screen.globalContacts;
@@ -292,7 +241,30 @@ class _ClientFormState extends State<ClientForm> {
       // --- Cálculo de anchorUsdValue ---
       final provider = Provider.of<CurrencyProvider>(context, listen: false);
       final codeUC = _selectedCurrency!.toUpperCase();
-      final rate = provider.exchangeRates[codeUC];
+      double? rate = provider.exchangeRates[codeUC];
+      if (codeUC != 'USD' && (rate == null || rate <= 0)) {
+        // Si no hay tasa registrada, tomar la del campo manual
+        final rateText = _rateController.text.trim();
+        if (rateText.isEmpty) {
+          setState(() {
+            _rateError = 'Debes ingresar la tasa para $codeUC.';
+            _isSaving = false;
+          });
+          return;
+        }
+        final manualRate = double.tryParse(rateText);
+        if (manualRate == null || manualRate <= 0) {
+          setState(() {
+            _rateError = 'Tasa inválida. Solo números mayores a 0.';
+            _isSaving = false;
+          });
+          return;
+        }
+        // Guardar la tasa en el provider para futuras operaciones
+        provider.setRateForCurrency(codeUC, manualRate);
+        rate = manualRate;
+        _rateError = null;
+      }
       if (rate != null && rate > 0) {
         anchorUsdValue = balance / rate;
         debugPrint(
@@ -675,7 +647,9 @@ class _ClientFormState extends State<ClientForm> {
                                 vertical: 12,
                               ),
                               decoration: BoxDecoration(
-                                color: colorScheme.primary.withValues(alpha: 0.08 * 255),                                
+                                color: colorScheme.primary.withValues(
+                                  alpha: 0.08 * 255,
+                                ),
                                 borderRadius: BorderRadius.circular(18),
                                 border: Border.all(
                                   color: colorScheme.primary,
@@ -801,31 +775,11 @@ class _ClientFormState extends State<ClientForm> {
                               ],
                               onChanged: (value) async {
                                 if (value == null) return;
-
-                                // Si la moneda es USD, no se necesita tasa.
-                                if (value.toUpperCase() == 'USD') {
-                                  setState(() {
-                                    _selectedCurrency = value;
-                                  });
-                                  return;
-                                }
-
-                                // Para otras monedas, verificar si tienen tasa.
-                                if (!_hasRateForCurrency(value)) {
-                                  final prevCurrency = _selectedCurrency;
-                                  await _showRegisterRateDialog(value);
-                                  // Si después de registrar, sigue sin tasa (usuario canceló), no cambiar.
-                                  if (!_hasRateForCurrency(value)) {
-                                    setState(() {
-                                      _selectedCurrency = prevCurrency;
-                                    });
-                                    return;
-                                  }
-                                }
-
-                                // Si la moneda tiene tasa (o se acaba de registrar), actualizar.
                                 setState(() {
                                   _selectedCurrency = value;
+                                  // Limpiar campo de tasa si cambia la moneda
+                                  _rateController.clear();
+                                  _rateError = null;
                                 });
                               },
                               dropdownColor: Colors.white,
@@ -835,6 +789,47 @@ class _ClientFormState extends State<ClientForm> {
                           ),
                         ],
                       ),
+                      // Campo de tasa si la moneda seleccionada no tiene tasa y no es USD
+                      if (_selectedCurrency != null &&
+                          _selectedCurrency!.toUpperCase() != 'USD' &&
+                          !_hasRateForCurrency(_selectedCurrency!))
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            top: 10.0,
+                            left: 2.0,
+                            right: 2.0,
+                          ),
+                          child: TextField(
+                            controller: _rateController,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: InputDecoration(
+                              labelText: 'Tasa',
+                              hintText:
+                                  'Tasa ${_selectedCurrency?.toUpperCase() ?? ''} a USD',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              prefixIcon: const Icon(Icons.currency_exchange),
+                              errorText: _rateError,
+                              filled: true,
+                              fillColor: const Color(
+                                0xFF7C3AED,
+                              ).withOpacity(0.07),
+                              floatingLabelBehavior: FloatingLabelBehavior.auto,
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 16,
+                                horizontal: 12,
+                              ),
+                            ),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'[0-9.]'),
+                              ),
+                            ],
+                          ),
+                        ),
                     ],
                   if (_error != null)
                     Padding(

@@ -31,7 +31,10 @@ class _ClientFormState extends State<ClientForm> {
   // Simulación de almacenamiento de tasas (puedes reemplazar por tu lógica real)
   bool _hasRateForCurrency(String currency) {
     final provider = Provider.of<CurrencyProvider>(context, listen: false);
-    return provider.exchangeRates.containsKey(currency.toUpperCase());
+    final code = currency.toUpperCase();
+    if (code == 'USD') return true;
+    final rate = provider.exchangeRates[code];
+    return rate != null && rate > 0;
   }
 
   final TextEditingController _rateController = TextEditingController();
@@ -244,7 +247,7 @@ class _ClientFormState extends State<ClientForm> {
       double? rate = provider.exchangeRates[codeUC];
       if (codeUC != 'USD' && (rate == null || rate <= 0)) {
         // Si no hay tasa registrada, tomar la del campo manual
-        final rateText = _rateController.text.trim();
+        final rateText = _rateController.text.trim().replaceAll(',', '.');
         if (rateText.isEmpty) {
           setState(() {
             _rateError = 'Debes ingresar la tasa para $codeUC.';
@@ -261,6 +264,10 @@ class _ClientFormState extends State<ClientForm> {
           return;
         }
         // Guardar la tasa en el provider para futuras operaciones
+        // Asegura que la moneda exista en el provider (para que aparezca en Currency Manager)
+        if (!provider.availableCurrencies.contains(codeUC)) {
+          provider.addManualCurrency(codeUC);
+        }
         provider.setRateForCurrency(codeUC, manualRate);
         rate = manualRate;
         _rateError = null;
@@ -825,7 +832,7 @@ class _ClientFormState extends State<ClientForm> {
                             ),
                             inputFormatters: [
                               FilteringTextInputFormatter.allow(
-                                RegExp(r'[0-9.]'),
+                                RegExp(r'[0-9.,]'),
                               ),
                             ],
                           ),

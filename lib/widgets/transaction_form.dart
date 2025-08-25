@@ -475,7 +475,9 @@ class _TransactionFormState extends State<TransactionForm> {
                             ),
                             textInputAction: TextInputAction.next,
                             inputFormatters: [
-                              FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'[0-9.,]'),
+                              ),
                             ],
                           ),
                         ),
@@ -567,7 +569,7 @@ class _TransactionFormState extends State<TransactionForm> {
                         ),
                         prefixIcon: Icon(Icons.description),
                         isDense: true,
-                        counterText: '',
+                        // No uses counterText aquí para que buildCounter funcione
                       ),
                       maxLines: 2,
                       maxLength: _descriptionMaxLength,
@@ -578,18 +580,25 @@ class _TransactionFormState extends State<TransactionForm> {
                             required bool isFocused,
                             required int? maxLength,
                           }) {
-                            return Padding(
-                              padding: const EdgeInsets.only(
-                                right: 8.0,
-                                top: 2.0,
-                              ),
+                            final remaining =
+                                (_descriptionMaxLength) - currentLength;
+                            Color color;
+                            if (remaining <= 5) {
+                              color = Colors.red;
+                            } else if (remaining <= 10) {
+                              color = Colors.orange;
+                            } else {
+                              color = Colors.grey;
+                            }
+                            return Container(
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 8, top: 0),
                               child: Text(
                                 '$currentLength/$_descriptionMaxLength',
                                 style: TextStyle(
-                                  fontSize: 12,
-                                  color: currentLength > _descriptionMaxLength
-                                      ? Colors.red
-                                      : Colors.grey,
+                                  fontSize: 11,
+                                  color: color,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             );

@@ -554,8 +554,7 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
             child: TextField(
               controller: _rateController,
               decoration: InputDecoration(
-                labelText:
-                    'Tasa ${_currencyCode?.toUpperCase() ?? ''} a USD',
+                labelText: 'Tasa ${_currencyCode?.toUpperCase() ?? ''} a USD',
                 border: OutlineInputBorder(),
                 isDense: true,
                 prefixIcon: Icon(Icons.attach_money_rounded),
@@ -596,9 +595,38 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             prefixIcon: Icon(Icons.description),
             isDense: true,
-            counterText: '',
+            // No uses counterText aquí para que buildCounter funcione
           ),
           maxLines: 2,
+          buildCounter:
+              (
+                BuildContext context, {
+                required int currentLength,
+                required bool isFocused,
+                required int? maxLength,
+              }) {
+                final remaining = (maxLength ?? 30) - currentLength;
+                Color color;
+                if (remaining <= 5) {
+                  color = Colors.red;
+                } else if (remaining <= 10) {
+                  color = Colors.orange;
+                } else {
+                  color = Colors.grey;
+                }
+                return Container(
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: 8, top: 0),
+                  child: Text(
+                    '$currentLength/${maxLength ?? 30}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: color,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                );
+              },
         ),
         if (_error != null)
           Padding(

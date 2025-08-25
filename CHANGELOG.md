@@ -8,8 +8,8 @@ Todas las novedades, mejoras y correcciones planeadas y lanzadas para Deuda Flow
 - Contador visual de caracteres en el campo "descripción" de los formularios de transacción, con cambio de color según los caracteres restantes.
 - Mejoras en validación y sincronización de monedas/tasas.
 - Segundo diálogo de confirmación al intentar eliminar todas las transacciones o todos los clientes, para evitar eliminaciones accidentales.
+-Agrega nombre y telefono del cliente al selecciona de forma automatica
 
-- Al agregar un cliente y seleccionar de los contactos, actualmente solo se coloca el número de teléfono pero no el nombre. Se mejorará para que el nombre del contacto se agregue automáticamente, evitando tener que ingresarlo manualmente.
 - Se añadirá un botón que permita enviar notificaciones de cobro a todos los clientes, con la opción de hacerlo de manera quincenal o mensual.
 
 ## [1.0.2] - 2025-08-24

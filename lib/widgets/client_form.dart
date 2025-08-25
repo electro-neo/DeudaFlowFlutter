@@ -492,8 +492,12 @@ class _ClientFormState extends State<ClientForm> {
                                 selected.phones.isNotEmpty) {
                               _phoneController.text =
                                   selected.phones.first.number;
+                              _nameController.text = selected.displayName;
                               debugPrint(
                                 '[CONTACTS] Teléfono seleccionado: ${selected.phones.first.number}',
+                              );
+                              debugPrint(
+                                '[CONTACTS] Nombre seleccionado: ${selected.displayName}',
                               );
                             } else {
                               debugPrint(

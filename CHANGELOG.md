@@ -10,7 +10,6 @@ Todas las novedades, mejoras y correcciones planeadas y lanzadas para Deuda Flow
 - Segundo diálogo de confirmación al intentar eliminar todas las transacciones o todos los clientes, para evitar eliminaciones accidentales.
 -Agrega nombre y telefono del cliente al selecciona de forma automatica
 
-- Se añadirá un botón que permita enviar notificaciones de cobro a todos los clientes, con la opción de hacerlo de manera quincenal o mensual.
 
 ## [1.0.2] - 2025-08-24
 - Versión inicial publicada en Google Play.

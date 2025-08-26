@@ -1,4 +1,3 @@
-samples, guidance on mobile development, and a full API reference.
 # Deuda Flow Flutter
 
 Aplicación Flutter para la gestión de deudas y control de finanzas personales. Permite registrar clientes, transacciones, sincronizar datos entre dispositivos y enviar notificaciones de cobro.

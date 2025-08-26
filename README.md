@@ -14,16 +14,13 @@ Aplicación Flutter para la gestión de deudas y control de finanzas personales.
 
 ## Capturas de pantalla
 
-Pantalla principal:<br>
-<img src="assets/Screenshot_20250823-164750.jpg" width="350" />
-
-Gestión de clientes:<br>
+Inicio de Sesion:<br>
 <img src="assets/Screenshot_20250823-164849.jpg" width="350" />
 
-Detalle de transacción:<br>
+Control dispositivos:<br>
 <img src="assets/Screenshot_20250823-164857.jpg" width="350" />
 
-Menú y opciones:<br>
+Pantalla Principal:<br>
 <img src="assets/Screenshot_20250823-164904.jpg" width="350" />
 
 Organiza tus deudas:<br>

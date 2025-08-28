@@ -268,7 +268,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                       ),
                                     )
                                   : ListView.separated(
-                                      padding: const EdgeInsets.only(top: 6),
+                                      padding: const EdgeInsets.only(top: 6, bottom: 20),
                                       itemCount: transactions.length,
                                       separatorBuilder: (_, __) =>
                                           const SizedBox(height: 5),
@@ -534,6 +534,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         (selectedClientId != null && selectedClientId.isNotEmpty)
         ? allTransactions.where((t) => t.clientId == selectedClientId).toList()
         : allTransactions;
+    // --- INICIO PATCH: Stat Deuda muestra deuda real (saldos negativos) ---
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -779,21 +780,38 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             final selectedCurrency = currencyProvider.currency;
             final rate = currencyProvider.getRateFor(selectedCurrency) ?? 1.0;
             double totalAbono = 0;
-            double totalDeuda = 0;
+            // --- Calcular deuda real (saldos negativos de clientes) ---
+            // 1. Calcular balances por cliente
+            final Map<String, double> clientBalances = {
+              for (var c in clients) c.id: 0.0,
+            };
+            for (var tx in filteredTransactions) {
+              final valueInUsd = tx.anchorUsdValue ?? tx.amount;
+              if (tx.type == 'payment') {
+                clientBalances[tx.clientId] =
+                    clientBalances[tx.clientId]! + valueInUsd;
+              } else if (tx.type == 'debt') {
+                clientBalances[tx.clientId] =
+                    clientBalances[tx.clientId]! - valueInUsd;
+              }
+            }
+            // 2. Sumar solo los balances negativos (deuda real)
+            double totalDeudaReal = clientBalances.values
+                .where((b) => b < 0)
+                .fold(0.0, (sum, b) => sum + b.abs());
+            // 3. Sumar abonos igual que antes
             for (var tx in filteredTransactions) {
               final valueInUsd = tx.anchorUsdValue ?? tx.amount;
               if (tx.type == 'payment') {
                 totalAbono += valueInUsd;
-              } else if (tx.type == 'debt') {
-                totalDeuda += valueInUsd;
               }
             }
             final displayAbono = selectedCurrency == 'USD'
                 ? totalAbono
                 : totalAbono * rate;
             final displayDeuda = selectedCurrency == 'USD'
-                ? totalDeuda
-                : totalDeuda * rate;
+                ? totalDeudaReal
+                : totalDeudaReal * rate;
             final showAbono = selectedType == null || selectedType == 'payment';
             final showDeuda = selectedType == null || selectedType == 'debt';
             if (!showAbono && !showDeuda) return const SizedBox.shrink();
@@ -952,6 +970,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         ),
       ],
     );
+    // --- FIN PATCH ---
   }
 
   // Ejemplo de función para agregar una transacción

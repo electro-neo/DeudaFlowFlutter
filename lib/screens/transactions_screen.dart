@@ -250,7 +250,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                               effectiveClientId,
                               selectedType,
                             ),
-                            const SizedBox(height: 0),
                             // Lista virtualizada
                             Expanded(
                               child: transactions.isEmpty
@@ -269,9 +268,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                       ),
                                     )
                                   : ListView.separated(
+                                      padding: const EdgeInsets.only(top: 6),
                                       itemCount: transactions.length,
                                       separatorBuilder: (_, __) =>
-                                          const SizedBox(height: 6),
+                                          const SizedBox(height: 5),
                                       itemBuilder: (context, i) {
                                         final t = transactions[i];
                                         final client = clients.firstWhere(

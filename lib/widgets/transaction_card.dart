@@ -53,7 +53,7 @@ class TransactionCard extends StatelessWidget {
         horizontal: 2,
       ), // Ajusta el valor a tu gusto
       child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: 420),
+        constraints: BoxConstraints(maxWidth: 300),
         child: Container(
           decoration: BoxDecoration(
             color: const Color.fromARGB(255, 255, 255, 255),

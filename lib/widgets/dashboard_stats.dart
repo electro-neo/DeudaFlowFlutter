@@ -438,7 +438,7 @@ class _StatCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13, // Tamaño de fuente reducido
                       fontWeight: FontWeight.w500,
-                      color: Colors.white,                      
+                      color: Colors.white,
                     ),
                   ),
                 ),
@@ -456,25 +456,28 @@ class _StatCard extends StatelessWidget {
                   minWidth: 0,
                   maxWidth: maxLabelWidth,
                 ),
-                child: Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Color.fromARGB(255, 252, 252, 252),
-                    height: 1.05, // Reduce el espacio entre líneas
-                    shadows: [
-                      Shadow(
-                        color: Color.fromARGB(0, 0, 0, 0),
-                        offset: Offset(0, 2),
-                        blurRadius: 8,
-                      ),
-                    ],
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Color.fromARGB(255, 252, 252, 252),
+                      height: 1.05, // Reduce el espacio entre líneas
+                      shadows: [
+                        Shadow(
+                          color: Color.fromARGB(0, 0, 0, 0),
+                          offset: Offset(0, 2),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    softWrap: true,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  softWrap: true,
                 ),
               );
             },

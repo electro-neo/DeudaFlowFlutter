@@ -410,35 +410,76 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           const SizedBox(height: 8),
-                                          Text(
-                                            userName.isNotEmpty
-                                                ? '${saludo()}, $userName'
-                                                : saludo(),
-                                            style: const TextStyle(
-                                              color: Color.fromARGB(
-                                                255,
-                                                255,
-                                                255,
-                                                255,
-                                              ),
-                                              fontSize: 32,
-                                              fontWeight: FontWeight.bold,
-                                              letterSpacing: 0.5,
-                                              shadows: [
-                                                Shadow(
-                                                  color: Color.fromARGB(
-                                                    0,
-                                                    247,
-                                                    246,
-                                                    246,
+                                          FittedBox(
+                                            fit: BoxFit.scaleDown,
+                                            alignment: Alignment.centerLeft,
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  saludo(),
+                                                  style: const TextStyle(
+                                                    color: Color.fromARGB(
+                                                      255,
+                                                      255,
+                                                      255,
+                                                      255,
+                                                    ),
+                                                    fontSize: 32,
+                                                    fontWeight: FontWeight.bold,
+                                                    letterSpacing: 0.5,
+                                                    shadows: [
+                                                      Shadow(
+                                                        color: Color.fromARGB(
+                                                          0,
+                                                          247,
+                                                          246,
+                                                          246,
+                                                        ),
+                                                        offset: Offset(0, 0),
+                                                        blurRadius: 8,
+                                                      ),
+                                                    ],
                                                   ),
-                                                  offset: Offset(0, 0),
-                                                  blurRadius: 8,
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                 ),
+                                                if (userName.isNotEmpty)
+                                                  Text(
+                                                    userName,
+                                                    style: const TextStyle(
+                                                      color: Color.fromARGB(
+                                                        255,
+                                                        255,
+                                                        255,
+                                                        255,
+                                                      ),
+                                                      fontSize: 32,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      letterSpacing: 0.5,
+                                                      shadows: [
+                                                        Shadow(
+                                                          color: Color.fromARGB(
+                                                            0,
+                                                            247,
+                                                            246,
+                                                            246,
+                                                          ),
+                                                          offset: Offset(0, 0),
+                                                          blurRadius: 8,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
                                               ],
                                             ),
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
                                           ),
                                           const SizedBox(height: 12),
                                         ],

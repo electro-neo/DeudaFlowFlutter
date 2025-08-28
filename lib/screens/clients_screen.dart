@@ -1,3 +1,4 @@
+import '../utils/currency_utils.dart';
 // --- INICIO: Código restaurado del último commit y ajustado para layout independiente ---
 
 import 'package:flutter/material.dart';
@@ -445,7 +446,11 @@ class ClientsScreenState extends State<ClientsScreen>
                   createdAt: now,
                   synced: false,
                   currencyCode: newClient.currencyCode,
-                  anchorUsdValue: newClient.anchorUsdValue,
+                  anchorUsdValue: newClient.anchorUsdValue != null
+                      ? CurrencyUtils.normalizeAnchorUsd(
+                          newClient.anchorUsdValue!,
+                        )
+                      : null,
                 );
                 await txProvider.addTransaction(tx, widget.userId, realId);
                 Future.delayed(const Duration(seconds: 2), () async {

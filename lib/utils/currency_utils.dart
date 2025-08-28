@@ -5,6 +5,16 @@ import '../providers/currency_provider.dart';
 
 /// Utilidad para convertir y formatear montos según la moneda seleccionada.
 class CurrencyUtils {
+  /// Redondea y normaliza anchorUsdValue: dos decimales y lo fuerza a 0 si es muy cercano a cero.
+  static double normalizeAnchorUsd(
+    num value, {
+    int decimals = 2,
+    double tolerance = 0.01,
+  }) {
+    final rounded = double.parse(value.toStringAsFixed(decimals));
+    return rounded.abs() < tolerance ? 0.0 : rounded;
+  }
+
   /// Convierte de USD a la moneda seleccionada usando la tasa actual.
   /// Si la moneda es USD, retorna el valor tal cual.
   /// Si la moneda es otra, multiplica por la tasa.

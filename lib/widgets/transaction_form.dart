@@ -1,3 +1,4 @@
+import '../utils/currency_utils.dart';
 import 'package:flutter/material.dart';
 import '../widgets/budgeto_colors.dart';
 import 'package:flutter/services.dart';
@@ -165,10 +166,10 @@ class _TransactionFormState extends State<TransactionForm> {
           final codeUC = _currencyCode!.toUpperCase();
           rate = currencyProvider.exchangeRates[codeUC];
           if (codeUC == 'USD') {
-            anchorUsdValue = amount;
+            anchorUsdValue = CurrencyUtils.normalizeAnchorUsd(amount);
             rate = 1.0;
           } else if (rate != null && rate > 0) {
-            anchorUsdValue = amount / rate;
+            anchorUsdValue = CurrencyUtils.normalizeAnchorUsd(amount / rate);
           } else {
             anchorUsdValue = null;
           }

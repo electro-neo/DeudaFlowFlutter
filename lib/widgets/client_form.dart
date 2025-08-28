@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../providers/currency_provider.dart';
 import '../models/client_hive.dart';
 import '../widgets/scale_on_tap.dart';
+import '../utils/currency_utils.dart';
 
 class ClientForm extends StatefulWidget {
   final Future<ClientHive> Function(ClientHive) onSave;
@@ -273,12 +274,12 @@ class _ClientFormState extends State<ClientForm> {
         _rateError = null;
       }
       if (rate != null && rate > 0) {
-        anchorUsdValue = balance / rate;
+        anchorUsdValue = CurrencyUtils.normalizeAnchorUsd(balance / rate);
         debugPrint(
           '\u001b[41m[FORM][CALC] balance=$balance, currency=$_selectedCurrency, rate=$rate, anchorUsdValue=$anchorUsdValue\u001b[0m',
         );
       } else if (codeUC == 'USD') {
-        anchorUsdValue = balance;
+        anchorUsdValue = CurrencyUtils.normalizeAnchorUsd(balance);
         debugPrint(
           '\u001b[41m[FORM][CALC] balance=$balance, currency=USD, anchorUsdValue=$anchorUsdValue\u001b[0m',
         );

@@ -1,3 +1,4 @@
+import '../utils/currency_utils.dart';
 import 'package:flutter/material.dart';
 import '../widgets/budgeto_colors.dart';
 import 'package:flutter/services.dart';
@@ -181,12 +182,12 @@ class _GlobalTransactionFormState extends State<_GlobalTransactionForm> {
         final codeUC = _currencyCode!.toUpperCase();
         rate = currencyProvider.exchangeRates[codeUC];
         if (rate != null && rate > 0) {
-          anchorUsdValue = amount / rate;
+          anchorUsdValue = CurrencyUtils.normalizeAnchorUsd(amount / rate);
           debugPrint(
             '\u001b[41m[GLOBAL_FORM][CALC] amount=$amount, currency=$_currencyCode, rate=$rate, anchorUsdValue=$anchorUsdValue\u001b[0m',
           );
         } else if (codeUC == 'USD') {
-          anchorUsdValue = amount;
+          anchorUsdValue = CurrencyUtils.normalizeAnchorUsd(amount);
           debugPrint(
             '\u001b[41m[GLOBAL_FORM][CALC] amount=$amount, currency=USD, anchorUsdValue=$anchorUsdValue\u001b[0m',
           );

@@ -520,15 +520,20 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     String? selectedType,
   ) {
     final currencyProvider = Provider.of<CurrencyProvider>(context);
-    final transactions = Provider.of<TransactionProvider>(
+    final allTransactions = Provider.of<TransactionProvider>(
       context,
     ).transactions.where((t) => t.pendingDelete != true).toList();
     // Ordenar igual que en la lista
-    transactions.sort((a, b) {
+    allTransactions.sort((a, b) {
       final dateCmp = b.date.compareTo(a.date);
       if (dateCmp != 0) return dateCmp;
       return b.createdAt.compareTo(a.createdAt);
     });
+    // Filtrar por cliente si hay uno seleccionado
+    final filteredTransactions =
+        (selectedClientId != null && selectedClientId.isNotEmpty)
+        ? allTransactions.where((t) => t.clientId == selectedClientId).toList()
+        : allTransactions;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -775,7 +780,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             final rate = currencyProvider.getRateFor(selectedCurrency) ?? 1.0;
             double totalAbono = 0;
             double totalDeuda = 0;
-            for (var tx in transactions) {
+            for (var tx in filteredTransactions) {
               final valueInUsd = tx.anchorUsdValue ?? tx.amount;
               if (tx.type == 'payment') {
                 totalAbono += valueInUsd;

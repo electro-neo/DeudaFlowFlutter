@@ -222,14 +222,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           : ScrollConfiguration(
               behavior: const NoScrollbarBehavior(),
               child: Padding(
-                padding: EdgeInsets.fromLTRB(0, topPadding, 0, 8),
+                padding: EdgeInsets.fromLTRB(0, topPadding, 0, 1),
                 child: Center(
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
                       maxWidth: maxCardWidth ?? 500.0,
                     ),
                     child: Card(
-                      elevation: 8,
+                      elevation: 5,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),
@@ -250,7 +250,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                               effectiveClientId,
                               selectedType,
                             ),
-                            const SizedBox(height: 10),
+                            const SizedBox(height: 0),
                             // Lista virtualizada
                             Expanded(
                               child: transactions.isEmpty

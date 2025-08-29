@@ -205,7 +205,23 @@ class _ClientFormState extends State<ClientForm> {
   String? _error;
 
   void _save() async {
+    final nameText = _nameController.text.trim();
     final phoneText = _phoneController.text.trim();
+    // Validación de campos obligatorios
+    if (nameText.isEmpty) {
+      setState(() {
+        _error = 'El nombre es obligatorio.';
+        _isSaving = false;
+      });
+      return;
+    }
+    if (phoneText.isEmpty) {
+      setState(() {
+        _error = 'El teléfono es obligatorio.';
+        _isSaving = false;
+      });
+      return;
+    }
     double balance = 0.0;
     String? type = _initialType;
     double? anchorUsdValue;
@@ -305,7 +321,7 @@ class _ClientFormState extends State<ClientForm> {
     String newId =
         widget.initialClient?.id ??
         DateTime.now().millisecondsSinceEpoch.toString();
-    final name = capitalizeWords(_nameController.text.trim());
+    final name = capitalizeWords(nameText);
     final client = ClientHive(
       id: newId,
       name: name,

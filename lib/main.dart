@@ -136,11 +136,26 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   StreamSubscription? _sub;
   AppLinks? _appLinks;
+  // Splash overlay
+  double _splashOpacity = 1.0;
+  bool _splashRemoved = false;
 
   @override
   void initState() {
     super.initState();
     _handleIncomingLinks();
+    // Programa el fade del overlay splash después del primer frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Pequeña espera para asegurar que initialRoute ya montó su primer frame
+      Future.delayed(const Duration(milliseconds: 120), () {
+        if (!mounted) return;
+        setState(() => _splashOpacity = 0.0);
+        // Tras el fade, remover del árbol para no costar en composición
+        Future.delayed(const Duration(milliseconds: 380), () {
+          if (mounted) setState(() => _splashRemoved = true);
+        });
+      });
+    });
   }
 
   void _handleIncomingLinks() {
@@ -196,7 +211,7 @@ class _MyAppState extends State<MyApp> {
         builder: (context, themeProvider, _) => MaterialApp(
           navigatorKey: navigatorKey,
           title: 'Deuda Flow Control',
-          theme: BudgetoTheme.light, // Usa tu tema estático
+          theme: BudgetoTheme.light,
           initialRoute: _initialRoute,
           routes: {
             '/': (context) => const WelcomeScreen(),
@@ -207,6 +222,60 @@ class _MyAppState extends State<MyApp> {
             '/dashboard': (context) => const AuthGate(),
             '/clients': (context) => const AuthGate(),
             '/transactions': (context) => const AuthGate(),
+          },
+          builder: (context, child) {
+            return Stack(
+              children: [
+                if (child != null) child,
+                if (!_splashRemoved)
+                  IgnorePointer(
+                    ignoring: _splashOpacity == 0.0,
+                    child: AnimatedOpacity(
+                      opacity: _splashOpacity,
+                      duration: const Duration(milliseconds: 380),
+                      curve: Curves.easeOutCubic,
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Color(0xFF7C3AED),
+                              Color(0xFF4F46E5),
+                              Color(0xFF60A5FA),
+                            ],
+                          ),
+                        ),
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: const [
+                              // Logo con fondo circular y sombra para asegurar contraste
+                              SizedBox(height: 8),
+                              const Icon(
+                                Icons.account_balance_wallet_rounded,
+                                size: 130,
+                                color: Colors.white,
+                              ),
+                              SizedBox(height: 34),
+                              const Text(
+                                'Deuda Flow',
+                                style: TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  letterSpacing: 0.8,
+                                  decoration: TextDecoration.none,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
           },
         ),
       ),

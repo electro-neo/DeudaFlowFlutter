@@ -49,3 +49,117 @@
 
 ---
 If you are unsure about a workflow or pattern, check the relevant file in `lib/services/`, `lib/providers/`, or `lib/offline/` for examples.
+
+---
+## 🔄 Sesión Persistente (Actualizado)
+Objetivo: Mantener sesión iniciada (correo y Google) tras cerrar la app y permitir acceso offline controlado.
+
+Implementación:
+1. Restauración antes de `runApp()` en `main.dart` (método `_initializeApp`).
+2. Guardado local de la sesión Supabase como JSON (no tokens crudos separados) en `SessionAuthorityService.saveSupabaseSessionLocally()`.
+3. Recuperación por `SessionAuthorityService.restoreSessionIfNeeded(hasInternet)` usando `auth.recoverSession` solo si hay red (si no, se permite modo offline con datos locales).
+4. Limpieza segura en logout: `clearLocalSupabaseSession()` + `signOut` Supabase.
+5. Ruta inicial dinámica (`_initialRoute`):
+  - `/dashboard` si sesión válida.
+  - `/dashboard` offline si no hay red pero existen datos Hive (clients/transactions).
+  - `/` (Welcome) en caso contrario.
+
+Archivos clave:
+- `lib/main.dart`
+- `lib/services/session_authority_service.dart`
+- `lib/screens/login_screen.dart`
+
+Notas:
+- No borrar cajas Hive en arranque (evita perder sesión / offline).
+- Tiempo máximo de restauración: 3s con timeout para no bloquear UI.
+
+## 📱 Autoridad de Dispositivo / Sesión Única
+- Device ID generado internamente (no hardware ID) y sincronizado con Supabase para validar unicidad de sesión.
+- Conflictos manejados mostrando diálogo (ver `session_authority_service.dart`).
+- Al reautenticar se revalida el device ID antes de permitir continuar.
+
+## 📦 Offline-First
+- Hive almacena: clientes, transacciones, settings, sesión.
+- Acceso offline permitido solo si existen datos locales (al menos una caja con registros) y NO hay conectividad en arranque.
+- Sync diferido: cambios se juntan y se empujan cuando vuelve la conectividad (ver `SyncProvider`).
+
+## 🚀 Secuencia de Arranque / Splash (Optimizado)
+Fases:
+1. Splash nativo Android (`launch_background.xml` / tema `LaunchTheme`).
+2. (Android 12+) API de splash: color + icono (config en `values-v31/styles.xml`).
+3. Frame inicial Flutter con overlay propio (fade) definido en `MaterialApp.builder` (Stack) para transicionar suavemente.
+
+Cambios aplicados:
+- Fondo morado corporativo (`#6C63FF`) reemplazó al blanco inicial.
+- Icono nativo usa `@mipmap/ic_launcher` para aparición inmediata (vector previo podía retrasarse).
+- Overlay Flutter ahora desaparece con un fade rápido (~380ms) tras el primer frame.
+- Eliminadas sombras y fondos según preferencia visual solicitada.
+
+Problemas comunes y soluciones:
+- Parpadeo negro antes del color: forzar `android:forceDarkAllowed=false` y usar mismo color en `LaunchTheme` y `NormalTheme`.
+- Icono tardío: evitar vectores grandes o assets pesados; usar mipmap adaptativo.
+
+## 🎨 Iconos, Assets y Marca
+- Icono base: `assets/app_icon.png` (también usado para launcher icons via `flutter_launcher_icons`).
+- Splash overlay actual: usa `Icons.account_balance_wallet_rounded` (se sustituyó la imagen por ícono Material según solicitud). 
+- Sombra en texto/logo opcional; actualmente desactivada.
+
+## 🔐 Google Sign-In + Email
+- Tras login (correo / Google) se invoca `saveSupabaseSessionLocally()` antes de navegar al dashboard para evitar condición de carrera.
+- Evitar navegar antes de persistir la sesión.
+
+## 🧪 Errores Típicos Detectados
+| Problema | Causa | Fix |
+|----------|-------|-----|
+| `Unable to load asset assets/app_icon.png` | Asset no declarado | Agregar en `pubspec.yaml` sección `assets:` |
+| Flash blanco inicial | Color por defecto + falta de tema unificado | Ajustar `launch_background.xml` + `NormalTheme` |
+| Icono no aparece hasta segundos después | Uso de vector/bitmap diferido | Cambiar a `@mipmap/ic_launcher` en splash |
+| Sesión pierde persistencia | Borrado de Hive o falta de restore antes de UI | Restaurar antes de `runApp` |
+
+## 🧭 Convenciones Ampliadas
+- Lógica de sesión y sync solo en `services/` o `providers/` (no en widgets directamente).
+- Evitar `setState` repetitivo en pantallas: usar Providers.
+- No introducir dependencias que requieran IDs de hardware reales (privacidad / políticas store).
+- Comentarios en español, código limpio y conciso.
+- Revisar antes de agregar paquetes: si ya existe util en `utils/` o `offline/` reutilizar.
+
+## 🛠 Checklist para Nuevos Features
+1. ¿Requiere datos persistentes? -> Crear modelo + adapter Hive si aplica.
+2. ¿Afecta sesión / auth? -> Coordinar con `SessionAuthorityService`.
+3. ¿Necesita sync remoto? -> Extender `SupabaseService` / `SyncProvider`.
+4. ¿UI reactiva? -> Añadir Provider dedicado en `providers/`.
+5. ¿Afecta arranque? -> Validar no rompe `_initializeApp` ni initialRoute.
+6. ¿Añade assets? -> Declarar en `pubspec.yaml`.
+7. ¿Necesita deep link? -> Configurar `AppLinks` y rutas.
+8. Tests rápidos: compilar, login, restart en modo avión, logout.
+
+## 🧩 Próximas Mejoras Sugeridas (Opcionales)
+- Pre-cache de imagen/icono para web y desktop (reduce primer frame delay).
+- Splash unificado multi-plataforma con `flutter_native_splash` si se desea estandarizar.
+- Telemetría ligera (opcional) para medir tiempos de arranque (sin datos sensibles).
+- Estrategia de retry/backoff centralizada para sync.
+- Modo onboarding (aprovechar `WelcomeScreen` antes de login).
+
+## ⚠️ Pitfalls Evitados
+- No usar `auth.persistSessionString` (se optó por JSON robusto real).
+- Evitar limpiar Hive automáticamente (rompe offline y sesión persistente).
+- No colocar lógica de network/recover en cada pantalla (solo en bootstrap + AuthGate).
+
+## 🧾 Resumen Rápido de Flujos
+- Arranque: Hive + Supabase -> restore -> route -> runApp -> overlay fade.
+- Login: credenciales -> Supabase session -> save local -> navegar.
+- Offline: sin red + datos locales => dashboard con userId `offline`.
+- Logout: signOut supabase + clear session local + navegar a welcome/login.
+
+## 📨 Deep Links
+- Soportado: `deudaflow://reset-password` (manejado en `_handleIncomingLinks`).
+- Extender: añadir nuevos hosts -> actualizar manifest + lógica central.
+
+## 🔍 Debug Rápido
+- Ver logs de arranque: buscar `[BOOT]` en consola.
+- Ver restauración: mensajes en `restoreSessionIfNeeded`.
+- Problemas visuales de splash: revisar `launch_background.xml` + estilos v31.
+
+---
+Última actualización: (auto) refactor splash, persistencia sesión híbrida y optimizaciones de arranque.
+Mantener este documento sincronizado con cambios estructurales futuros.

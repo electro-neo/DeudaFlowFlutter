@@ -199,6 +199,8 @@ class _LoginScreenState extends State<LoginScreen> {
           await txProvider.syncPendingTransactions(user.id);
         } catch (_) {}
         if (!mounted) return;
+        // Guardar sesión Supabase en Hive (JSON) para restauración futura
+        await SessionAuthorityService.instance.saveSupabaseSessionLocally();
         // ignore: use_build_context_synchronously
         Navigator.of(context).pushReplacementNamed('/dashboard');
       }
@@ -384,6 +386,7 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       } catch (_) {}
       debugPrint('DEBUG: Login con Google exitoso, navegando a dashboard.');
+      await SessionAuthorityService.instance.saveSupabaseSessionLocally();
       // ignore: use_build_context_synchronously
       Navigator.of(context).pushReplacementNamed('/dashboard');
     } catch (e) {
@@ -742,7 +745,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                           ],
-                        ),// ...existing code...
+                        ), // ...existing code...
                       ],
                     ),
                   ),

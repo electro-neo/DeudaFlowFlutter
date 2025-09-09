@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -35,10 +36,79 @@ enum AuthorityState {
 /// Usado por Login y por SyncProvider durante reconexiones.
 
 class SessionAuthorityService {
+  // Clave nueva para la sesión persistida con el formato oficial de Supabase
+  static const String _kPersistSessionKey = 'supabase_session_ps';
+
+  /// Guarda la sesión actual serializada como JSON en Hive.
+  Future<void> saveSupabaseSessionLocally() async {
+    try {
+      final session = Supabase.instance.client.auth.currentSession;
+      if (session == null) return;
+      final box = await Hive.openBox('session');
+      final jsonStr = jsonEncode(session.toJson());
+      if (jsonStr.trim().isEmpty) return;
+      await box.put(_kPersistSessionKey, jsonStr);
+      debugPrint(
+        '[SESSION][save] session JSON guardado (${jsonStr.length} chars)',
+      );
+    } catch (e) {
+      debugPrint('[SESSION][save] Error: $e');
+    }
+  }
+
+  /// Intenta restaurar la sesión sólo si aún no existe una en memoria.
+  /// Estrategia:
+  /// 1. Si currentSession != null => nada.
+  /// 2. Leer string persistido; si no existe => nada.
+  /// 3. Intentar recoverSession(); si falla por red => permitir modo offline (no borra la cadena).
+  Future<void> restoreSessionIfNeeded({bool hasInternet = true}) async {
+    try {
+      if (Supabase.instance.client.auth.currentSession != null) {
+        return; // Ya hay sesión en memoria
+      }
+      final box = await Hive.openBox('session');
+      final stored = box.get(_kPersistSessionKey);
+      if (stored is! String || stored.trim().isEmpty) {
+        return; // Nada que restaurar
+      }
+      if (!hasInternet) {
+        // Offline: no podemos refrescar tokens; se dejará que AuthGate decida modo offline.
+        debugPrint('[SESSION][restore] Offline: se pospone recoverSession');
+        return;
+      }
+      try {
+        final result = await Supabase.instance.client.auth.recoverSession(
+          stored,
+        );
+        if (result.session != null) {
+          debugPrint('[SESSION][restore] Sesión recuperada correctamente');
+        } else {
+          debugPrint('[SESSION][restore] recoverSession retornó sin sesión');
+        }
+      } catch (e) {
+        debugPrint('[SESSION][restore] Error en recoverSession: $e');
+      }
+    } catch (e) {
+      debugPrint('[SESSION][restore] Error general: $e');
+    }
+  }
+
+  /// Borra la sesión persistida localmente.
+  Future<void> clearLocalSupabaseSession() async {
+    try {
+      final box = await Hive.openBox('session');
+      await box.delete(_kPersistSessionKey);
+      debugPrint('[SESSION][clear] persistSession eliminada');
+    } catch (e) {
+      debugPrint('[SESSION][clear] Error: $e');
+    }
+  }
+
   /// Cierra sesión y detiene el listener de device_id en tiempo real.
   Future<void> signOutAndDisposeListener() async {
     disposeDeviceIdListener();
     await Supabase.instance.client.auth.signOut();
+    await clearLocalSupabaseSession();
   }
 
   // --- Realtime device_id listener ---

@@ -24,8 +24,13 @@ import 'providers/transaction_filter_provider.dart';
 import 'providers/tab_provider.dart';
 import 'providers/theme_provider.dart';
 import 'widgets/budgeto_theme.dart';
+import 'services/session_authority_service.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+String _initialRoute = '/'; // Se ajustará en _initializeApp según sesión
+
+// Indicador interno para saber si ya intentamos restaurar sesión antes del árbol
+bool _preBootRestored = false;
 
 // ...eliminada duplicidad de _initializeApp...
 Future<void> _initializeApp() async {
@@ -54,6 +59,51 @@ Future<void> _initializeApp() async {
     await Hive.openBox<TransactionHive>('transactions');
     debugPrint('Box transactions abierto');
     await Hive.openBox('user_settings');
+
+    // Chequeo de conectividad rápido
+    bool hasInternet = true;
+    try {
+      final r = await InternetAddress.lookup(
+        'google.com',
+      ).timeout(const Duration(seconds: 2));
+      hasInternet = r.isNotEmpty && r[0].rawAddress.isNotEmpty;
+    } catch (_) {
+      hasInternet = false;
+    }
+    // Restaurar sesión (si existe) antes de montar la UI
+    try {
+      await SessionAuthorityService.instance
+          .restoreSessionIfNeeded(hasInternet: hasInternet)
+          .timeout(const Duration(seconds: 3));
+      _preBootRestored = true;
+      debugPrint('[BOOT] Restauración previa completada');
+    } catch (e) {
+      debugPrint('[BOOT] Restauración previa falló: $e');
+    }
+
+    // Determinar initialRoute dinámicamente
+    try {
+      final session = Supabase.instance.client.auth.currentSession;
+      final clientsBox = Hive.box<ClientHive>('clients');
+      final txBox = Hive.box<TransactionHive>('transactions');
+      final hasLocalData = clientsBox.isNotEmpty || txBox.isNotEmpty;
+      if (session != null) {
+        _initialRoute = '/dashboard';
+        debugPrint('[BOOT] initialRoute => /dashboard (sesión válida)');
+      } else if (!hasInternet && hasLocalData) {
+        // Modo offline permitido directo
+        _initialRoute = '/dashboard';
+        debugPrint(
+          '[BOOT] initialRoute => /dashboard (offline con datos locales)',
+        );
+      } else {
+        _initialRoute = '/';
+        debugPrint('[BOOT] initialRoute => / (sin sesión)');
+      }
+    } catch (e) {
+      debugPrint('[BOOT] No se pudo determinar initialRoute dinamica: $e');
+    }
+
     runApp(const MyApp());
     debugPrint('runApp ejecutado');
   } catch (e, st) {
@@ -147,7 +197,7 @@ class _MyAppState extends State<MyApp> {
           navigatorKey: navigatorKey,
           title: 'Deuda Flow Control',
           theme: BudgetoTheme.light, // Usa tu tema estático
-          initialRoute: '/',
+          initialRoute: _initialRoute,
           routes: {
             '/': (context) => const WelcomeScreen(),
             '/login': (context) => const LoginScreen(),
@@ -171,15 +221,28 @@ class AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<AuthGate> {
-  Future<bool> checkInternet() async {
+  Future<Map<String, dynamic>> _bootstrap() async {
+    // Conectividad
+    bool isOnline;
     try {
       final result = await InternetAddress.lookup(
         'google.com',
       ).timeout(const Duration(seconds: 2));
-      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+      isOnline = result.isNotEmpty && result[0].rawAddress.isNotEmpty;
     } catch (_) {
-      return false;
+      isOnline = false;
     }
+    // Si no restauramos antes (hot reload / navegaciones), intentar ahora una sola vez
+    if (!_preBootRestored) {
+      try {
+        await SessionAuthorityService.instance
+            .restoreSessionIfNeeded(hasInternet: isOnline)
+            .timeout(const Duration(seconds: 3));
+        _preBootRestored = true;
+      } catch (_) {}
+    }
+    final session = Supabase.instance.client.auth.currentSession;
+    return {'online': isOnline, 'session': session};
   }
 
   @override
@@ -188,19 +251,19 @@ class _AuthGateState extends State<AuthGate> {
     final transactionsBox = Hive.box<TransactionHive>('transactions');
     final hasLocalData = clientsBox.isNotEmpty || transactionsBox.isNotEmpty;
 
-    return FutureBuilder<bool>(
-      future: checkInternet(),
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _bootstrap(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
-        final isOnline = snapshot.data ?? false;
+        final data = snapshot.data!;
+        final isOnline = data['online'] as bool;
+        final session = data['session'];
         if (!isOnline && hasLocalData) {
           // Modo offline: acceso directo
           return MainScaffold(userId: 'offline');
         }
-        // Si hay internet, consulta Supabase normalmente
-        final session = Supabase.instance.client.auth.currentSession;
         if (session == null) {
           return const LoginScreen();
         } else {

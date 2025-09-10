@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'models/client_hive.dart';
+import 'models/contact_hive.dart';
 import 'models/transaction_hive.dart';
 
 import 'providers/client_provider.dart';
@@ -53,11 +54,14 @@ Future<void> _initializeApp() async {
     debugPrint('Hive inicializado');
     Hive.registerAdapter(ClientHiveAdapter());
     Hive.registerAdapter(TransactionHiveAdapter());
+    Hive.registerAdapter(ContactHiveAdapter());
     debugPrint('Adapters registrados');
     await Hive.openBox<ClientHive>('clients');
     debugPrint('Box clients abierto');
     await Hive.openBox<TransactionHive>('transactions');
     debugPrint('Box transactions abierto');
+    await Hive.openBox<ContactHive>('contacts');
+    debugPrint('Box contacts abierto');
     await Hive.openBox('user_settings');
 
     // Chequeo de conectividad rápido

@@ -115,28 +115,78 @@ class _ClientFormState extends State<ClientForm> {
                             },
                           ),
                   ),
-                  if (pageCount > 1)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (pageCount > 1)
                           IconButton(
                             icon: Icon(Icons.arrow_back),
                             onPressed: currentPage > 0
                                 ? () => setModalState(() => currentPage--)
                                 : null,
                           ),
+                        if (pageCount > 1)
                           Text('Página ${currentPage + 1} de $pageCount'),
+                        if (pageCount > 1)
                           IconButton(
                             icon: Icon(Icons.arrow_forward),
                             onPressed: currentPage < pageCount - 1
                                 ? () => setModalState(() => currentPage++)
                                 : null,
                           ),
-                        ],
-                      ),
+                        // Botón de sincronizar contactos
+                        IconButton(
+                          icon: Icon(Icons.sync),
+                          tooltip: 'Sincronizar contactos',
+                          onPressed: () async {
+                            showDialog(
+                              context: ctx,
+                              barrierDismissible: false,
+                              builder: (dctx) =>
+                                  Center(child: CircularProgressIndicator()),
+                            );
+                            try {
+                              final status = await Permission.contacts.status;
+                              if (status.isGranted ||
+                                  (await Permission.contacts.request())
+                                      .isGranted) {
+                                final systemContacts =
+                                    await FlutterContacts.getContacts(
+                                      withProperties: true,
+                                    );
+                                await welcome_screen.saveContactsToHive(
+                                  systemContacts,
+                                );
+                                welcome_screen.globalContacts = systemContacts;
+                                contacts = systemContacts;
+                                setModalState(() {});
+                              }
+                            } catch (e) {
+                              debugPrint(
+                                '[SYNC] Error al sincronizar contactos: $e',
+                              );
+                            }
+                            if (Navigator.of(ctx).canPop()) {
+                              Navigator.of(
+                                ctx,
+                              ).pop(); // Cierra el indicador de carga
+                            }
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Contactos sincronizados correctamente.',
+                                ),
+                                backgroundColor: Colors.green,
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
                     ),
+                  ),
                 ],
               ),
             );
@@ -703,29 +753,6 @@ class _ClientFormState extends State<ClientForm> {
                       )
                     else ...[
                       Padding(
-                        padding: const EdgeInsets.only(top: 8.0, bottom: 5.0),
-                        child: TextField(
-                          controller: _initialDescriptionController,
-                          decoration: InputDecoration(
-                            labelText: 'Descripción saldo inicial',
-                            prefixIcon: const Icon(Icons.description_outlined),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            filled: true,
-                            fillColor: const Color(
-                              0xFF7C3AED,
-                            ).withOpacity(0.07),
-                            floatingLabelBehavior: FloatingLabelBehavior.auto,
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 16,
-                              horizontal: 12,
-                            ),
-                          ),
-                          maxLength: 60,
-                        ),
-                      ),
-                      Padding(
                         padding: const EdgeInsets.only(bottom: 5.0),
                         child: Center(
                           child: AnimatedContainer(
@@ -886,6 +913,29 @@ class _ClientFormState extends State<ClientForm> {
                             ],
                           ),
                         ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0, bottom: 5.0),
+                        child: TextField(
+                          controller: _initialDescriptionController,
+                          decoration: InputDecoration(
+                            labelText: 'Descripción',
+                            prefixIcon: const Icon(Icons.description_outlined),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            filled: true,
+                            fillColor: const Color(
+                              0xFF7C3AED,
+                            ).withOpacity(0.07),
+                            floatingLabelBehavior: FloatingLabelBehavior.auto,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 16,
+                              horizontal: 12,
+                            ),
+                          ),
+                          maxLength: 60,
+                        ),
+                      ),
                     ],
                   if (_error != null)
                     Padding(

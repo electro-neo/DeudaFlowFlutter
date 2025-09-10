@@ -164,6 +164,7 @@ class SessionAuthorityService {
                   context,
                   userId,
                   knownRemoteId: newDeviceId,
+                  source: 'SessionAuthorityService.listenToDeviceIdChanges',
                 );
               } else {
                 debugPrint(
@@ -189,6 +190,36 @@ class SessionAuthorityService {
     _deviceIdChannel = null;
   }
 
+  /// Listener de depuración para cambios de estado de autenticación de Supabase.
+  /// Muestra logs y un SnackBar breve con el evento que provocó el cambio.
+  void startAuthStateDebugListener() {
+    try {
+      Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+        final event = data.event;
+        final session = data.session;
+        debugPrint(
+          '[AUTH][STATE] event=$event, sessionNull=${session == null}',
+        );
+        final ctx = navigatorKey.currentContext;
+        if (ctx != null) {
+          // Evitar spamear: solo avisar cuando la sesión se vuelve null o se hace signedOut
+          if (session == null || event == AuthChangeEvent.signedOut) {
+            ScaffoldMessenger.maybeOf(ctx)?.showSnackBar(
+              SnackBar(
+                content: Text(
+                  'AuthState: $event (session null=${session == null})',
+                ),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        }
+      });
+    } catch (e) {
+      debugPrint('[AUTH][STATE] Listener error: $e');
+    }
+  }
+
   /// Valida que el device_id local coincida con el remoto antes de sincronizar.
   /// Si no coincide, muestra un diálogo y cierra sesión automáticamente tras 4 segundos.
   Future<bool> validateDeviceAuthorityOrLogout(
@@ -196,7 +227,22 @@ class SessionAuthorityService {
     String userId, {
     String? knownRemoteId, // Opcional: evita fetch si ya lo tenemos (realtime)
     bool? hasInternet, // Nuevo parámetro opcional para saber si hay internet
+    String source =
+        'unknown', // NUEVO: para rastrear quién disparó la validación
   }) async {
+    // GRACIA DE ARRANQUE: si la sesión aún no está marcada como 'authorized' o no hay currentSession, evita validar para no cerrar sesión en arranque en frío
+    try {
+      final sessionBox = await Hive.openBox('session');
+      final sessionFlag = sessionBox.get(kSessionFlagKey);
+      final hasSupaSession =
+          Supabase.instance.client.auth.currentSession != null;
+      if (sessionFlag != 'authorized' || !hasSupaSession) {
+        debugPrint(
+          '[AUTH-DEVICE][validate] Skip por arranque (source=$source): session_flag=$sessionFlag, supaSession=$hasSupaSession',
+        );
+        return true;
+      }
+    } catch (_) {}
     // Debug: imprimir el estado de la sesión (flag) antes de validar
     try {
       final sessionBox = await Hive.openBox('session');
@@ -230,7 +276,7 @@ class SessionAuthorityService {
         final sessionBox = await Hive.openBox('session');
         final sessionFlag = sessionBox.get(kSessionFlagKey);
         debugPrint(
-          '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Modo OFFLINE: evitando chequeos remotos. Flag actual: \u001b[36m$sessionFlag\u001b[0m',
+          '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Modo OFFLINE (source=$source): evitando chequeos remotos. Flag actual: \u001b[36m$sessionFlag\u001b[0m',
         );
       } catch (e) {
         debugPrint(
@@ -259,7 +305,7 @@ class SessionAuthorityService {
     }
     _lastValidateCallAt = now;
     debugPrint(
-      '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Inicio de validación para user: $userId | burst#=$_validateBurstCount (Δ ${deltaMs}ms, ventana ${_validateBurstWindowMs}ms)',
+      '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Inicio de validación (source=$source) para user: $userId | burst#=$_validateBurstCount (Δ ${deltaMs}ms, ventana ${_validateBurstWindowMs}ms)',
     );
 
     // Si acabamos de hacer un bind exitoso, saltar validaciones por una ventana corta
@@ -279,7 +325,7 @@ class SessionAuthorityService {
       knownRemoteId: knownRemoteId,
     );
     debugPrint(
-      '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] localId: $localId, remoteId: $remoteId',
+      '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] localId: $localId, remoteId: $remoteId, source=$source',
     );
     if (remoteId == null || remoteId.isEmpty) {
       debugPrint(
@@ -288,7 +334,7 @@ class SessionAuthorityService {
     }
     if (remoteId != null && remoteId.isNotEmpty && remoteId != localId) {
       debugPrint(
-        '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Conflicto detectado, context: $context',
+        '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Conflicto detectado (source=$source), context: $context',
       );
       // Si el context local no está montado, usar navigatorKey.currentContext como fallback global
       BuildContext? safeContext = context;
@@ -333,7 +379,7 @@ class SessionAuthorityService {
       }
       // --- En cualquier otro caso de conflicto, cerrar sesión automática ---
       debugPrint(
-        '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] ONLINE: Cierre de sesión automática por conflicto.',
+        '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] ONLINE: Cierre de sesión automática por conflicto (source=$source).',
       );
       // Seguridad: safeContext puede ser el context original o un fallback global.
       // Ya se verificó que no sea null ni esté desmontado antes de llegar aquí.
@@ -357,14 +403,25 @@ class SessionAuthorityService {
           });
           return AlertDialog(
             title: const Text('Sesión cerrada por seguridad'),
-            content: const Text(
-              'Tu cuenta ha sido activada en otro equipo. Por seguridad, se cerrará la sesión en este equipo.',
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Tu cuenta ha sido activada en otro equipo. Por seguridad, se cerrará la sesión en este equipo.',
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Origen: $source',
+                  style: const TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+              ],
             ),
           );
         },
       );
       debugPrint(
-        '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] showDialog de cierre de sesión automática mostrado',
+        '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] showDialog de cierre de sesión automática mostrado (source=$source)',
       );
       totalSw.stop();
       debugPrint(

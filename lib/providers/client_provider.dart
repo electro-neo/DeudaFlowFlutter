@@ -59,7 +59,11 @@ class ClientProvider extends ChangeNotifier {
       // Evitar usar un BuildContext no montado
       if (!localContext.mounted) return;
       final ok = await SessionAuthorityService.instance
-          .validateDeviceAuthorityOrLogout(localContext, userId);
+          .validateDeviceAuthorityOrLogout(
+            localContext,
+            userId,
+            source: 'ClientProvider.syncPendingClients',
+          );
       if (!ok) return;
     }
     if (!await _isOnline()) return;
@@ -383,7 +387,11 @@ class ClientProvider extends ChangeNotifier {
       if (localContext != null) {
         if (!localContext.mounted) return finalId;
         ok = await SessionAuthorityService.instance
-            .validateDeviceAuthorityOrLogout(localContext, userId);
+            .validateDeviceAuthorityOrLogout(
+              localContext,
+              userId,
+              source: 'ClientProvider.addClient',
+            );
       }
       if (!ok) return finalId;
       await syncPendingClients(userId);
@@ -441,7 +449,11 @@ class ClientProvider extends ChangeNotifier {
       if (localContext != null) {
         if (!localContext.mounted) return;
         ok = await SessionAuthorityService.instance
-            .validateDeviceAuthorityOrLogout(localContext, userId);
+            .validateDeviceAuthorityOrLogout(
+              localContext,
+              userId,
+              source: 'ClientProvider.updateClient',
+            );
       }
       if (!ok) return;
       await syncPendingClients(userId);
@@ -491,7 +503,11 @@ class ClientProvider extends ChangeNotifier {
       if (localContext != null) {
         if (!localContext.mounted) return;
         final ok = await SessionAuthorityService.instance
-            .validateDeviceAuthorityOrLogout(localContext, userId);
+            .validateDeviceAuthorityOrLogout(
+              localContext,
+              userId,
+              source: 'ClientProvider.deleteClient',
+            );
         if (!ok) return;
       }
       // Si hay internet, sincroniza inmediatamente (elimina en Supabase y luego en Hive)

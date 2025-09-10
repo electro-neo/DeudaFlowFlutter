@@ -251,10 +251,6 @@ class ClientDetailsModal extends StatelessWidget {
                                       dialogContext,
                                       listen: false,
                                     );
-                                final navigator = Navigator.of(
-                                  dialogContext,
-                                  rootNavigator: true,
-                                );
                                 final scaffoldMessenger = ScaffoldMessenger.of(
                                   dialogContext,
                                 );
@@ -265,9 +261,7 @@ class ClientDetailsModal extends StatelessWidget {
                                 );
                                 await txProvider.loadTransactions(userId);
                                 await clientProvider.loadClients(userId);
-                                if (navigator.mounted && navigator.canPop()) {
-                                  navigator.pop();
-                                }
+                                // Cierre del diálogo: lo manejará TransactionForm vía onClose.
                                 try {
                                   scaffoldMessenger.showSnackBar(
                                     const SnackBar(

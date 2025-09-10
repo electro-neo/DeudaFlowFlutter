@@ -9,11 +9,25 @@ import '../models/transaction_hive.dart';
 import '../models/client_hive.dart';
 import '../models/client.dart';
 import '../services/supabase_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/session_authority_service.dart';
 import '../main.dart';
 import 'client_provider.dart';
 
 class TransactionProvider extends ChangeNotifier {
+  // Lee el flag de sesión en Hive para saber si la sesión ya está autorizada
+  Future<bool> _isSessionAuthorized() async {
+    try {
+      final box = Hive.isBoxOpen('session')
+          ? Hive.box('session')
+          : await Hive.openBox('session');
+      final state = box.get('session_state');
+      return state == 'authorized';
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Elimina una transacción de la lista en memoria y notifica listeners (solo UI, no Hive)
   void removeTransactionLocally(String transactionId) {
     _transactions.removeWhere((t) => t.id == transactionId);
@@ -29,7 +43,11 @@ class TransactionProvider extends ChangeNotifier {
     if (localContext != null) {
       // ignore: use_build_context_synchronously
       final ok = await SessionAuthorityService.instance
-          .validateDeviceAuthorityOrLogout(localContext, userId);
+          .validateDeviceAuthorityOrLogout(
+            localContext,
+            userId,
+            source: 'TransactionProvider.markTransactionForDeletionAndSync',
+          );
       if (!ok) return;
     }
     debugPrint(
@@ -212,7 +230,11 @@ class TransactionProvider extends ChangeNotifier {
         // ignore: use_build_context_synchronously
         final ok = await SessionAuthorityService.instance
             // ignore: use_build_context_synchronously
-            .validateDeviceAuthorityOrLogout(localContext, effectiveUserId);
+            .validateDeviceAuthorityOrLogout(
+              localContext,
+              effectiveUserId,
+              source: 'TransactionProvider.syncPendingTransactionsOnConnection',
+            );
         if (!ok) return;
       }
       debugPrint(
@@ -431,7 +453,7 @@ class TransactionProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('[recalculateClientBalance][UI-REFRESH][ERROR] $e');
     }
-    // Sincroniza con Supabase SOLO si hay userId, pero no bloquea el flujo local
+    // Sincroniza con Supabase SOLO si la sesión está autorizada y válida; de lo contrario, evita llamadas remotas en arranque en frío
     if (shouldUpdateRemote) {
       try {
         final clientModel = Client(
@@ -443,10 +465,16 @@ class TransactionProvider extends ChangeNotifier {
           localId: client.localId,
         );
         final userId = _lastKnownUserId ?? '';
-        if (userId.isNotEmpty) {
+        final isAuthorized = await _isSessionAuthorized();
+        final hasSession = Supabase.instance.client.auth.currentSession != null;
+        if (userId.isNotEmpty && isAuthorized && hasSession) {
           await SupabaseService().updateClient(clientModel);
           debugPrint(
             '>>> [recalculateClientBalance] Balance actualizado en Supabase',
+          );
+        } else {
+          debugPrint(
+            '[recalculateClientBalance] SKIP remote update (authorized=$isAuthorized, hasSession=$hasSession, userIdEmpty=${userId.isEmpty})',
           );
         }
       } catch (e, stack) {

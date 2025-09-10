@@ -39,6 +39,13 @@ Future<void> _initializeApp() async {
     debugPrint('Iniciando Supabase...');
     await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
     debugPrint('Supabase inicializado');
+    // Inicia listener de depuración para cambios de estado de autenticación
+    try {
+      SessionAuthorityService.instance.startAuthStateDebugListener();
+      debugPrint('[BOOT] AuthState debug listener iniciado');
+    } catch (e) {
+      debugPrint('[BOOT] No se pudo iniciar AuthState debug listener: $e');
+    }
 
     // Captura errores globales de Supabase y de Flutter
     FlutterError.onError = (FlutterErrorDetails details) {

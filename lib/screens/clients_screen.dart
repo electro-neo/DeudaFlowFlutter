@@ -190,8 +190,8 @@ class ClientsScreenState extends State<ClientsScreen>
           });
         }
       });
+      // El cierre del modal lo gestiona TransactionForm vía onClose.
       if (!mounted) return;
-      Navigator.of(context).pop();
     }
 
     if (isMobile) {
@@ -438,7 +438,9 @@ class ClientsScreenState extends State<ClientsScreen>
                   userId: widget.userId,
                   type: newClient.balance > 0 ? 'payment' : 'debt',
                   amount: newClient.balance.abs(),
-                  description: initialDescription?.isNotEmpty == true ? initialDescription! : 'Saldo inicial',
+                  description: initialDescription?.isNotEmpty == true
+                      ? initialDescription!
+                      : 'Saldo inicial',
                   date: transactionDate,
                   createdAt: now,
                   synced: false,

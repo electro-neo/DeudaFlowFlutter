@@ -1,3 +1,19 @@
+
+## 📝 Cambios Recientes y Soluciones
+
+### Últimos cambios y refactorizaciones
+Ver archivo `CAMBIOS_ULTIMA_SESION.txt` para detalles de refactor, mejoras visuales, lógica de sincronización offline/online, gestión de monedas, fixes de Provider, y optimizaciones en recibos PDF y UI/UX. Incluye commits sugeridos y fechas de cada cambio relevante.
+
+### Errores encontrados y soluciones aplicadas
+Ver archivo `Errores corregidos.txt` para una lista detallada de bugs, problemas de sincronización, fixes de lógica de filtros, errores de Provider, problemas de UI (Dismissible, padding, animaciones), y soluciones aplicadas. Incluye mejoras en la experiencia offline-first, login con Google, y generación de PDFs personalizados.
+
+### Estructura y lógica de la app
+Ver archivo `indice_estructura_app.txt` para el índice actualizado de pantallas, widgets, botones, lógica de navegación, permisos Android, y el flujo offline-first. Incluye detalles de formularios, botones, relación con Hive/Supabase, y el estado visual de sincronización en tarjetas de cliente y transacción.
+
+### Resumen de integración
+- Los cambios recientes y errores corregidos están documentados en los archivos txt para consulta rápida.
+- La estructura y lógica de la app se mantiene actualizada en el índice para facilitar onboarding, refactor y solución de problemas.
+- Ante cualquier bug, error visual, problema de sincronización o duda sobre el flujo, revisar primero los txt antes de modificar código.
 # Copilot Instructions for Deuda Flow Flutter
 
 ## Project Overview
@@ -10,7 +26,7 @@
 - `lib/services/`: Core business logic and backend integration:
   - `session_authority_service.dart`: Manages session authority, device ID, and real-time sync with Supabase.
   - `supabase_service.dart`: Handles all Supabase data operations (CRUD, sync, user settings).
-- `lib/models/`: Data models for clients and transactions, including Hive adapters.
+- `lib/models/`: Data models for clients and transactions, including Hive adapters. The initial balance description is captured in the client form and used only in the initial transaction, not in the client model.
 - `lib/providers/`: State management using Provider for clients, transactions, sync, navigation, etc.
 - `lib/screens/`: UI screens for login, dashboard, transactions, etc.
 - `lib/widgets/`: Reusable UI components and theming.
@@ -33,6 +49,7 @@
 - All business logic and data access are in `services/` and `offline/`.
 - UI logic is separated into `screens/` and `widgets/`.
 - Providers are used for state management; avoid direct setState in screens.
+- The client creation form (`ClientForm`) now captures a custom description for the initial balance, which is passed to the client screen and used only for the initial transaction.
 - Do not use hardware/system device IDs; only use the app-generated device ID.
 - Use `BudgetoTheme` and `budgeto_colors.dart` for consistent theming.
 
@@ -46,6 +63,7 @@
 - See `session_authority_service.dart` for device/session logic.
 - See `offline_helper.dart` for offline-first patterns.
 - See `main.dart` for initialization and provider setup.
+- See `client_form.dart` and `clients_screen.dart` for the flow of capturing and using the initial balance description in the transaction.
 
 ---
 If you are unsure about a workflow or pattern, check the relevant file in `lib/services/`, `lib/providers/`, or `lib/offline/` for examples.
@@ -131,7 +149,8 @@ Problemas comunes y soluciones:
 5. ¿Afecta arranque? -> Validar no rompe `_initializeApp` ni initialRoute.
 6. ¿Añade assets? -> Declarar en `pubspec.yaml`.
 7. ¿Necesita deep link? -> Configurar `AppLinks` y rutas.
-8. Tests rápidos: compilar, login, restart en modo avión, logout.
+8. ¿Captura descripción personalizada de saldo inicial? -> Usar el flujo de `ClientForm` y pasar la descripción a la transacción inicial en `ClientsScreen`.
+9. Tests rápidos: compilar, login, restart en modo avión, logout.
 
 ## 🧩 Próximas Mejoras Sugeridas (Opcionales)
 - Pre-cache de imagen/icono para web y desktop (reduce primer frame delay).
@@ -160,6 +179,6 @@ Problemas comunes y soluciones:
 - Ver restauración: mensajes en `restoreSessionIfNeeded`.
 - Problemas visuales de splash: revisar `launch_background.xml` + estilos v31.
 
----
+
 Última actualización: (auto) refactor splash, persistencia sesión híbrida y optimizaciones de arranque.
 Mantener este documento sincronizado con cambios estructurales futuros.

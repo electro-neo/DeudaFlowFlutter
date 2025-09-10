@@ -404,7 +404,7 @@ class ClientsScreenState extends State<ClientsScreen>
         child: ClientForm(
           initialClient: client,
           userId: widget.userId,
-          onSave: (newClient) async {
+          onSave: (newClient, initialDescription) async {
             final provider = Provider.of<ClientProvider>(
               context,
               listen: false,
@@ -431,9 +431,6 @@ class ClientsScreenState extends State<ClientsScreen>
               await provider.loadClients(widget.userId);
               if (newClient.balance != 0) {
                 final now = DateTime.now();
-                // FIX: Normalizar la fecha de la transacción a medianoche.
-                // La hora del día se captura en `createdAt`. Esto asegura que la
-                // clave de ordenamiento principal (date) sea consistente.
                 final transactionDate = DateTime(now.year, now.month, now.day);
                 final tx = Transaction(
                   id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -441,7 +438,7 @@ class ClientsScreenState extends State<ClientsScreen>
                   userId: widget.userId,
                   type: newClient.balance > 0 ? 'payment' : 'debt',
                   amount: newClient.balance.abs(),
-                  description: 'Saldo inicial',
+                  description: initialDescription?.isNotEmpty == true ? initialDescription! : 'Saldo inicial',
                   date: transactionDate,
                   createdAt: now,
                   synced: false,
@@ -458,7 +455,6 @@ class ClientsScreenState extends State<ClientsScreen>
                   if (isOnline) {
                     await _syncAll();
                   } else {
-                    // Si no hay internet, limpiar el estado temporal para que la UI muestre el estado persistente
                     setState(() {
                       _clientSyncStates.remove(realId);
                     });

@@ -11,7 +11,7 @@ import '../widgets/scale_on_tap.dart';
 import '../utils/currency_utils.dart';
 
 class ClientForm extends StatefulWidget {
-  final Future<ClientHive> Function(ClientHive) onSave;
+  final Future<ClientHive> Function(ClientHive, String?) onSave;
   final ClientHive? initialClient;
   final String userId;
   final bool readOnlyBalance;
@@ -154,6 +154,7 @@ class _ClientFormState extends State<ClientForm> {
   late final TextEditingController _addressController;
   late final TextEditingController _phoneController;
   late final TextEditingController _balanceController;
+  late final TextEditingController _initialDescriptionController;
   bool _isSaving = false;
 
   // Lista de monedas (prioridad: USD, VES, COP, EUR, luego otras)
@@ -194,6 +195,7 @@ class _ClientFormState extends State<ClientForm> {
     _balanceController = TextEditingController(
       text: c != null ? c.balance.toString() : '',
     );
+    _initialDescriptionController = TextEditingController();
     if (widget.initialClient != null && widget.readOnlyBalance) {
       // Si es edición, deshabilitar el tipo (deuda/abono) y el balance
       _initialType = c!.balance < 0 ? 'debt' : 'payment';
@@ -226,6 +228,7 @@ class _ClientFormState extends State<ClientForm> {
     String? type = _initialType;
     double? anchorUsdValue;
     String? currencyCode;
+    String initialDescription = '';
     if (_showInitialBalanceFields) {
       if (_selectedCurrency == null || _selectedCurrency!.isEmpty) {
         setState(() {
@@ -258,6 +261,7 @@ class _ClientFormState extends State<ClientForm> {
         });
         return;
       }
+      initialDescription = _initialDescriptionController.text.trim();
       // --- Cálculo de anchorUsdValue ---
       final provider = Provider.of<CurrencyProvider>(context, listen: false);
       final codeUC = _selectedCurrency!.toUpperCase();
@@ -311,6 +315,7 @@ class _ClientFormState extends State<ClientForm> {
       type = null;
       anchorUsdValue = null;
       currencyCode = null;
+      initialDescription = '';
     }
     setState(() {
       _error = null;
@@ -346,7 +351,7 @@ class _ClientFormState extends State<ClientForm> {
 
     // Guardar en background (sin esperar el cierre del formulario)
     try {
-      await widget.onSave(client);
+      await widget.onSave(client, initialDescription);
     } catch (e) {
       if (!mounted) return;
       final msg = e.toString();
@@ -697,6 +702,29 @@ class _ClientFormState extends State<ClientForm> {
                         ),
                       )
                     else ...[
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0, bottom: 5.0),
+                        child: TextField(
+                          controller: _initialDescriptionController,
+                          decoration: InputDecoration(
+                            labelText: 'Descripción saldo inicial',
+                            prefixIcon: const Icon(Icons.description_outlined),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            filled: true,
+                            fillColor: const Color(
+                              0xFF7C3AED,
+                            ).withOpacity(0.07),
+                            floatingLabelBehavior: FloatingLabelBehavior.auto,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 16,
+                              horizontal: 12,
+                            ),
+                          ),
+                          maxLength: 60,
+                        ),
+                      ),
                       Padding(
                         padding: const EdgeInsets.only(bottom: 5.0),
                         child: Center(

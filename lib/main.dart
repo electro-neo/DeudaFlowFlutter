@@ -252,13 +252,13 @@ class _MyAppState extends State<MyApp> {
                             children: const [
                               // Logo con fondo circular y sombra para asegurar contraste
                               SizedBox(height: 8),
-                              const Icon(
+                              Icon(
                                 Icons.account_balance_wallet_rounded,
                                 size: 130,
                                 color: Colors.white,
                               ),
                               SizedBox(height: 34),
-                              const Text(
+                              Text(
                                 'Deuda Flow',
                                 style: TextStyle(
                                   fontSize: 32,

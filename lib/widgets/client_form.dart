@@ -70,6 +70,11 @@ class _ClientFormState extends State<ClientForm> {
                           c.phones.first.number.contains(search)),
                 )
                 .toList();
+            filtered.sort(
+              (a, b) => a.displayName.toLowerCase().compareTo(
+                b.displayName.toLowerCase(),
+              ),
+            );
             int pageSize = 50;
             int pageCount = (filtered.length / pageSize).ceil();
             return SizedBox(
@@ -312,6 +317,13 @@ class _ClientFormState extends State<ClientForm> {
         return;
       }
       initialDescription = _initialDescriptionController.text.trim();
+      if (initialDescription.isEmpty) {
+        setState(() {
+          _error = 'Debes agregar una descripción';
+          _isSaving = false;
+        });
+        return;
+      }
       // --- Cálculo de anchorUsdValue ---
       final provider = Provider.of<CurrencyProvider>(context, listen: false);
       final codeUC = _selectedCurrency!.toUpperCase();

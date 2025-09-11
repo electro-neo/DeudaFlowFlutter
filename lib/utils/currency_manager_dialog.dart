@@ -25,9 +25,8 @@ class CurrencyManagerDialog extends StatefulWidget {
 class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
   late List<String> currencies;
   late Map<String, TextEditingController> rates;
-  // Usar el listado de monedas permitidas desde CurrencyProvider
-  List<String> get allPossibleCurrencies => CurrencyProvider.allowedCurrencies;
   String? selectedCurrency;
+  final TextEditingController newCurrencyController = TextEditingController();
   final TextEditingController newRateController = TextEditingController();
   String? addError;
   bool showAddFields = false;
@@ -110,17 +109,7 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
         rates.remove(selectedCurrency);
       }
     }
-    // Para el dropdown, solo mostrar monedas realmente registradas y no la temporal
-    final alreadyRegistered = {
-      ...currencyProvider.availableCurrencies.where((c) => c != 'USD'),
-      'USD',
-    };
-    final availableToAdd = allPossibleCurrencies
-        .where((code) => !alreadyRegistered.contains(code))
-        .toList();
-
     void showCurrencyPickerDialog() async {
-      // String? picked; // Removed unused local variable 'picked'.
       await showDialog(
         context: context,
         builder: (ctx) {
@@ -129,81 +118,73 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
-            title: const Text('Selecciona una moneda'),
+            title: const Text('Agregar moneda'),
             content: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-              child: SizedBox(
-                width: 160,
-                child: DropdownButtonFormField<String>(
-                  isExpanded: true,
-                  value: null,
-                  items: availableToAdd
-                      .map(
-                        (code) =>
-                            DropdownMenuItem(value: code, child: Text(code)),
-                      )
-                      .toList(),
-                  onChanged: (val) {
-                    if (val != null) {
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: newCurrencyController,
+                    decoration: InputDecoration(
+                      labelText: 'Código (ej: Eur)',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
+                    ),
+                    textCapitalization: TextCapitalization.sentences,
+                    maxLength: 11,
+                  ),
+                  const SizedBox(height: 8),
+                  ElevatedButton(
+                    onPressed: () {
+                      String code = newCurrencyController.text.trim();
+                      if (code.isEmpty || code.toUpperCase() == 'USD') {
+                        setState(() {
+                          addError = 'Código inválido.';
+                        });
+                        return;
+                      }
+                      // Solo primera letra mayúscula, resto minúscula
+                      code =
+                          code.substring(0, 1).toUpperCase() +
+                          code.substring(1).toLowerCase();
+                      if (currencyProvider.availableCurrencies.contains(code)) {
+                        setState(() {
+                          addError = 'Ya existe esa moneda.';
+                        });
+                        return;
+                      }
                       Navigator.of(ctx).pop();
                       setState(() {
-                        selectedCurrency = val;
+                        selectedCurrency = code;
                         showAddFields = true;
                         addError = null;
+                        newCurrencyController.clear();
                       });
-                    }
-                  },
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color:
-                            Theme.of(context)
-                                .inputDecorationTheme
-                                .enabledBorder
-                                ?.borderSide
-                                .color ??
-                            theme.colorScheme.primary,
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color:
-                            Theme.of(context)
-                                .inputDecorationTheme
-                                .enabledBorder
-                                ?.borderSide
-                                .color ??
-                            theme.colorScheme.primary,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color:
-                            Theme.of(context)
-                                .inputDecorationTheme
-                                .focusedBorder
-                                ?.borderSide
-                                .color ??
-                            theme.colorScheme.secondary,
-                        width: 2,
-                      ),
-                    ),
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 6,
-                    ),
+                    },
+                    child: const Text('Continuar'),
                   ),
-                  menuMaxHeight: 200, // Más compacto
-                ),
+                ],
               ),
             ),
           );
         },
       );
+    }
+
+    @override
+    void dispose() {
+      newCurrencyController.dispose();
+      // ...existing code...
     }
 
     // Envolver el AlertDialog en un WillPopScope para interceptar el cierre por tap en la sombra
@@ -278,7 +259,12 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             boxShadow: [
               BoxShadow(
-                color: const Color.fromARGB(255, 255, 255, 255).withValues(alpha: (0.08 * 255).toDouble()),                
+                color: const Color.fromARGB(
+                  255,
+                  255,
+                  255,
+                  255,
+                ).withValues(alpha: (0.08 * 255).toDouble()),
                 blurRadius: 0,
                 offset: const Offset(0, -2),
               ),

@@ -682,33 +682,6 @@ class _ClientFormState extends State<ClientForm> {
   late final TextEditingController _initialDescriptionController;
   bool _isSaving = false;
 
-  // Lista de monedas (prioridad: USD, VES, COP, EUR, luego otras)
-  final List<String> currencyList = [
-    'USD',
-    'VES',
-    'COP',
-    'EUR',
-    'ARS',
-    'BRL',
-    'CLP',
-    'MXN',
-    'PEN',
-    'UYU',
-    'GBP',
-    'CHF',
-    'RUB',
-    'TRY',
-    'JPY',
-    'CNY',
-    'KRW',
-    'INR',
-    'SGD',
-    'HKD',
-    'CAD',
-    'AUD',
-    'NZD',
-    'ZAR',
-  ];
   String? _selectedCurrency;
   @override
   void initState() {
@@ -991,6 +964,8 @@ class _ClientFormState extends State<ClientForm> {
 
   @override
   Widget build(BuildContext context) {
+    final currencyProvider = Provider.of<CurrencyProvider>(context);
+    final availableCurrencies = currencyProvider.availableCurrencies;
     final colorScheme = Theme.of(context).colorScheme;
     final isMobile = MediaQuery.of(context).size.width < 600;
     // Elimina el overlay manual, solo muestra la tarjeta del formulario
@@ -1382,33 +1357,105 @@ class _ClientFormState extends State<ClientForm> {
                           const SizedBox(width: 8),
                           SizedBox(
                             width: 110,
-                            child: DropdownButtonFormField<String>(
-                              value: _selectedCurrency,
-                              decoration: const InputDecoration(
-                                labelText: 'Moneda',
-                                border: OutlineInputBorder(),
-                                isDense: true,
-                              ),
-                              items: [
-                                ...currencyList.map(
-                                  (currency) => DropdownMenuItem<String>(
-                                    value: currency,
-                                    child: Text(currency),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: DropdownButtonFormField<String>(
+                                    value: _selectedCurrency,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Moneda',
+                                      border: OutlineInputBorder(),
+                                      isDense: true,
+                                    ),
+                                    items: availableCurrencies
+                                        .map(
+                                          (currency) =>
+                                              DropdownMenuItem<String>(
+                                                value: currency,
+                                                child: Text(currency),
+                                              ),
+                                        )
+                                        .toList(),
+                                    onChanged: (value) async {
+                                      if (value == null) return;
+                                      setState(() {
+                                        _selectedCurrency = value;
+                                        _rateController.clear();
+                                        _rateError = null;
+                                      });
+                                    },
+                                    dropdownColor: Colors.white,
+                                    menuMaxHeight: 180,
                                   ),
                                 ),
+                                const SizedBox(width: 4),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.add_circle_outline,
+                                    color: Colors.indigo,
+                                    size: 22,
+                                  ),
+                                  tooltip: 'Agregar moneda',
+                                  onPressed: () async {
+                                    String? newCode = await showDialog<String>(
+                                      context: context,
+                                      builder: (ctx) {
+                                        final controller =
+                                            TextEditingController();
+                                        return AlertDialog(
+                                          title: const Text('Agregar moneda'),
+                                          content: TextField(
+                                            controller: controller,
+                                            decoration: const InputDecoration(
+                                              labelText: 'Código (ej: EUR)',
+                                              border: OutlineInputBorder(),
+                                              isDense: true,
+                                            ),
+                                            textCapitalization:
+                                                TextCapitalization.characters,
+                                            maxLength: 4,
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.of(ctx).pop(),
+                                              child: const Text('Cancelar'),
+                                            ),
+                                            ElevatedButton(
+                                              onPressed: () {
+                                                final code = controller.text
+                                                    .trim()
+                                                    .toUpperCase();
+                                                if (code.isEmpty ||
+                                                    code == 'USD' ||
+                                                    availableCurrencies
+                                                        .contains(code)) {
+                                                  Navigator.of(ctx).pop();
+                                                  return;
+                                                }
+                                                Navigator.of(ctx).pop(code);
+                                              },
+                                              child: const Text('Agregar'),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    );
+                                    if (newCode != null &&
+                                        newCode.isNotEmpty &&
+                                        newCode != 'USD' &&
+                                        !availableCurrencies.contains(
+                                          newCode,
+                                        )) {
+                                      setState(() {
+                                        _selectedCurrency = newCode;
+                                        _rateController.clear();
+                                        _rateError = null;
+                                      });
+                                    }
+                                  },
+                                ),
                               ],
-                              onChanged: (value) async {
-                                if (value == null) return;
-                                setState(() {
-                                  _selectedCurrency = value;
-                                  // Limpiar campo de tasa si cambia la moneda
-                                  _rateController.clear();
-                                  _rateError = null;
-                                });
-                              },
-                              dropdownColor: Colors.white,
-                              menuMaxHeight:
-                                  180, // Limita la altura del menú desplegable
                             ),
                           ),
                         ],

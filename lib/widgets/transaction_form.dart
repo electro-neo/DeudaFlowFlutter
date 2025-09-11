@@ -347,9 +347,7 @@ class _TransactionFormState extends State<TransactionForm> {
     final colorScheme = Theme.of(context).colorScheme;
     final symbol = "";
     final currencyProvider = Provider.of<CurrencyProvider>(context);
-    final allowedCurrencies = CurrencyProvider.allowedCurrencies;
-
-    // NUEVO: Determinar si falta la tasa
+    final availableCurrencies = currencyProvider.availableCurrencies;
     final codeUC = _currencyCode?.toUpperCase();
     final rateMissing =
         codeUC != null &&
@@ -584,34 +582,100 @@ class _TransactionFormState extends State<TransactionForm> {
                         const SizedBox(width: 8),
                         SizedBox(
                           width: 110,
-                          child: DropdownButtonFormField<String>(
-                            value: _currencyCode,
-                            decoration: const InputDecoration(
-                              labelText: 'Moneda',
-                              border: OutlineInputBorder(),
-                              isDense: true,
-                            ),
-                            items: [
-                              ...[
-                                'USD',
-                                ...allowedCurrencies.where(
-                                  (code) => code != 'USD',
-                                ),
-                              ].map(
-                                (code) => DropdownMenuItem(
-                                  value: code,
-                                  child: Text(code),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: DropdownButtonFormField<String>(
+                                  value: _currencyCode,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Moneda',
+                                    border: OutlineInputBorder(),
+                                    isDense: true,
+                                  ),
+                                  items: availableCurrencies
+                                      .map(
+                                        (code) => DropdownMenuItem(
+                                          value: code,
+                                          child: Text(code),
+                                        ),
+                                      )
+                                      .toList(),
+                                  onChanged: (code) {
+                                    setState(() {
+                                      _currencyCode = code;
+                                      _rateController.text = '';
+                                    });
+                                  },
+                                  dropdownColor: Colors.white,
+                                  menuMaxHeight: 180,
                                 ),
                               ),
+                              const SizedBox(width: 4),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.add_circle_outline,
+                                  color: Colors.indigo,
+                                  size: 22,
+                                ),
+                                tooltip: 'Agregar moneda',
+                                onPressed: () async {
+                                  String? newCode = await showDialog<String>(
+                                    context: context,
+                                    builder: (ctx) {
+                                      final controller =
+                                          TextEditingController();
+                                      return AlertDialog(
+                                        title: const Text('Agregar moneda'),
+                                        content: TextField(
+                                          controller: controller,
+                                          decoration: const InputDecoration(
+                                            labelText: 'Código (ej: EUR)',
+                                            border: OutlineInputBorder(),
+                                            isDense: true,
+                                          ),
+                                          textCapitalization:
+                                              TextCapitalization.characters,
+                                          maxLength: 4,
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.of(ctx).pop(),
+                                            child: const Text('Cancelar'),
+                                          ),
+                                          ElevatedButton(
+                                            onPressed: () {
+                                              final code = controller.text
+                                                  .trim()
+                                                  .toUpperCase();
+                                              if (code.isEmpty ||
+                                                  code == 'USD' ||
+                                                  availableCurrencies.contains(
+                                                    code,
+                                                  )) {
+                                                Navigator.of(ctx).pop();
+                                                return;
+                                              }
+                                              Navigator.of(ctx).pop(code);
+                                            },
+                                            child: const Text('Agregar'),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
+                                  if (newCode != null &&
+                                      newCode.isNotEmpty &&
+                                      newCode != 'USD' &&
+                                      !availableCurrencies.contains(newCode)) {
+                                    setState(() {
+                                      _currencyCode = newCode;
+                                      _rateController.text = '';
+                                    });
+                                  }
+                                },
+                              ),
                             ],
-                            onChanged: (code) {
-                              setState(() {
-                                _currencyCode = code;
-                                _rateController.text = '';
-                              });
-                            },
-                            dropdownColor: Colors.white,
-                            menuMaxHeight: 180,
                           ),
                         ),
                       ],

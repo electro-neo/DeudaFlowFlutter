@@ -12,6 +12,68 @@ import '../providers/currency_provider.dart';
 import '../models/client_hive.dart';
 import '../widgets/scale_on_tap.dart';
 import '../utils/currency_utils.dart';
+import 'package:intl/intl.dart';
+
+// Formateador de miles en vivo (estilo es-ES), sin forzar decimales mientras se escribe
+final NumberFormat _groupFormatEs = NumberFormat.decimalPattern('es');
+
+class ThousandsFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text;
+    if (text.isEmpty) return newValue;
+
+    // Mantener solo dígitos y separadores
+    String filtered = text.replaceAll(RegExp(r"[^0-9.,]"), '');
+
+    // Colapsar múltiples comas a una sola (mantener la primera)
+    final firstComma = filtered.indexOf(',');
+    if (firstComma >= 0) {
+      filtered =
+          filtered.substring(0, firstComma + 1) +
+          filtered.substring(firstComma + 1).replaceAll(',', '');
+    }
+
+    // Eliminar puntos de miles previos
+    String noThousands = filtered.replaceAll('.', '');
+
+    // Separar parte entera y decimal
+    final parts = noThousands.split(',');
+    String intPart = parts.isNotEmpty ? parts[0] : '';
+    String decPart = parts.length > 1 ? parts[1] : '';
+
+    // Limitar decimales a 2 mientras se escribe
+    if (decPart.length > 2) decPart = decPart.substring(0, 2);
+
+    // Agrupar miles en la parte entera
+    String grouped = '';
+    if (intPart.isNotEmpty) {
+      try {
+        grouped = _groupFormatEs.format(int.parse(intPart));
+      } catch (_) {
+        grouped = intPart; // fallback si excede int, muy raro al escribir
+      }
+    }
+
+    final hasComma = noThousands.contains(',');
+    String result;
+    if (hasComma) {
+      if (grouped.isEmpty) grouped = '0'; // permite "," inicial -> "0,"
+      result = '$grouped,$decPart';
+    } else {
+      result = grouped;
+    }
+
+    return TextEditingValue(
+      text: result,
+      selection: TextSelection.collapsed(offset: result.length),
+      composing: TextRange.empty,
+    );
+  }
+}
 
 class ClientForm extends StatefulWidget {
   final Future<ClientHive> Function(ClientHive, String?) onSave;
@@ -43,6 +105,7 @@ class _ClientFormState extends State<ClientForm> {
 
   final TextEditingController _rateController = TextEditingController();
   String? _rateError;
+  late final FocusNode _balanceFocusNode;
 
   Future<Contact?> _selectContactModal(BuildContext context) async {
     List<Contact> contacts = welcome_screen.globalContacts;
@@ -554,12 +617,62 @@ class _ClientFormState extends State<ClientForm> {
       text: c != null ? c.balance.toString() : '',
     );
     _initialDescriptionController = TextEditingController();
+    _balanceFocusNode = FocusNode();
+    _balanceFocusNode.addListener(_onBalanceFocusChange);
     if (widget.initialClient != null && widget.readOnlyBalance) {
       // Si es edición, deshabilitar el tipo (deuda/abono) y el balance
       _initialType = c!.balance < 0 ? 'debt' : 'payment';
     } else {
       _initialType = null; // No seleccionado por defecto en registro
     }
+  }
+
+  void _onBalanceFocusChange() {
+    if (!_balanceFocusNode.hasFocus) {
+      final t = _balanceController.text.trim();
+      if (t.isEmpty) return;
+      // Quitar puntos (miles) y normalizar coma decimal
+      String cleaned = t.replaceAll('.', '');
+      int commaIdx = cleaned.indexOf(',');
+      String intPart;
+      String decPart;
+      if (commaIdx >= 0) {
+        intPart = cleaned.substring(0, commaIdx);
+        decPart = cleaned
+            .substring(commaIdx + 1)
+            .replaceAll(RegExp(r'[^0-9]'), '');
+      } else {
+        intPart = cleaned;
+        decPart = '';
+      }
+      if (intPart.isEmpty) intPart = '0';
+      // Asegurar exactamente 2 decimales
+      decPart = (decPart + '00').substring(0, 2);
+      String grouped;
+      try {
+        grouped = _groupFormatEs.format(int.parse(intPart));
+      } catch (_) {
+        grouped = intPart;
+      }
+      final result = '$grouped,$decPart';
+      _balanceController.value = TextEditingValue(
+        text: result,
+        selection: TextSelection.collapsed(offset: result.length),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _balanceFocusNode.removeListener(_onBalanceFocusChange);
+    _balanceFocusNode.dispose();
+    _nameController.dispose();
+    _addressController.dispose();
+    _phoneController.dispose();
+    _balanceController.dispose();
+    _initialDescriptionController.dispose();
+    _rateController.dispose();
+    super.dispose();
   }
 
   String? _error;
@@ -611,14 +724,17 @@ class _ClientFormState extends State<ClientForm> {
         });
         return;
       }
-      balance = double.tryParse(balanceText) ?? 0.0;
-      if (balance == 0.0 && balanceText != '0' && balanceText != '0.0') {
+      // Normalizar: "1.234,56" -> "1234.56"
+      final normalized = balanceText.replaceAll('.', '').replaceAll(',', '.');
+      final parsed = double.tryParse(normalized);
+      if (parsed == null) {
         setState(() {
-          _error = 'Saldo inválido. Solo números y punto decimal.';
+          _error = 'Saldo inválido. Usa coma o punto para decimales.';
           _isSaving = false;
         });
         return;
       }
+      balance = parsed;
       initialDescription = _initialDescriptionController.text.trim();
       if (initialDescription.isEmpty) {
         setState(() {
@@ -1149,9 +1265,11 @@ class _ClientFormState extends State<ClientForm> {
                                   ),
                               inputFormatters: [
                                 FilteringTextInputFormatter.allow(
-                                  RegExp(r'[0-9.]'),
+                                  RegExp(r'[0-9.,]'),
                                 ),
+                                ThousandsFormatter(),
                               ],
+                              focusNode: _balanceFocusNode,
                               enabled:
                                   !(widget.initialClient != null &&
                                       widget.readOnlyBalance),

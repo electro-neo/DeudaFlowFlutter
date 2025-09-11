@@ -1,4 +1,5 @@
 import '../utils/currency_utils.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import '../widgets/budgeto_colors.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +8,73 @@ import '../models/client.dart';
 import '../providers/currency_provider.dart';
 import 'package:provider/provider.dart';
 // import '../utils/currency_utils.dart';
+
+// --- Formateador y función de miles a nivel superior ---
+final NumberFormat _numberFormat = NumberFormat.currency(
+  locale: 'es',
+  symbol: '',
+  decimalDigits: 2,
+);
+// Formato solo para agrupación de miles sin forzar decimales
+final NumberFormat _groupFormat = NumberFormat.decimalPattern('es');
+
+String formatThousands(String value) {
+  value = value.replaceAll('.', '').replaceAll(',', '.');
+  final number = double.tryParse(value);
+  if (number == null) return '';
+  return _numberFormat.format(number).replaceAll('\u0000A0', '');
+}
+
+class ThousandsFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // Permitir vacío
+    String raw = newValue.text;
+    if (raw.isEmpty) {
+      return newValue.copyWith(text: '');
+    }
+
+    // Conservar solo dígitos y una coma decimal
+    // Normalizamos removiendo puntos de miles existentes
+    raw = raw.replaceAll('.', '');
+    // Si hay más de una coma, conservar la primera
+    final firstComma = raw.indexOf(',');
+    String intPart;
+    String decPart = '';
+    if (firstComma >= 0) {
+      intPart = raw.substring(0, firstComma).replaceAll(RegExp(r'[^0-9]'), '');
+      decPart = raw.substring(firstComma + 1).replaceAll(RegExp(r'[^0-9]'), '');
+      if (decPart.length > 2) decPart = decPart.substring(0, 2);
+    } else {
+      intPart = raw.replaceAll(RegExp(r'[^0-9]'), '');
+    }
+
+    // Evitar que se quede vacío el entero (permitimos '0' temporalmente)
+    if (intPart.isEmpty) intPart = '0';
+
+    // Formatear miles solo para la parte entera
+    String groupedInt;
+    try {
+      groupedInt = _groupFormat.format(int.parse(intPart));
+    } catch (_) {
+      groupedInt = intPart; // fallback
+    }
+
+    String formatted = groupedInt;
+    if (firstComma >= 0) {
+      // El usuario escribió coma, mantenerla y decimales sin padding
+      formatted = '$groupedInt,' + decPart;
+    }
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
 
 class TransactionForm extends StatefulWidget {
   final void Function(Transaction)? onSave;
@@ -27,6 +95,7 @@ class TransactionForm extends StatefulWidget {
 
 class _TransactionFormState extends State<TransactionForm> {
   final _amountController = TextEditingController();
+  final FocusNode _amountFocusNode = FocusNode();
   final _descriptionController = TextEditingController();
   static const int _descriptionMaxLength = 30;
   String? _type; // No seleccionado por defecto
@@ -48,6 +117,31 @@ class _TransactionFormState extends State<TransactionForm> {
     super.initState();
     if (widget.initialClient != null) {
       _selectedClient = widget.initialClient;
+    }
+    _amountFocusNode.addListener(_onAmountFocusChange);
+  }
+
+  @override
+  void dispose() {
+    _amountFocusNode.removeListener(_onAmountFocusChange);
+    _amountFocusNode.dispose();
+    _amountController.dispose();
+    super.dispose();
+  }
+
+  void _onAmountFocusChange() {
+    if (!_amountFocusNode.hasFocus) {
+      String text = _amountController.text;
+      if (text.isNotEmpty && !text.contains(',')) {
+        _amountController.text = text + ',00';
+      } else if (text.isNotEmpty) {
+        final parts = text.split(',');
+        if (parts.length == 2 && parts[1].length < 2) {
+          _amountController.text = parts[0] + ',' + parts[1].padRight(2, '0');
+        } else if (parts.length == 2 && parts[1].length > 2) {
+          _amountController.text = parts[0] + ',' + parts[1].substring(0, 2);
+        }
+      }
     }
   }
 
@@ -86,7 +180,10 @@ class _TransactionFormState extends State<TransactionForm> {
       logError('Debes seleccionar una moneda');
       return;
     }
-    final amount = double.tryParse(_amountController.text);
+    final amountText = _amountController.text
+        .replaceAll('.', '')
+        .replaceAll(',', '.');
+    final amount = double.tryParse(amountText);
     if (amount == null || amount <= 0) {
       setState(() {
         _error = 'Monto inválido';
@@ -447,6 +544,7 @@ class _TransactionFormState extends State<TransactionForm> {
                         Expanded(
                           child: TextField(
                             controller: _amountController,
+                            focusNode: _amountFocusNode,
                             decoration: InputDecoration(
                               labelText: 'Monto',
                               border: OutlineInputBorder(
@@ -479,6 +577,7 @@ class _TransactionFormState extends State<TransactionForm> {
                               FilteringTextInputFormatter.allow(
                                 RegExp(r'[0-9.,]'),
                               ),
+                              ThousandsFormatter(),
                             ],
                           ),
                         ),

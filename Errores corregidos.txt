@@ -101,3 +101,15 @@ Fecha: 2025-08-08
        • Archivos: ClientsScreen (handleTransactionSave) y ClientDetailsModal (callback de onSave del TransactionForm).
     - Resultado: Al guardar, solo se cierra el modal/hoja y se permanece en Dashboard mostrando el snackbar “Transacción guardada correctamente”, sin saltos a Welcome.
     - Fecha: 2025-09-10
+
+9. Error: Al mostrar montos de transacciones en monedas distintas de USD (ej. VES, COP), el valor visual era incorrecto (mostraba el monto convertido desde USD en vez del monto original registrado).
+   - Solución: Se corrigió la lógica en transaction_card.dart y transactions_screen.dart para que, si la moneda seleccionada no es USD, se muestre siempre el campo amount (monto original en la moneda local) y debajo el monto en USD solo como referencia. Así, el valor visual coincide con el registrado y no hay confusión.
+
+10. Error: El campo de monto en el modal de agregar transacción no formateaba correctamente los miles y decimales en tiempo real, permitiendo más de dos decimales y no agregando ",00" al perder el foco.
+   - Solución: Se implementó un TextInputFormatter personalizado (ThousandsFormatter) y lógica con FocusNode para formatear el monto en tiempo real, restringir a dos decimales y agregar ",00" automáticamente si el usuario no lo escribe. El valor se guarda y muestra siempre con el formato correcto.
+
+11. Error: Al eliminar transacciones y navegar rápidamente, la pantalla de movimientos mostraba un error "Null check operator used on a null value" y se colgaba.
+   - Solución: Se corrigió la lógica de filtrado y fallback en transactions_screen.dart para que, si no hay cliente válido, se use un objeto Client vacío en vez de null, evitando el error y asegurando que la pantalla nunca se cuelgue por falta de datos.
+
+12. Error: Al registrar un cliente con nombre compuesto solo de emojis, la app se colgaba o mostraba errores de renderizado en el modal de detalles.
+Solución: Se implementó un sanitizador y manejo seguro de strings usando graphemes para evitar que nombres con solo emojis causen errores en la UI. Ahora los nombres se procesan correctamente y la app no se cuelga.

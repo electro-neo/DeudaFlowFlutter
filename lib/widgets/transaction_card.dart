@@ -150,17 +150,17 @@ class TransactionCard extends StatelessWidget {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
+                              // --- PATCH: Visualización correcta de montos ---
                               Text(
                                 () {
-                                  final usdValue =
-                                      t.anchorUsdValue ?? t.amount ?? 0.0;
                                   if (selectedCurrency == 'USD') {
+                                    final usdValue =
+                                        t.anchorUsdValue ?? t.amount ?? 0.0;
                                     return 'USD ${CurrencyUtils.formatNumber(usdValue)}';
                                   } else {
-                                    final rate =
-                                        exchangeRates[selectedCurrency] ?? 1.0;
-                                    final convertedValue = usdValue * rate;
-                                    return '${CurrencyUtils.formatNumber(convertedValue)} $selectedCurrency';
+                                    // Mostrar el monto original en la moneda local
+                                    final localValue = t.amount ?? 0.0;
+                                    return '${CurrencyUtils.formatNumber(localValue)} $selectedCurrency';
                                   }
                                 }(),
                                 style: TextStyle(
@@ -171,6 +171,7 @@ class TransactionCard extends StatelessWidget {
                                   fontSize: 18,
                                 ),
                               ),
+                              // Si la moneda seleccionada no es USD, muestra el monto en USD debajo
                               if (selectedCurrency != 'USD')
                                 Padding(
                                   padding: const EdgeInsets.only(top: 2),

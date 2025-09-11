@@ -555,7 +555,7 @@ class _ClientFormState extends State<ClientForm> {
                                                               saved,
                                                               __,
                                                             ) => Text(
-                                                              'Guardando: $saved / $totalVal',
+                                                              'Sincronizados: $saved / $totalVal',
                                                             ),
                                                       );
                                                     },

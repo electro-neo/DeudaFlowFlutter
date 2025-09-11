@@ -8,18 +8,26 @@ import '../models/contact_hive.dart';
 // Variable global para almacenar los contactos
 List<Contact> globalContacts = [];
 
-Future<void> saveContactsToHive(List<Contact> contacts) async {
+Future<void> saveContactsToHive(
+  List<Contact> contacts, {
+  void Function(int saved, int total)? onProgress,
+}) async {
   final box = await Hive.openBox<ContactHive>('contacts');
-  for (final c in contacts) {
-    if (c.phones.isNotEmpty) {
-      final phone = c.phones.first.number;
-      final contactHive = ContactHive(
-        id: c.id,
-        name: c.displayName,
-        phone: phone,
-      );
-      await box.put(c.id, contactHive);
-    }
+  final Iterable<Contact> withPhones = contacts.where(
+    (c) => c.phones.isNotEmpty,
+  );
+  final int total = withPhones.length;
+  int saved = 0;
+  for (final c in withPhones) {
+    final phone = c.phones.first.number;
+    final contactHive = ContactHive(
+      id: c.id,
+      name: c.displayName,
+      phone: phone,
+    );
+    await box.put(c.id, contactHive);
+    saved++;
+    if (onProgress != null) onProgress(saved, total);
   }
   debugPrint('[CONTACTS] Contactos guardados en Hive: ${box.length}');
 }

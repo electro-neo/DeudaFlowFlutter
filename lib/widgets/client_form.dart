@@ -504,52 +504,156 @@ class _ClientFormState extends State<ClientForm> {
                                   icon: Icon(Icons.sync),
                                   tooltip: 'Sincronizar contactos',
                                   onPressed: () async {
-                                    showDialog(
-                                      context: ctx,
-                                      barrierDismissible: false,
-                                      builder: (dctx) => Center(
-                                        child: CircularProgressIndicator(),
-                                      ),
-                                    );
                                     try {
                                       final status =
                                           await Permission.contacts.status;
                                       if (status.isGranted ||
                                           (await Permission.contacts.request())
                                               .isGranted) {
+                                        // Mostrar diálogo inmediatamente: estado "Cargando contactos..."
+                                        final progress = ValueNotifier<int>(0);
+                                        final totalNotifier =
+                                            ValueNotifier<int?>(
+                                              null,
+                                            ); // null = cargando
+                                        showDialog(
+                                          context: ctx,
+                                          barrierDismissible: false,
+                                          builder: (dctx) => AlertDialog(
+                                            title: const Text(
+                                              'Sincronizando contactos',
+                                            ),
+                                            content: Row(
+                                              children: [
+                                                const SizedBox(
+                                                  width: 24,
+                                                  height: 24,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                        strokeWidth: 2.5,
+                                                      ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Expanded(
+                                                  child: ValueListenableBuilder<int?>(
+                                                    valueListenable:
+                                                        totalNotifier,
+                                                    builder: (_, totalVal, __) {
+                                                      if (totalVal == null) {
+                                                        return const Text(
+                                                          'Cargando contactos.',
+                                                        );
+                                                      }
+                                                      return ValueListenableBuilder<
+                                                        int
+                                                      >(
+                                                        valueListenable:
+                                                            progress,
+                                                        builder:
+                                                            (
+                                                              _,
+                                                              saved,
+                                                              __,
+                                                            ) => Text(
+                                                              'Guardando: $saved / $totalVal',
+                                                            ),
+                                                      );
+                                                    },
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+
+                                        // Obtener contactos del sistema
                                         final systemContacts =
                                             await FlutterContacts.getContacts(
                                               withProperties: true,
                                             );
+
+                                        // Calcular total y actualizar UI
+                                        final total = systemContacts
+                                            .where((c) => c.phones.isNotEmpty)
+                                            .length;
+                                        totalNotifier.value = total;
+
+                                        if (total == 0) {
+                                          if (Navigator.of(ctx).canPop()) {
+                                            Navigator.of(ctx).pop();
+                                          }
+                                          progress.dispose();
+                                          totalNotifier.dispose();
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: const Text(
+                                                'No hay contactos con teléfono para sincronizar.',
+                                              ),
+                                              backgroundColor:
+                                                  Colors.orange[700],
+                                              duration: const Duration(
+                                                seconds: 2,
+                                              ),
+                                            ),
+                                          );
+                                          return;
+                                        }
+
+                                        // Guardar con progreso
                                         await welcome_screen.saveContactsToHive(
                                           systemContacts,
+                                          onProgress: (saved, _) =>
+                                              progress.value = saved,
                                         );
+
+                                        if (Navigator.of(ctx).canPop()) {
+                                          Navigator.of(
+                                            ctx,
+                                          ).pop(); // Cierra el diálogo de progreso
+                                        }
+
+                                        progress.dispose();
+                                        totalNotifier.dispose();
+
                                         welcome_screen.globalContacts =
                                             systemContacts;
                                         contacts = systemContacts;
                                         setModalState(() {
                                           currentPage = 0;
                                         });
+
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Contactos sincronizados correctamente.',
+                                            ),
+                                            backgroundColor: Colors.green,
+                                            duration: Duration(seconds: 2),
+                                          ),
+                                        );
                                       }
                                     } catch (e) {
                                       debugPrint(
                                         '[SYNC] Error al sincronizar contactos: $e',
                                       );
-                                    }
-                                    if (Navigator.of(ctx).canPop()) {
-                                      Navigator.of(
-                                        ctx,
-                                      ).pop(); // Cierra el indicador de carga
-                                    }
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Contactos sincronizados correctamente.',
+                                      if (Navigator.of(ctx).canPop()) {
+                                        Navigator.of(ctx).pop();
+                                      }
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Error al sincronizar: $e',
+                                          ),
+                                          backgroundColor: Colors.red[700],
                                         ),
-                                        backgroundColor: Colors.green,
-                                        duration: const Duration(seconds: 2),
-                                      ),
-                                    );
+                                      );
+                                    }
                                   },
                                 ),
                             ],

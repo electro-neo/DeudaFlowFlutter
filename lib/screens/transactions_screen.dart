@@ -190,10 +190,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           (c) => c.id == t.clientId,
           orElse: () => Client(id: '', name: '', balance: 0),
         );
+        final clientName = client.name;
         return t.description.toLowerCase().contains(
               _searchQuery.toLowerCase(),
             ) ||
-            client.name.toLowerCase().contains(_searchQuery.toLowerCase());
+            clientName.toLowerCase().contains(_searchQuery.toLowerCase());
       }).toList();
     }
 

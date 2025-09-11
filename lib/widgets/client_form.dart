@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:azlistview/azlistview.dart';
+import 'package:characters/characters.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import '../screens/welcome_screen.dart' as welcome_screen;
 import 'package:permission_handler/permission_handler.dart';
@@ -9,6 +11,7 @@ import '../providers/currency_provider.dart';
 import '../models/client_hive.dart';
 import '../widgets/scale_on_tap.dart';
 import '../utils/currency_utils.dart';
+import 'dart:math' as math;
 
 class ClientForm extends StatefulWidget {
   final Future<ClientHive> Function(ClientHive, String?) onSave;
@@ -48,9 +51,26 @@ class _ClientFormState extends State<ClientForm> {
     Contact? selectedContact;
     int currentPage = 0; // <-- Ahora persiste entre setModalState
 
+    // Utilidades de normalización y etiquetas
+    String _labelOf(Contact c) {
+      final name = c.displayName.trim();
+      if (name.isNotEmpty) return name;
+      return c.phones.isNotEmpty ? c.phones.first.number : '';
+    }
+
+    String _tagFor(String label) {
+      if (label.isEmpty) return '#';
+      final ch = label.trim().characters.first.toUpperCase();
+      final code = ch.codeUnitAt(0);
+      // A-Z
+      if (code >= 65 && code <= 90) return ch;
+      return '#';
+    }
+
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setModalState) {
@@ -60,139 +80,253 @@ class _ClientFormState extends State<ClientForm> {
                 child: Center(child: CircularProgressIndicator()),
               );
             }
-            List<Contact> filtered = contacts
-                .where(
-                  (c) =>
-                      c.displayName.toLowerCase().contains(
-                        search.toLowerCase(),
-                      ) ||
-                      (c.phones.isNotEmpty &&
-                          c.phones.first.number.contains(search)),
-                )
-                .toList();
+            // Filtrar contactos: excluir entradas totalmente vacías (sin nombre ni teléfono)
+            List<Contact> filtered = contacts.where((c) {
+              final label = _labelOf(c).trim();
+              final hasPhone =
+                  c.phones.isNotEmpty &&
+                  (c.phones.first.number.trim().isNotEmpty);
+              if (!hasPhone && label.isEmpty) return false;
+              if (search.isEmpty) return true;
+              final s = search.toLowerCase();
+              return label.toLowerCase().contains(s) ||
+                  (hasPhone && c.phones.first.number.toLowerCase().contains(s));
+            }).toList();
+
+            // Ordenar alfabéticamente por etiqueta visible (case-insensitive)
             filtered.sort(
-              (a, b) => a.displayName.toLowerCase().compareTo(
-                b.displayName.toLowerCase(),
-              ),
+              (a, b) => _labelOf(
+                a,
+              ).toLowerCase().compareTo(_labelOf(b).toLowerCase()),
             );
-            int pageSize = 50;
-            int pageCount = (filtered.length / pageSize).ceil();
-            return SizedBox(
-              height: MediaQuery.of(context).size.height * 0.7,
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: TextField(
-                      decoration: InputDecoration(
-                        labelText: 'Buscar contacto',
-                        prefixIcon: Icon(Icons.search),
-                        border: OutlineInputBorder(),
-                      ),
-                      onChanged: (val) {
-                        setModalState(() => search = val);
-                      },
-                    ),
-                  ),
-                  Expanded(
-                    child: filtered.isEmpty
-                        ? Center(child: Text('No se encontraron contactos'))
-                        : ListView.builder(
-                            itemCount: (filtered.length > pageSize
-                                ? pageSize
-                                : filtered.length - currentPage * pageSize >
-                                      pageSize
-                                ? pageSize
-                                : filtered.length - currentPage * pageSize),
-                            itemBuilder: (ctx, i) {
-                              final c = filtered[i + currentPage * pageSize];
-                              final phone = c.phones.isNotEmpty
-                                  ? c.phones.first.number
-                                  : '';
-                              return ListTile(
-                                title: Text(c.displayName),
-                                subtitle: Text(phone),
-                                onTap: () {
-                                  selectedContact = c;
-                                  Navigator.of(ctx).pop();
-                                },
-                              );
-                            },
+
+            // Decidir si usar paginación (> 3000)
+            final bool usePagination = filtered.length > 3000;
+            final int pageSize = usePagination ? 1000 : filtered.length;
+            final int pageCount = filtered.isEmpty
+                ? 1
+                : ((filtered.length - 1) / pageSize).floor() + 1;
+
+            // Cortar por página si aplica
+            final int start = (currentPage * pageSize).clamp(
+              0,
+              filtered.length,
+            );
+            final int end = (start + pageSize).clamp(0, filtered.length);
+            final List<Contact> pageSlice = filtered.isEmpty
+                ? []
+                : filtered.sublist(start, end);
+
+            // Adaptar a AzListView con índice alfabético
+            final List<_ContactItem> items = pageSlice.map((c) {
+              final label = _labelOf(c);
+              return _ContactItem(
+                contact: c,
+                name: label,
+                phone: c.phones.isNotEmpty ? c.phones.first.number : '',
+                tag: _tagFor(label),
+              );
+            }).toList();
+
+            // Ordenar por tag y preparar cabeceras
+            SuspensionUtil.sortListBySuspensionTag(items);
+            SuspensionUtil.setShowSuspensionStatus(items);
+            final indexTags = SuspensionUtil.getTagIndexList(items);
+
+            final screenHeight = MediaQuery.of(ctx).size.height;
+            final keyboardHeight = MediaQuery.of(ctx).viewInsets.bottom;
+            final isMobile = MediaQuery.of(ctx).size.width < 600;
+            final percent = isMobile ? 0.65 : 0.8;
+            final maxModalHeight = 520.0;
+            final availableHeight = screenHeight - keyboardHeight;
+            final modalHeight = [
+              screenHeight * percent,
+              availableHeight,
+              maxModalHeight,
+            ].reduce((a, b) => a < b ? a : b);
+            return AnimatedPadding(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
+              padding: EdgeInsets.only(bottom: keyboardHeight),
+              child: SafeArea(
+                top: false,
+                child: SizedBox(
+                  height: modalHeight,
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: TextField(
+                          decoration: InputDecoration(
+                            labelText: 'Buscar contacto',
+                            prefixIcon: Icon(Icons.search),
+                            border: OutlineInputBorder(),
                           ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (pageCount > 1)
-                          IconButton(
-                            icon: Icon(Icons.arrow_back),
-                            onPressed: currentPage > 0
-                                ? () => setModalState(() => currentPage--)
-                                : null,
-                          ),
-                        if (pageCount > 1)
-                          Text('Página ${currentPage + 1} de $pageCount'),
-                        if (pageCount > 1)
-                          IconButton(
-                            icon: Icon(Icons.arrow_forward),
-                            onPressed: currentPage < pageCount - 1
-                                ? () => setModalState(() => currentPage++)
-                                : null,
-                          ),
-                        // Botón de sincronizar contactos
-                        IconButton(
-                          icon: Icon(Icons.sync),
-                          tooltip: 'Sincronizar contactos',
-                          onPressed: () async {
-                            showDialog(
-                              context: ctx,
-                              barrierDismissible: false,
-                              builder: (dctx) =>
-                                  Center(child: CircularProgressIndicator()),
-                            );
-                            try {
-                              final status = await Permission.contacts.status;
-                              if (status.isGranted ||
-                                  (await Permission.contacts.request())
-                                      .isGranted) {
-                                final systemContacts =
-                                    await FlutterContacts.getContacts(
-                                      withProperties: true,
-                                    );
-                                await welcome_screen.saveContactsToHive(
-                                  systemContacts,
-                                );
-                                welcome_screen.globalContacts = systemContacts;
-                                contacts = systemContacts;
-                                setModalState(() {});
-                              }
-                            } catch (e) {
-                              debugPrint(
-                                '[SYNC] Error al sincronizar contactos: $e',
-                              );
-                            }
-                            if (Navigator.of(ctx).canPop()) {
-                              Navigator.of(
-                                ctx,
-                              ).pop(); // Cierra el indicador de carga
-                            }
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Contactos sincronizados correctamente.',
-                                ),
-                                backgroundColor: Colors.green,
-                                duration: const Duration(seconds: 2),
-                              ),
-                            );
+                          onChanged: (val) {
+                            setModalState(() {
+                              search = val;
+                              currentPage = 0;
+                            });
                           },
                         ),
-                      ],
-                    ),
+                      ),
+                      Expanded(
+                        child: items.isEmpty
+                            ? const Center(
+                                child: Text('No se encontraron contactos'),
+                              )
+                            : LayoutBuilder(
+                                builder: (ctx, constraints) {
+                                  final double vh = constraints.maxHeight;
+                                  final int tagCount = indexTags.isEmpty
+                                      ? 1
+                                      : indexTags.length;
+                                  // Calcular altura segura por ítem del index bar considerando márgenes,
+                                  // para que quepa sin overflow incluso con teclado abierto.
+                                  final double vSpacing =
+                                      1.0; // espaciado vertical por elemento
+                                  final double totalSpacing =
+                                      vSpacing * 2 * tagCount;
+                                  final double availableForItems = math.max(
+                                    0.0,
+                                    vh - totalSpacing - 4.0,
+                                  );
+                                  final double itemH =
+                                      (availableForItems / tagCount).clamp(
+                                        6.0,
+                                        18.0,
+                                      );
+                                  return AzListView(
+                                    data: items,
+                                    itemCount: items.length,
+                                    padding: EdgeInsets.zero,
+                                    indexBarItemHeight: itemH,
+                                    indexBarMargin: EdgeInsets.symmetric(
+                                      vertical: vSpacing,
+                                    ),
+                                    itemBuilder: (ctx, i) {
+                                      final item = items[i];
+                                      final titleText = item.name.isNotEmpty
+                                          ? item.name
+                                          : (item.phone.isNotEmpty
+                                                ? item.phone
+                                                : 'Contacto');
+                                      return ListTile(
+                                        title: Text(titleText),
+                                        subtitle:
+                                            item.phone.isNotEmpty &&
+                                                item.name != item.phone
+                                            ? Text(item.phone)
+                                            : null,
+                                        onTap: () {
+                                          selectedContact = item.contact;
+                                          Navigator.of(ctx).pop();
+                                        },
+                                      );
+                                    },
+                                    susItemBuilder: (ctx, i) {
+                                      final tag = items[i].getSuspensionTag();
+                                      return _AzHeader(tag: tag);
+                                    },
+                                    indexBarData: indexTags,
+                                    indexBarOptions: const IndexBarOptions(
+                                      needRebuild: true,
+                                      selectTextStyle: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      selectItemDecoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Colors.deepPurple,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                      ),
+                      SizedBox(
+                        height: 40,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (pageCount > 1)
+                                IconButton(
+                                  icon: Icon(Icons.arrow_back),
+                                  onPressed: currentPage > 0
+                                      ? () => setModalState(() => currentPage--)
+                                      : null,
+                                ),
+                              if (pageCount > 1)
+                                Text('Página ${currentPage + 1} de $pageCount'),
+                              if (pageCount > 1)
+                                IconButton(
+                                  icon: Icon(Icons.arrow_forward),
+                                  onPressed: currentPage < pageCount - 1
+                                      ? () => setModalState(() => currentPage++)
+                                      : null,
+                                ),
+                              // Botón de sincronizar contactos
+                              IconButton(
+                                icon: Icon(Icons.sync),
+                                tooltip: 'Sincronizar contactos',
+                                onPressed: () async {
+                                  showDialog(
+                                    context: ctx,
+                                    barrierDismissible: false,
+                                    builder: (dctx) => Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  );
+                                  try {
+                                    final status =
+                                        await Permission.contacts.status;
+                                    if (status.isGranted ||
+                                        (await Permission.contacts.request())
+                                            .isGranted) {
+                                      final systemContacts =
+                                          await FlutterContacts.getContacts(
+                                            withProperties: true,
+                                          );
+                                      await welcome_screen.saveContactsToHive(
+                                        systemContacts,
+                                      );
+                                      welcome_screen.globalContacts =
+                                          systemContacts;
+                                      contacts = systemContacts;
+                                      setModalState(() {
+                                        currentPage = 0;
+                                      });
+                                    }
+                                  } catch (e) {
+                                    debugPrint(
+                                      '[SYNC] Error al sincronizar contactos: $e',
+                                    );
+                                  }
+                                  if (Navigator.of(ctx).canPop()) {
+                                    Navigator.of(
+                                      ctx,
+                                    ).pop(); // Cierra el indicador de carga
+                                  }
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Contactos sincronizados correctamente.',
+                                      ),
+                                      backgroundColor: Colors.green,
+                                      duration: const Duration(seconds: 2),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             );
           },
@@ -1060,6 +1194,47 @@ class _ToggleTypeButton extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// Modelo adaptador para AzListView
+class _ContactItem extends ISuspensionBean {
+  final Contact contact;
+  final String name;
+  final String phone;
+  String tag;
+  _ContactItem({
+    required this.contact,
+    required this.name,
+    required this.phone,
+    required this.tag,
+  });
+
+  @override
+  String getSuspensionTag() => tag;
+}
+
+// Cabecera visual para cada letra
+class _AzHeader extends StatelessWidget {
+  final String tag;
+  const _AzHeader({required this.tag});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 28,
+      // width: double.infinity, // Eliminar para evitar BoxConstraints infinite width
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      color: Colors.black12,
+      alignment: Alignment.centerLeft,
+      child: Text(
+        tag,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+          color: Colors.black87,
         ),
       ),
     );

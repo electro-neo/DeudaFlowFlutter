@@ -94,3 +94,10 @@ Fecha: 2025-07-29
    - Resultado: Los recibos en PDF ahora son mucho más profesionales, claros y consistentes con la UI de la aplicación. La información es fácil de leer, incluso con números grandes, y la presentación de múltiples monedas es explícita y correcta.
 
 Fecha: 2025-08-08
+
+17. Error: Aparente cierre de sesión (navegación a Welcome) al guardar una transacción desde TransactionForm tras un cold start.
+    - Causa: No era un signOut real, sino un doble pop en la navegación. TransactionForm ya cerraba el modal vía onClose (Navigator.pop), y además el caller ejecutaba otro Navigator.pop(), cerrando la ruta inferior y enviando a '/'. Tras el siguiente arranque, la sesión se restauraba y llevaba a Dashboard.
+    - Solución: Se eliminó el pop duplicado y se delegó el cierre únicamente a onClose del TransactionForm.
+       • Archivos: ClientsScreen (handleTransactionSave) y ClientDetailsModal (callback de onSave del TransactionForm).
+    - Resultado: Al guardar, solo se cierra el modal/hoja y se permanece en Dashboard mostrando el snackbar “Transacción guardada correctamente”, sin saltos a Welcome.
+    - Fecha: 2025-09-10

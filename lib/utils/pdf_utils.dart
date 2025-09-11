@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import '../models/client.dart';
 import '../models/transaction.dart';
 import 'package:pdf/pdf.dart';
+import '../utils/string_sanitizer.dart';
 
 // --- Constantes de la aplicación para el PDF ---
 const String appName = 'DeudaFlow';
@@ -133,7 +134,9 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                         text: 'Nombre Cliente: ',
                         style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                       ),
-                      pw.TextSpan(text: client.name),
+                      pw.TextSpan(
+                        text: StringSanitizer.sanitizeForText(client.name),
+                      ),
                     ],
                   ),
                 ),
@@ -148,11 +151,12 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                         ),
                       ),
                       pw.TextSpan(
-                        text:
-                            (client.phone != null &&
-                                client.phone.toString().trim().isNotEmpty)
-                            ? client.phone.toString()
-                            : 'Sin Información',
+                        text: StringSanitizer.sanitizeForText(
+                          (client.phone != null &&
+                                  client.phone.toString().trim().isNotEmpty)
+                              ? client.phone.toString()
+                              : 'Sin Información',
+                        ),
                         style: pw.TextStyle(fontSize: 10),
                       ),
                     ],
@@ -169,11 +173,12 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                         ),
                       ),
                       pw.TextSpan(
-                        text:
-                            (client.address != null &&
-                                client.address.toString().trim().isNotEmpty)
-                            ? client.address.toString()
-                            : 'Sin Información',
+                        text: StringSanitizer.sanitizeForText(
+                          (client.address != null &&
+                                  client.address.toString().trim().isNotEmpty)
+                              ? client.address.toString()
+                              : 'Sin Información',
+                        ),
                         style: pw.TextStyle(fontSize: 10),
                       ),
                     ],

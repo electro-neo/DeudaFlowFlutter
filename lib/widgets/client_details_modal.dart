@@ -5,6 +5,8 @@ import '../widgets/transaction_form.dart';
 import '../providers/transaction_provider.dart';
 import '../providers/client_provider.dart';
 import '../widgets/general_receipt_modal.dart';
+import 'package:characters/characters.dart';
+import '../utils/string_sanitizer.dart';
 // import '../providers/tab_provider.dart';
 // import '../providers/transaction_filter_provider.dart';
 
@@ -68,9 +70,20 @@ class ClientDetailsModal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rootContext = Navigator.of(context, rootNavigator: true).context;
-    final firstLetter = client.name.isNotEmpty
-        ? client.name[0].toUpperCase()
+    final String firstLetter = client.name.trim().isNotEmpty
+        ? client.name.trim().characters.first.toUpperCase()
         : '?';
+    final String safeName = StringSanitizer.sanitizeForText(client.name);
+    final String safePhone = StringSanitizer.sanitizeForText(
+      (client.phone != null && client.phone!.isNotEmpty)
+          ? client.phone!
+          : 'Sin información',
+    );
+    final String safeAddress = StringSanitizer.sanitizeForText(
+      (client.address != null && client.address!.isNotEmpty)
+          ? client.address!
+          : 'Sin información',
+    );
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
@@ -85,7 +98,7 @@ class ClientDetailsModal extends StatelessWidget {
                 CircleAvatar(
                   backgroundColor: Colors.indigo.shade50,
                   child: Text(
-                    firstLetter,
+                    StringSanitizer.sanitizeForText(firstLetter),
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.indigo,
@@ -95,7 +108,7 @@ class ClientDetailsModal extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    client.name.isNotEmpty ? client.name : 'Sin información',
+                    safeName.isNotEmpty ? safeName : 'Sin información',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
@@ -121,9 +134,7 @@ class ClientDetailsModal extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       SelectableText(
-                        (client.phone != null && client.phone!.isNotEmpty)
-                            ? client.phone!
-                            : 'Sin información',
+                        safePhone,
                         style: const TextStyle(fontSize: 16),
                         enableInteractiveSelection: true,
                       ),
@@ -149,9 +160,7 @@ class ClientDetailsModal extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       SelectableText(
-                        (client.address != null && client.address!.isNotEmpty)
-                            ? client.address!
-                            : 'Sin información',
+                        safeAddress,
                         style: const TextStyle(fontSize: 16),
                         enableInteractiveSelection: true,
                       ),

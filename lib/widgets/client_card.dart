@@ -8,6 +8,8 @@ import '../providers/transaction_provider.dart';
 import 'client_details_modal.dart';
 import 'sync_message_state.dart';
 import 'scale_on_tap.dart'; // Importar el widget de animación
+import 'package:characters/characters.dart';
+import '../utils/string_sanitizer.dart';
 
 // --- ExpandableClientCard y su estado deben estar al tope del archivo para evitar errores de anidación ---
 class ExpandableClientCard extends StatefulWidget {
@@ -161,18 +163,29 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
             return MapEntry(code, usdBalance * rate);
           }),
     ];
-    final firstLetter = client.name.isNotEmpty
-        ? client.name[0].toUpperCase()
+    final firstLetter = client.name.trim().isNotEmpty
+        ? client.name.trim().characters.first.toUpperCase()
         : '?';
 
-    final displayName = client.name
-        .split(' ')
-        .map((word) {
-          if (word.isEmpty) return '';
-          // Capitaliza la primera letra y pone el resto en minúsculas para un formato consistente.
-          return '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}';
-        })
-        .join(' ');
+    // Capitalización segura por grafemas y sanitización
+    String _capitalizeGraphemeWords(String input) {
+      final parts = input.split(RegExp(r"\s+"));
+      return parts
+          .map((w) {
+            final t = w.trim();
+            if (t.isEmpty) return '';
+            final chars = t.characters;
+            final first = chars.isNotEmpty ? chars.first.toUpperCase() : '';
+            final rest = chars.skip(1).toString().toLowerCase();
+            return '$first$rest';
+          })
+          .where((e) => e.isNotEmpty)
+          .join(' ');
+    }
+
+    final displayName = StringSanitizer.sanitizeForText(
+      _capitalizeGraphemeWords(client.name),
+    );
 
     return Card(
       color: Colors.white,
@@ -209,7 +222,9 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                         height: 36,
                         child: Center(
                           child: _AvatarLetter(
-                            letter: firstLetter,
+                            letter: StringSanitizer.sanitizeForText(
+                              firstLetter,
+                            ),
                           ), // <-- pasar la letra
                         ),
                       ),

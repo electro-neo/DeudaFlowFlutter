@@ -755,13 +755,17 @@ class _ClientFormState extends State<ClientForm> {
   }
 
   String capitalizeWords(String name) {
+    // Usa Characters para no romper pares sustitutos (emoji, acentos compuestos)
     return name
-        .split(' ')
-        .map(
-          (word) => word.isEmpty
-              ? ''
-              : '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}',
-        )
+        .trim()
+        .split(RegExp(r'\s+'))
+        .map((word) {
+          final chars = word.characters;
+          if (chars.isEmpty) return '';
+          final first = chars.first.toUpperCase();
+          final rest = chars.skip(1).toString().toLowerCase();
+          return '$first$rest';
+        })
         .join(' ');
   }
 

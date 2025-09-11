@@ -2,6 +2,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/faq_help_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; // Importar para formateo de números
+import 'package:characters/characters.dart';
+import '../utils/string_sanitizer.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/client.dart';
@@ -34,6 +36,14 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   bool _faqShown = false;
+  String _capitalizeSafe(String input) {
+    final chars = input.characters;
+    if (chars.isEmpty) return '';
+    final first = chars.first.toUpperCase();
+    final rest = chars.skip(1).toString().toLowerCase();
+    return '$first$rest';
+  }
+
   void _showRateDialog(BuildContext context, double initialRate) {
     final TextEditingController rateController = TextEditingController(
       text: initialRate.toString(),
@@ -220,23 +230,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
           (meta['name'] as String).trim().isNotEmpty) {
         userName = (meta['name'] as String)
             .trim()
-            .split(' ')
-            .map(
-              (w) => w.isNotEmpty
-                  ? w[0].toUpperCase() + w.substring(1).toLowerCase()
-                  : '',
-            )
+            .split(RegExp(r'\s+'))
+            .map((w) => w.isNotEmpty ? _capitalizeSafe(w) : '')
             .join(' ');
       } else if (user.email != null) {
         final emailName = user.email!.split('@')[0];
-        userName = emailName.isNotEmpty
-            ? emailName[0].toUpperCase() + emailName.substring(1)
-            : '';
+        userName = emailName.isNotEmpty ? _capitalizeSafe(emailName) : '';
       }
     } else {
       userName = 'Invitado';
     }
-
     String saludo() {
       final hour = DateTime.now().hour;
       if (hour >= 5 && hour < 12) return 'Buenos días';
@@ -581,7 +584,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         ),
                                       );
                                       final clientName = client.name.isNotEmpty
-                                          ? client.name
+                                          ? StringSanitizer.sanitizeForText(
+                                              client.name,
+                                            )
                                           : 'Desconocido';
 
                                       // --- Lógica de balance corregida ---

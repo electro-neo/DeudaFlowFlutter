@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import '../providers/currency_provider.dart';
 import '../utils/currency_utils.dart';
+import '../utils/string_sanitizer.dart';
 
 /// Estructura: [{client: Client, transactions: List<Transaction>}]
 
@@ -119,7 +120,7 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
     if (widget.clientData.length == 1 &&
         widget.clientData[0]['client'] != null) {
       final Client c = widget.clientData[0]['client'] as Client;
-      title = 'Recibo del cliente ${c.name}';
+      title = 'Recibo del cliente ${StringSanitizer.sanitizeForText(c.name)}';
     } else {
       title = 'Recibo General de Clientes';
     }
@@ -203,11 +204,11 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                 const Text('No hay movimientos en el rango seleccionado.'),
               ...filtered.map((e) {
                 final client = e['client'] as Client;
-                final name = (client.name).toString();
+                final name = StringSanitizer.sanitizeForText(client.name);
                 final phone =
                     (client.phone != null &&
                         client.phone.toString().trim().isNotEmpty)
-                    ? client.phone.toString()
+                    ? StringSanitizer.sanitizeForText(client.phone.toString())
                     : 'Sin Información';
                 final filteredTxs = e['filteredTxs'] as List<dynamic>;
                 final baseTextStyle = Theme.of(context).textTheme.bodyMedium;
@@ -257,7 +258,9 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           TextSpan(
-                            text: client.id.toString(),
+                            text: StringSanitizer.sanitizeForText(
+                              client.id.toString(),
+                            ),
                             style: const TextStyle(fontSize: 11),
                           ),
                         ],

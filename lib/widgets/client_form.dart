@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:azlistview/azlistview.dart';
 import 'package:characters/characters.dart';
@@ -11,7 +12,6 @@ import '../providers/currency_provider.dart';
 import '../models/client_hive.dart';
 import '../widgets/scale_on_tap.dart';
 import '../utils/currency_utils.dart';
-import 'dart:math' as math;
 
 class ClientForm extends StatefulWidget {
   final Future<ClientHive> Function(ClientHive, String?) onSave;
@@ -50,6 +50,7 @@ class _ClientFormState extends State<ClientForm> {
     String search = '';
     Contact? selectedContact;
     int currentPage = 0; // <-- Ahora persiste entre setModalState
+    String activeTag = '';
 
     // Utilidades de normalización y etiquetas
     String _labelOf(Contact c) {
@@ -132,6 +133,9 @@ class _ClientFormState extends State<ClientForm> {
             SuspensionUtil.sortListBySuspensionTag(items);
             SuspensionUtil.setShowSuspensionStatus(items);
             final indexTags = SuspensionUtil.getTagIndexList(items);
+            if (activeTag.isEmpty || !indexTags.contains(activeTag)) {
+              activeTag = indexTags.isNotEmpty ? indexTags.first : '#';
+            }
 
             final screenHeight = MediaQuery.of(ctx).size.height;
             final keyboardHeight = MediaQuery.of(ctx).viewInsets.bottom;
@@ -196,50 +200,214 @@ class _ClientFormState extends State<ClientForm> {
                                         6.0,
                                         18.0,
                                       );
-                                  return AzListView(
-                                    data: items,
-                                    itemCount: items.length,
-                                    padding: EdgeInsets.zero,
-                                    indexBarItemHeight: itemH,
-                                    indexBarMargin: EdgeInsets.symmetric(
-                                      vertical: vSpacing,
-                                    ),
-                                    itemBuilder: (ctx, i) {
-                                      final item = items[i];
-                                      final titleText = item.name.isNotEmpty
-                                          ? item.name
-                                          : (item.phone.isNotEmpty
-                                                ? item.phone
-                                                : 'Contacto');
-                                      return ListTile(
-                                        title: Text(titleText),
-                                        subtitle:
-                                            item.phone.isNotEmpty &&
-                                                item.name != item.phone
-                                            ? Text(item.phone)
-                                            : null,
-                                        onTap: () {
-                                          selectedContact = item.contact;
-                                          Navigator.of(ctx).pop();
+                                  // Lista + overlay de índice interactivo con "zoom" visual.
+                                  return Stack(
+                                    children: [
+                                      AzListView(
+                                        data: items,
+                                        itemCount: items.length,
+                                        padding: EdgeInsets.zero,
+                                        indexBarItemHeight: itemH,
+                                        indexBarMargin: EdgeInsets.symmetric(
+                                          vertical: vSpacing,
+                                        ),
+                                        itemBuilder: (ctx, i) {
+                                          final item = items[i];
+                                          final titleText = item.name.isNotEmpty
+                                              ? item.name
+                                              : (item.phone.isNotEmpty
+                                                    ? item.phone
+                                                    : 'Contacto');
+                                          return ListTile(
+                                            title: Text(titleText),
+                                            subtitle:
+                                                item.phone.isNotEmpty &&
+                                                    item.name != item.phone
+                                                ? Text(item.phone)
+                                                : null,
+                                            onTap: () {
+                                              selectedContact = item.contact;
+                                              Navigator.of(ctx).pop();
+                                            },
+                                          );
                                         },
-                                      );
-                                    },
-                                    susItemBuilder: (ctx, i) {
-                                      final tag = items[i].getSuspensionTag();
-                                      return _AzHeader(tag: tag);
-                                    },
-                                    indexBarData: indexTags,
-                                    indexBarOptions: const IndexBarOptions(
-                                      needRebuild: true,
-                                      selectTextStyle: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
+                                        susItemBuilder: (ctx, i) {
+                                          final tag = items[i]
+                                              .getSuspensionTag();
+                                          return _AzHeader(tag: tag);
+                                        },
+                                        indexBarData: keyboardHeight > 0
+                                            ? const <String>[]
+                                            : indexTags,
+                                        indexBarOptions: const IndexBarOptions(
+                                          needRebuild: true,
+                                          selectTextStyle: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          selectItemDecoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Colors.deepPurple,
+                                          ),
+                                        ),
+                                        indexHintBuilder: (ctx, hint) {
+                                          // Oculta el bubble si el teclado está abierto
+                                          final kb = MediaQuery.of(
+                                            ctx,
+                                          ).viewInsets.bottom;
+                                          if (kb > 0) {
+                                            return const SizedBox.shrink();
+                                          }
+                                          // Actualiza la letra activa mientras el usuario interactúa con el índice
+                                          if (hint.isNotEmpty) {
+                                            WidgetsBinding.instance
+                                                .addPostFrameCallback((_) {
+                                                  if (mounted) {
+                                                    setModalState(
+                                                      () => activeTag = hint,
+                                                    );
+                                                  }
+                                                });
+                                          }
+                                          return Container(
+                                            width: 84,
+                                            height: 84,
+                                            decoration: BoxDecoration(
+                                              color: Colors.black.withOpacity(
+                                                0.65,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
+                                            ),
+                                            alignment: Alignment.center,
+                                            child: Text(
+                                              hint,
+                                              style: const TextStyle(
+                                                fontSize: 42,
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w800,
+                                              ),
+                                            ),
+                                          );
+                                        },
                                       ),
-                                      selectItemDecoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: Colors.deepPurple,
-                                      ),
-                                    ),
+                                      // Máscara visual para ocultar el índice nativo pero conservar gestos debajo
+                                      if (keyboardHeight <= 0 &&
+                                          indexTags.isNotEmpty)
+                                        IgnorePointer(
+                                          child: Align(
+                                            alignment: Alignment.centerRight,
+                                            child: Container(
+                                              width: 28,
+                                              margin: const EdgeInsets.only(
+                                                right: 0,
+                                                bottom: 8,
+                                              ),
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                      // Overlay visual del índice (ventana alrededor del tag activo)
+                                      if (keyboardHeight <= 0)
+                                        IgnorePointer(
+                                          child: Align(
+                                            alignment: Alignment.centerRight,
+                                            child: Padding(
+                                              padding: EdgeInsets.only(
+                                                right: 6.0,
+                                                bottom: keyboardHeight > 0
+                                                    ? keyboardHeight + 8
+                                                    : 8,
+                                              ),
+                                              child: LayoutBuilder(
+                                                builder: (c, cons) {
+                                                  final tags = indexTags;
+                                                  final int total = tags.length;
+                                                  if (total == 0)
+                                                    return const SizedBox.shrink();
+                                                  final int centerIndex = tags
+                                                      .indexOf(activeTag)
+                                                      .clamp(0, total - 1);
+                                                  const int window =
+                                                      11; // 9-11 letras visibles
+                                                  int start =
+                                                      centerIndex -
+                                                      (window ~/ 2);
+                                                  if (start < 0) start = 0;
+                                                  int end = (start + window);
+                                                  if (end > total) {
+                                                    end = total;
+                                                    start = math.max(
+                                                      0,
+                                                      end - window,
+                                                    );
+                                                  }
+                                                  final visible = tags.sublist(
+                                                    start,
+                                                    end,
+                                                  );
+
+                                                  return Column(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .center,
+                                                    children: visible.map((t) {
+                                                      final isActive =
+                                                          t == activeTag;
+                                                      return Container(
+                                                        margin:
+                                                            const EdgeInsets.symmetric(
+                                                              vertical: 2,
+                                                            ),
+                                                        padding:
+                                                            const EdgeInsets.symmetric(
+                                                              vertical: 2,
+                                                              horizontal: 6,
+                                                            ),
+                                                        decoration: isActive
+                                                            ? BoxDecoration(
+                                                                color: Colors
+                                                                    .deepPurple
+                                                                    .withOpacity(
+                                                                      0.15,
+                                                                    ),
+                                                                borderRadius:
+                                                                    BorderRadius.circular(
+                                                                      8,
+                                                                    ),
+                                                              )
+                                                            : null,
+                                                        child: Text(
+                                                          t,
+                                                          style: TextStyle(
+                                                            fontSize: isActive
+                                                                ? 16
+                                                                : 12,
+                                                            fontWeight: isActive
+                                                                ? FontWeight
+                                                                      .w700
+                                                                : FontWeight
+                                                                      .w500,
+                                                            color: isActive
+                                                                ? Colors
+                                                                      .deepPurple
+                                                                : Colors.black
+                                                                      .withOpacity(
+                                                                        0.55,
+                                                                      ),
+                                                          ),
+                                                        ),
+                                                      );
+                                                    }).toList(),
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
                                   );
                                 },
                               ),
@@ -268,58 +436,59 @@ class _ClientFormState extends State<ClientForm> {
                                       : null,
                                 ),
                               // Botón de sincronizar contactos
-                              IconButton(
-                                icon: Icon(Icons.sync),
-                                tooltip: 'Sincronizar contactos',
-                                onPressed: () async {
-                                  showDialog(
-                                    context: ctx,
-                                    barrierDismissible: false,
-                                    builder: (dctx) => Center(
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  );
-                                  try {
-                                    final status =
-                                        await Permission.contacts.status;
-                                    if (status.isGranted ||
-                                        (await Permission.contacts.request())
-                                            .isGranted) {
-                                      final systemContacts =
-                                          await FlutterContacts.getContacts(
-                                            withProperties: true,
-                                          );
-                                      await welcome_screen.saveContactsToHive(
-                                        systemContacts,
-                                      );
-                                      welcome_screen.globalContacts =
-                                          systemContacts;
-                                      contacts = systemContacts;
-                                      setModalState(() {
-                                        currentPage = 0;
-                                      });
-                                    }
-                                  } catch (e) {
-                                    debugPrint(
-                                      '[SYNC] Error al sincronizar contactos: $e',
-                                    );
-                                  }
-                                  if (Navigator.of(ctx).canPop()) {
-                                    Navigator.of(
-                                      ctx,
-                                    ).pop(); // Cierra el indicador de carga
-                                  }
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Contactos sincronizados correctamente.',
+                              if (keyboardHeight <= 0)
+                                IconButton(
+                                  icon: Icon(Icons.sync),
+                                  tooltip: 'Sincronizar contactos',
+                                  onPressed: () async {
+                                    showDialog(
+                                      context: ctx,
+                                      barrierDismissible: false,
+                                      builder: (dctx) => Center(
+                                        child: CircularProgressIndicator(),
                                       ),
-                                      backgroundColor: Colors.green,
-                                      duration: const Duration(seconds: 2),
-                                    ),
-                                  );
-                                },
-                              ),
+                                    );
+                                    try {
+                                      final status =
+                                          await Permission.contacts.status;
+                                      if (status.isGranted ||
+                                          (await Permission.contacts.request())
+                                              .isGranted) {
+                                        final systemContacts =
+                                            await FlutterContacts.getContacts(
+                                              withProperties: true,
+                                            );
+                                        await welcome_screen.saveContactsToHive(
+                                          systemContacts,
+                                        );
+                                        welcome_screen.globalContacts =
+                                            systemContacts;
+                                        contacts = systemContacts;
+                                        setModalState(() {
+                                          currentPage = 0;
+                                        });
+                                      }
+                                    } catch (e) {
+                                      debugPrint(
+                                        '[SYNC] Error al sincronizar contactos: $e',
+                                      );
+                                    }
+                                    if (Navigator.of(ctx).canPop()) {
+                                      Navigator.of(
+                                        ctx,
+                                      ).pop(); // Cierra el indicador de carga
+                                    }
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Contactos sincronizados correctamente.',
+                                        ),
+                                        backgroundColor: Colors.green,
+                                        duration: const Duration(seconds: 2),
+                                      ),
+                                    );
+                                  },
+                                ),
                             ],
                           ),
                         ),

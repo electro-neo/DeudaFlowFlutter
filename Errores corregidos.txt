@@ -1,3 +1,5 @@
+
+---
 Errores encontrados y soluciones aplicadas en la sesión:
 
 1. Error: Al presionar el botón "Movimientos" en la barra inferior, los filtros de cliente y tipo no se limpiaban correctamente o no se reflejaban en la UI.
@@ -138,3 +140,11 @@ Fecha: 2025-09-11
    - Archivos: lib/widgets/transaction_form.dart (listener de FocusNode)
    - Resultado: Consistencia visual sin obstaculizar la escritura.
 
+---
+12/09/2025
+transaction_form.dart: Contador de caracteres de descripción ahora aparece dentro del campo, abajo a la derecha, usando Stack.
+Detalles:
+- Reemplazo del TextField por Stack.
+- counterText oculto.
+- Padding extra para no solapar texto.
+- Badge con color dinámico (gris / naranja / rojo).

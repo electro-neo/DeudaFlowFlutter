@@ -729,49 +729,67 @@ class _TransactionFormState extends State<TransactionForm> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    TextField(
-                      controller: _descriptionController,
-                      decoration: InputDecoration(
-                        labelText: 'Descripción',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    // Campo descripción con contador interno abajo a la derecha
+                    Stack(
+                      children: [
+                        TextField(
+                          controller: _descriptionController,
+                          maxLines: 2,
+                          maxLength: _descriptionMaxLength,
+                          onChanged: (_) => setState(() {}),
+                          decoration: InputDecoration(
+                            labelText: 'Descripción',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            prefixIcon: const Icon(Icons.description),
+                            isDense: true,
+                            counterText: '', // ocultar counter por defecto
+                            // Espacio extra derecha/abajo para no tapar texto
+                            contentPadding: const EdgeInsets.fromLTRB(
+                              12,
+                              12,
+                              52,
+                              20,
+                            ),
+                          ),
                         ),
-                        prefixIcon: Icon(Icons.description),
-                        isDense: true,
-                        // No uses counterText aquí para que buildCounter funcione
-                      ),
-                      maxLines: 2,
-                      maxLength: _descriptionMaxLength,
-                      buildCounter:
-                          (
-                            BuildContext context, {
-                            required int currentLength,
-                            required bool isFocused,
-                            required int? maxLength,
-                          }) {
-                            final remaining =
-                                (_descriptionMaxLength) - currentLength;
-                            Color color;
-                            if (remaining <= 5) {
-                              color = Colors.red;
-                            } else if (remaining <= 10) {
-                              color = Colors.orange;
-                            } else {
-                              color = Colors.grey;
-                            }
-                            return Container(
-                              alignment: Alignment.centerRight,
-                              padding: const EdgeInsets.only(right: 8, top: 0),
-                              child: Text(
-                                '$currentLength/$_descriptionMaxLength',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: color,
-                                  fontWeight: FontWeight.w500,
+                        Positioned(
+                          right: 12,
+                          bottom: 6,
+                          child: IgnorePointer(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.85),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: Colors.grey.shade300,
+                                  width: 0.8,
                                 ),
                               ),
-                            );
-                          },
+                              child: Text(
+                                '${_descriptionController.text.length}/$_descriptionMaxLength',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color:
+                                      _descriptionController.text.length >=
+                                          _descriptionMaxLength
+                                      ? Colors.red
+                                      : (_descriptionController.text.length >=
+                                                _descriptionMaxLength - 5
+                                            ? Colors.orange
+                                            : Colors.grey.shade700),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     if (_error != null)
                       Padding(

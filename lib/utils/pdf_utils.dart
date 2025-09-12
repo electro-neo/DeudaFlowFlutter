@@ -256,9 +256,8 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                   for (final currency in selectedCurrencies) {
                     final usdValue = (tx.anchorUsdValue ?? tx.amount) as num;
                     final rate = currency['rate'] as num;
-                    row.add(
-                      formatAmount(usdValue * rate, symbol: currency['symbol']),
-                    );
+                    // Mostrar solo el monto en la celda (sin código/símbolo de moneda)
+                    row.add(formatAmount(usdValue * rate));
                   }
                   return row;
                 }).toList(),
@@ -640,7 +639,6 @@ Future<void> exportClientReceiptToPDF(
                       ...selectedCurrencies.map(
                         (c) => formatAmount(
                           (tx.anchorUsdValue ?? tx.amount) * (c['rate'] as num),
-                          symbol: c['symbol'],
                         ),
                       ),
                     ],

@@ -333,16 +333,154 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
                                           Flexible(
                                             flex: 2,
                                             child: TextField(
-                                              onChanged: (value) {
-                                                if (!_hasChanges) {
-                                                  setState(() {
-                                                    _hasChanges = true;
-                                                  });
-                                                }
-                                              },
+                                              readOnly: true,
+                                              enableInteractiveSelection: false,
                                               controller: isNew
                                                   ? newRateController
                                                   : rates[c],
+                                              onTap: () async {
+                                                final controller = isNew
+                                                    ? newRateController
+                                                    : rates[c];
+                                                final res = await showDialog<String?>(
+                                                  context: context,
+                                                  builder: (ctx) {
+                                                    final editCtrl =
+                                                        TextEditingController(
+                                                          text:
+                                                              controller
+                                                                  ?.text ??
+                                                              '',
+                                                        );
+                                                    return AlertDialog(
+                                                      title: Text(
+                                                        'Editar tasa $c',
+                                                      ),
+                                                      content: TextField(
+                                                        controller: editCtrl,
+                                                        keyboardType:
+                                                            const TextInputType.numberWithOptions(
+                                                              decimal: true,
+                                                            ),
+                                                        inputFormatters:
+                                                            _rateInputFormatters,
+                                                        decoration:
+                                                            const InputDecoration(
+                                                              labelText:
+                                                                  'Tasa a USD',
+                                                            ),
+                                                      ),
+                                                      actions: [
+                                                        TextButton(
+                                                          onPressed: () =>
+                                                              Navigator.of(
+                                                                ctx,
+                                                              ).pop(null),
+                                                          child: const Text(
+                                                            'Cancelar',
+                                                          ),
+                                                        ),
+                                                        ElevatedButton(
+                                                          onPressed: () {
+                                                            final text =
+                                                                editCtrl.text
+                                                                    .trim();
+                                                            Navigator.of(
+                                                              ctx,
+                                                            ).pop(
+                                                              text.isNotEmpty
+                                                                  ? text
+                                                                  : null,
+                                                            );
+                                                          },
+                                                          child: const Text(
+                                                            'Guardar',
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    );
+                                                  },
+                                                );
+                                                if (res != null &&
+                                                    res.isNotEmpty) {
+                                                  // Actualizar el campo visible
+                                                  if (controller != null) {
+                                                    controller.text = res;
+                                                  }
+
+                                                  // Parsear y persistir inmediatamente en el provider
+                                                  final parsed =
+                                                      double.tryParse(
+                                                        res.replaceAll(
+                                                          ',',
+                                                          '.',
+                                                        ),
+                                                      );
+                                                  final currencyProvider =
+                                                      Provider.of<
+                                                        CurrencyProvider
+                                                      >(context, listen: false);
+                                                  if (parsed != null &&
+                                                      parsed > 0) {
+                                                    if (isNew &&
+                                                        selectedCurrency !=
+                                                            null) {
+                                                      currencyProvider
+                                                          .addManualCurrency(
+                                                            selectedCurrency!,
+                                                          );
+                                                      currencyProvider
+                                                          .setRateForCurrency(
+                                                            selectedCurrency!,
+                                                            parsed,
+                                                          );
+                                                      try {
+                                                        final current =
+                                                            currencyProvider
+                                                                .availableCurrencies
+                                                                .toList();
+                                                        if (current.contains(
+                                                          selectedCurrency!,
+                                                        )) {
+                                                          current.remove(
+                                                            selectedCurrency!,
+                                                          );
+                                                          current.insert(
+                                                            0,
+                                                            selectedCurrency!,
+                                                          );
+                                                          currencyProvider
+                                                              .availableCurrencies
+                                                            ..clear()
+                                                            ..addAll(current);
+                                                        }
+                                                      } catch (_) {}
+
+                                                      setState(() {
+                                                        showAddFields = false;
+                                                        selectedCurrency = null;
+                                                        newRateController
+                                                            .clear();
+                                                        addError = null;
+                                                        _hasChanges = false;
+                                                      });
+                                                    } else {
+                                                      currencyProvider
+                                                          .setRateForCurrency(
+                                                            c,
+                                                            parsed,
+                                                          );
+                                                      setState(() {
+                                                        _hasChanges = false;
+                                                      });
+                                                    }
+                                                  } else {
+                                                    setState(() {
+                                                      _hasChanges = true;
+                                                    });
+                                                  }
+                                                }
+                                              },
                                               decoration: InputDecoration(
                                                 labelText: 'Tasa $c a USD',
                                                 border:
@@ -362,13 +500,161 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
                                               style: const TextStyle(
                                                 fontSize: 15,
                                               ),
-                                              keyboardType:
-                                                  const TextInputType.numberWithOptions(
-                                                    decimal: true,
-                                                  ),
-                                              inputFormatters:
-                                                  _rateInputFormatters,
                                             ),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.edit,
+                                              color: Colors.indigo,
+                                              size: 20,
+                                            ),
+                                            tooltip: 'Editar tasa',
+                                            onPressed: () async {
+                                              final controller = isNew
+                                                  ? newRateController
+                                                  : rates[c];
+                                              final res = await showDialog<String?>(
+                                                context: context,
+                                                builder: (ctx) {
+                                                  final editCtrl =
+                                                      TextEditingController(
+                                                        text:
+                                                            controller?.text ??
+                                                            '',
+                                                      );
+                                                  return AlertDialog(
+                                                    title: Text(
+                                                      'Editar tasa $c',
+                                                    ),
+                                                    content: TextField(
+                                                      controller: editCtrl,
+                                                      keyboardType:
+                                                          const TextInputType.numberWithOptions(
+                                                            decimal: true,
+                                                          ),
+                                                      inputFormatters:
+                                                          _rateInputFormatters,
+                                                      decoration:
+                                                          const InputDecoration(
+                                                            labelText:
+                                                                'Tasa a USD',
+                                                          ),
+                                                    ),
+                                                    actions: [
+                                                      TextButton(
+                                                        onPressed: () =>
+                                                            Navigator.of(
+                                                              ctx,
+                                                            ).pop(null),
+                                                        child: const Text(
+                                                          'Cancelar',
+                                                        ),
+                                                      ),
+                                                      ElevatedButton(
+                                                        onPressed: () {
+                                                          final text = editCtrl
+                                                              .text
+                                                              .trim();
+                                                          Navigator.of(ctx).pop(
+                                                            text.isNotEmpty
+                                                                ? text
+                                                                : null,
+                                                          );
+                                                        },
+                                                        child: const Text(
+                                                          'Guardar',
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  );
+                                                },
+                                              );
+                                              if (res != null &&
+                                                  res.isNotEmpty) {
+                                                // Actualizar el campo visible
+                                                final controller = isNew
+                                                    ? newRateController
+                                                    : rates[c];
+                                                if (controller != null) {
+                                                  controller.text = res;
+                                                }
+
+                                                // Parsear y persistir inmediatamente en el provider
+                                                final parsed = double.tryParse(
+                                                  res.replaceAll(',', '.'),
+                                                );
+                                                final currencyProvider =
+                                                    Provider.of<
+                                                      CurrencyProvider
+                                                    >(context, listen: false);
+                                                if (parsed != null &&
+                                                    parsed > 0) {
+                                                  if (isNew &&
+                                                      selectedCurrency !=
+                                                          null) {
+                                                    // Agregar la moneda y asignar la tasa de inmediato
+                                                    currencyProvider
+                                                        .addManualCurrency(
+                                                          selectedCurrency!,
+                                                        );
+                                                    currencyProvider
+                                                        .setRateForCurrency(
+                                                          selectedCurrency!,
+                                                          parsed,
+                                                        );
+                                                    // Reordenar para ponerla al principio (igual que saveAllRates)
+                                                    try {
+                                                      final current =
+                                                          currencyProvider
+                                                              .availableCurrencies
+                                                              .toList();
+                                                      if (current.contains(
+                                                        selectedCurrency!,
+                                                      )) {
+                                                        current.remove(
+                                                          selectedCurrency!,
+                                                        );
+                                                        current.insert(
+                                                          0,
+                                                          selectedCurrency!,
+                                                        );
+                                                        currencyProvider
+                                                            .availableCurrencies
+                                                          ..clear()
+                                                          ..addAll(current);
+                                                      }
+                                                    } catch (_) {}
+
+                                                    // Limpiar estado de "agregar"
+                                                    setState(() {
+                                                      showAddFields = false;
+                                                      selectedCurrency = null;
+                                                      newRateController.clear();
+                                                      addError = null;
+                                                      _hasChanges =
+                                                          false; // ya persistido
+                                                    });
+                                                  } else {
+                                                    // Moneda existente: persistir directamente
+                                                    currencyProvider
+                                                        .setRateForCurrency(
+                                                          c,
+                                                          parsed,
+                                                        );
+                                                    setState(() {
+                                                      _hasChanges =
+                                                          false; // ya persistido
+                                                    });
+                                                  }
+                                                } else {
+                                                  // Valor inválido: marcar cambio en UI pero no persistir
+                                                  setState(() {
+                                                    _hasChanges = true;
+                                                  });
+                                                }
+                                              }
+                                            },
                                           ),
                                           const SizedBox(width: 6),
                                           IconButton(

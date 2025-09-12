@@ -134,10 +134,17 @@ class CurrencyProvider with ChangeNotifier {
   }
 
   void addManualCurrency(String currency) {
-    final upper = currency.toUpperCase();
-    if (upper == 'USD' || _exchangeRates.containsKey(upper)) return;
+    String code;
+    if (currency.length > 3) {
+      code =
+          currency.substring(0, 1).toUpperCase() +
+          (currency.length > 1 ? currency.substring(1).toLowerCase() : '');
+    } else {
+      code = currency.toUpperCase();
+    }
+    if (code == 'USD' || _exchangeRates.containsKey(code)) return;
     // Permite cualquier código de moneda, el usuario es responsable de ingresar correctamente.
-    _exchangeRates[upper] = 0.0;
+    _exchangeRates[code] = 0.0;
     _updateStateFromRates(_exchangeRates);
     _persistRates();
   }

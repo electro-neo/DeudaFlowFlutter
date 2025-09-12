@@ -28,6 +28,12 @@ class TransactionsScreen extends StatefulWidget {
 }
 
 class _TransactionsScreenState extends State<TransactionsScreen> {
+  // Compara códigos de moneda ignorando casing
+  bool equalsCurrencyCode(String? a, String? b) {
+    if (a == null || b == null) return false;
+    return a.toLowerCase() == b.toLowerCase();
+  }
+
   // Guarda el set de monedas conocidas para detectar nuevas
   Set<String> _prevCurrencies = {'USD'};
   // Estado de mensajes de sincronización por transacción
@@ -100,8 +106,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     }
 
     // --- Selección automática de nueva moneda ---
+    // Normaliza los códigos de moneda para evitar problemas de casing
     final currentCurrencies = Set<String>.from(
-      currencyProvider.availableCurrencies,
+      currencyProvider.availableCurrencies.map((c) => c),
     );
     // Excluye USD para la lógica de selección automática
     final prevNoUsd = _prevCurrencies.where((c) => c != 'USD').toSet();
@@ -109,13 +116,15 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final newCurrencies = currNoUsd.difference(prevNoUsd);
     if (newCurrencies.isNotEmpty) {
       final lastNew = newCurrencies.last;
-      if (currencyProvider.currency != lastNew) {
+      // Compara ignorando casing para robustez
+      if (!equalsCurrencyCode(currencyProvider.currency, lastNew)) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
           context.read<CurrencyProvider>().setCurrency(lastNew);
         });
       }
     }
+
     // Actualiza el set de monedas conocidas
     _prevCurrencies = currentCurrencies;
 
@@ -758,7 +767,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       padding: const EdgeInsets.only(right: 6),
                       child: ChoiceChip(
                         label: Text(currency),
-                        selected: currencyProvider.currency == currency,
+                        selected: equalsCurrencyCode(
+                          currencyProvider.currency,
+                          currency,
+                        ),
                         onSelected: (selected) {
                           if (!selected) return;
                           currencyProvider.setCurrency(currency);
@@ -766,7 +778,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         selectedColor: Colors.blue.shade100,
                         backgroundColor: Colors.grey.shade200,
                         labelStyle: TextStyle(
-                          color: currencyProvider.currency == currency
+                          color:
+                              equalsCurrencyCode(
+                                currencyProvider.currency,
+                                currency,
+                              )
                               ? Colors.blue
                               : Colors.black87,
                           fontWeight: FontWeight.w600,

@@ -1389,7 +1389,7 @@ class _ClientFormState extends State<ClientForm> {
                                   color: Colors.indigo,
                                   size: 24,
                                 ),
-                                tooltip: 'Agregar moneda',
+                                tooltip: 'Nombre de Moneda',
                                 onPressed: () async {
                                   String? newCode = await showDialog<String>(
                                     context: context,
@@ -1397,11 +1397,12 @@ class _ClientFormState extends State<ClientForm> {
                                       final controller =
                                           TextEditingController();
                                       return AlertDialog(
-                                        title: const Text('Agregar moneda'),
+                                        title: const Text('Nombre de Moneda'),
                                         content: TextField(
                                           controller: controller,
                                           decoration: const InputDecoration(
-                                            labelText: 'Código (ej: EUR)',
+                                            labelText:
+                                                '(ej: Pesos, Bolivares, Libras)',
                                             border: OutlineInputBorder(),
                                             isDense: true,
                                           ),

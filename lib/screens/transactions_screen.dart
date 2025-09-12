@@ -139,26 +139,46 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     /// - El label visual debe indicar la moneda mostrada.
     String format(dynamic transactionOrValue) {
       final selectedCurrency = currencyProvider.currency;
-      final rate = currencyProvider.getRateFor(selectedCurrency) ?? 1.0;
+      final rateForSelected =
+          currencyProvider.getRateFor(selectedCurrency) ?? 1.0;
+
+      // If a raw number is passed, keep existing behavior (convert using selected rate)
       if (transactionOrValue is num) {
         if (selectedCurrency == 'USD') {
           return 'USD ${transactionOrValue.toStringAsFixed(2)}';
         } else {
-          final converted = transactionOrValue.toDouble() * rate;
+          final converted = transactionOrValue.toDouble() * rateForSelected;
           return '$selectedCurrency ${converted.toStringAsFixed(2)}';
         }
       }
+
       if (transactionOrValue != null) {
-        final anchorUsdValue = (transactionOrValue.anchorUsdValue != null)
-            ? transactionOrValue.anchorUsdValue
-            : (transactionOrValue.amount ?? 0.0);
+        // Expect a Transaction-like object with amount, currencyCode and anchorUsdValue
+        final tx = transactionOrValue;
+        final txCurrency = (tx.currencyCode ?? 'VES');
+
+        // Anchor USD value stored at creation (preferred). If missing, attempt to compute
+        final anchorUsd =
+            tx.anchorUsdValue ??
+            (tx.amount != null
+                ? (tx.amount / (currencyProvider.getRateFor(txCurrency) ?? 1.0))
+                : 0.0);
+
+        // If user wants to see USD, show anchorUsd (fixed at creation)
         if (selectedCurrency == 'USD') {
-          return 'USD ${anchorUsdValue.toStringAsFixed(2)}';
-        } else {
-          final converted = anchorUsdValue.toDouble() * rate;
-          return '$selectedCurrency ${converted.toStringAsFixed(2)}';
+          return 'USD ${anchorUsd.toStringAsFixed(2)}';
         }
+
+        // If selected currency is the same as transaction original currency, show original amount
+        if (selectedCurrency == txCurrency) {
+          return '$txCurrency ${tx.amount.toStringAsFixed(2)}';
+        }
+
+        // Otherwise convert using the stored anchorUsd (do NOT recompute local amount from current rate)
+        final converted = anchorUsd * rateForSelected;
+        return '$selectedCurrency ${converted.toStringAsFixed(2)}';
       }
+
       return '';
     }
 
@@ -801,10 +821,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         Builder(
           builder: (context) {
             final selectedCurrency = currencyProvider.currency;
-            final rate = currencyProvider.getRateFor(selectedCurrency) ?? 1.0;
-            double totalAbono = 0;
-            // --- Calcular deuda real (saldos negativos de clientes) ---
-            // 1. Calcular balances por cliente
+            final rateForSelected =
+                currencyProvider.getRateFor(selectedCurrency) ?? 1.0;
+
+            // --- Calcular balances por cliente en USD (para lógica interna) ---
             final Map<String, double> clientBalances = {
               for (var c in clients) c.id: 0.0,
             };
@@ -818,23 +838,46 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     clientBalances[tx.clientId]! - valueInUsd;
               }
             }
-            // 2. Sumar solo los balances negativos (deuda real)
-            double totalDeudaReal = clientBalances.values
-                .where((b) => b < 0)
-                .fold(0.0, (sum, b) => sum + b.abs());
-            // 3. Sumar abonos igual que antes
-            for (var tx in filteredTransactions) {
-              final valueInUsd = tx.anchorUsdValue ?? tx.amount;
-              if (tx.type == 'payment') {
-                totalAbono += valueInUsd;
+
+            // Total deuda en USD (calculado por cliente above, not used directly here)
+
+            // Ahora calculamos la presentación de Abono/Deuda usando los saldos netos por cliente
+            // clientBalances ya contiene el balance neto por cliente en USD (payment +, debt -)
+            double displayAbono = 0.0;
+            double displayDeuda = 0.0;
+
+            double deudaUsdTotal = 0.0;
+            clientBalances.forEach((_, balanceUsd) {
+              if (balanceUsd < 0) {
+                deudaUsdTotal += -balanceUsd; // net debt (abs)
               }
+            });
+
+            // Abono: volver a la suma por transacción (como estaba antes)
+            for (var tx in filteredTransactions) {
+              if (tx.type != 'payment') continue;
+              final txCurrency = tx.currencyCode ?? 'VES';
+              final anchorUsd =
+                  tx.anchorUsdValue ??
+                  (tx.amount /
+                      (currencyProvider.getRateFor(txCurrency) ?? 1.0));
+
+              double valueInSelected;
+              if (selectedCurrency == 'USD') {
+                valueInSelected = anchorUsd;
+              } else if (txCurrency == selectedCurrency) {
+                valueInSelected = tx.amount;
+              } else {
+                valueInSelected = anchorUsd * rateForSelected;
+              }
+              displayAbono += valueInSelected;
             }
-            final displayAbono = selectedCurrency == 'USD'
-                ? totalAbono
-                : totalAbono * rate;
-            final displayDeuda = selectedCurrency == 'USD'
-                ? totalDeudaReal
-                : totalDeudaReal * rate;
+
+            if (selectedCurrency == 'USD') {
+              displayDeuda = deudaUsdTotal;
+            } else {
+              displayDeuda = deudaUsdTotal * rateForSelected;
+            }
             final showAbono = selectedType == null || selectedType == 'payment';
             final showDeuda = selectedType == null || selectedType == 'debt';
             if (!showAbono && !showDeuda) return const SizedBox.shrink();

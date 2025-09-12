@@ -205,11 +205,9 @@ class SessionAuthorityService {
           // Evitar spamear: solo avisar cuando la sesión se vuelve null o se hace signedOut
           if (session == null || event == AuthChangeEvent.signedOut) {
             ScaffoldMessenger.maybeOf(ctx)?.showSnackBar(
-              SnackBar(
-                content: Text(
-                  'AuthState: $event (session null=${session == null})',
-                ),
-                duration: const Duration(seconds: 2),
+              const SnackBar(
+                content: Text('Cierre de sesión exitoso'),
+                duration: Duration(seconds: 2),
               ),
             );
           }

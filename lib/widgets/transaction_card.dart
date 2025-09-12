@@ -153,15 +153,31 @@ class TransactionCard extends StatelessWidget {
                               // --- PATCH: Visualización correcta de montos ---
                               Text(
                                 () {
+                                  final txCurrency = (t.currencyCode ?? 'USD');
+                                  final rateForSelected =
+                                      exchangeRates[selectedCurrency] ?? 1.0;
+                                  final rateForTx =
+                                      exchangeRates[txCurrency] ?? 1.0;
+                                  final double anchorUsd =
+                                      (t.anchorUsdValue != null)
+                                      ? t.anchorUsdValue as double
+                                      : (t.amount != null
+                                            ? (t.amount / rateForTx)
+                                            : 0.0);
+
                                   if (selectedCurrency == 'USD') {
-                                    final usdValue =
-                                        t.anchorUsdValue ?? t.amount ?? 0.0;
-                                    return 'USD ${CurrencyUtils.formatNumber(usdValue)}';
-                                  } else {
-                                    // Mostrar el monto original en la moneda local
+                                    return 'USD ${CurrencyUtils.formatNumber(anchorUsd)}';
+                                  }
+
+                                  // Si la transacción ya está en la moneda seleccionada, mostrar el amount original.
+                                  if (txCurrency == selectedCurrency) {
                                     final localValue = t.amount ?? 0.0;
                                     return '${CurrencyUtils.formatNumber(localValue)} $selectedCurrency';
                                   }
+
+                                  // En cualquier otro caso convertir desde anchorUsd a la moneda seleccionada
+                                  final converted = anchorUsd * rateForSelected;
+                                  return '${CurrencyUtils.formatNumber(converted)} $selectedCurrency';
                                 }(),
                                 style: TextStyle(
                                   color: t.type == 'payment'
@@ -176,7 +192,7 @@ class TransactionCard extends StatelessWidget {
                                 Padding(
                                   padding: const EdgeInsets.only(top: 2),
                                   child: Text(
-                                    'USD ${CurrencyUtils.formatNumber(t.anchorUsdValue ?? t.amount ?? 0.0)}',
+                                    'USD ${CurrencyUtils.formatNumber((t.anchorUsdValue ?? (t.amount ?? 0.0)) as double)}',
                                     style: const TextStyle(
                                       fontSize: 13,
                                       color: Colors.black54,

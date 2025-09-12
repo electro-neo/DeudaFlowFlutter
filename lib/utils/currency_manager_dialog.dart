@@ -118,7 +118,7 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
-            title: const Text('Agregar moneda'),
+            title: const Text('Agregar Moneda'),
             content: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
               child: Column(
@@ -127,7 +127,7 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
                   TextField(
                     controller: newCurrencyController,
                     decoration: InputDecoration(
-                      labelText: 'Código (ej: Eur)',
+                      labelText: '(ej: Pesos, Bolivares, Libras)',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: BorderSide(
@@ -727,7 +727,7 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              'Agregar Moneda',
+                              'Nombre de Moneda',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.onPrimary,

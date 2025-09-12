@@ -387,8 +387,16 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
                                                   showAddFields = false;
                                                 });
                                               } else {
+                                                final currencyProvider =
+                                                    Provider.of<
+                                                      CurrencyProvider
+                                                    >(context, listen: false);
+                                                currencyProvider
+                                                    .removeManualCurrency(c);
                                                 setState(() {
-                                                  _pendingDeletions.add(c);
+                                                  rates[c]?.dispose();
+                                                  rates.remove(c);
+                                                  currencies.remove(c);
                                                   _hasChanges = true;
                                                 });
                                               }

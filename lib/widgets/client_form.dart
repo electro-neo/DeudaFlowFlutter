@@ -94,12 +94,12 @@ class ClientForm extends StatefulWidget {
 }
 
 class _ClientFormState extends State<ClientForm> {
-  // Simulación de almacenamiento de tasas (puedes reemplazar por tu lógica real)
+  // Búsqueda robusta de tasa usando provider.getRateFor
   bool _hasRateForCurrency(String currency) {
     final provider = Provider.of<CurrencyProvider>(context, listen: false);
     final code = currency.toUpperCase();
     if (code == 'USD') return true;
-    final rate = provider.exchangeRates[code];
+    final rate = provider.getRateFor(code);
     return rate != null && rate > 0;
   }
 
@@ -820,10 +820,10 @@ class _ClientFormState extends State<ClientForm> {
         });
         return;
       }
-      // --- Cálculo de anchorUsdValue ---
+      // --- Cálculo de anchorUsdValue usando provider.getRateFor ---
       final provider = Provider.of<CurrencyProvider>(context, listen: false);
       final codeUC = _selectedCurrency!.toUpperCase();
-      double? rate = provider.exchangeRates[codeUC];
+      double? rate = provider.getRateFor(codeUC);
       if (codeUC != 'USD' && (rate == null || rate <= 0)) {
         // Si no hay tasa registrada, tomar la del campo manual
         final rateText = _rateController.text.trim().replaceAll(',', '.');
@@ -843,7 +843,6 @@ class _ClientFormState extends State<ClientForm> {
           return;
         }
         // Guardar la tasa en el provider para futuras operaciones
-        // Asegura que la moneda exista en el provider (para que aparezca en Currency Manager)
         if (!provider.availableCurrencies.contains(codeUC)) {
           provider.addManualCurrency(codeUC);
         }
@@ -1308,155 +1307,148 @@ class _ClientFormState extends State<ClientForm> {
                           ),
                         ),
                       ),
-                      Row(
+                      // Campo Monto ocupa toda la fila y debajo fila con Moneda + botón agregar
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _balanceController,
-                              decoration: InputDecoration(
-                                labelText: 'Monto',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                prefixIcon: const Icon(
-                                  Icons.attach_money_outlined,
-                                ),
-                                filled: true,
-                                fillColor: const Color(
-                                  0xFF7C3AED,
-                                ).withValues(alpha: 0.10 * 255),
-                                hoverColor: const Color(
-                                  0xFF7C3AED,
-                                ).withValues(alpha: 0.13 * 255),
-                                focusColor: const Color(
-                                  0xFF7C3AED,
-                                ).withValues(alpha: 0.16 * 255),
-                                floatingLabelBehavior:
-                                    FloatingLabelBehavior.auto,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                  horizontal: 12,
+                          TextField(
+                            controller: _balanceController,
+                            decoration: InputDecoration(
+                              labelText: 'Monto',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.attach_money_outlined,
+                              ),
+                              filled: true,
+                              fillColor: const Color(
+                                0xFF7C3AED,
+                              ).withValues(alpha: 0.10 * 255),
+                              hoverColor: const Color(
+                                0xFF7C3AED,
+                              ).withValues(alpha: 0.13 * 255),
+                              focusColor: const Color(
+                                0xFF7C3AED,
+                              ).withValues(alpha: 0.16 * 255),
+                              floatingLabelBehavior: FloatingLabelBehavior.auto,
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 16,
+                                horizontal: 12,
+                              ),
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'[0-9.,]'),
+                              ),
+                              ThousandsFormatter(),
+                            ],
+                            focusNode: _balanceFocusNode,
+                            enabled:
+                                !(widget.initialClient != null &&
+                                    widget.readOnlyBalance),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: DropdownButtonFormField<String>(
+                                  value: _selectedCurrency,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Moneda',
+                                    border: OutlineInputBorder(),
+                                    isDense: true,
+                                  ),
+                                  items: availableCurrencies
+                                      .map(
+                                        (currency) => DropdownMenuItem<String>(
+                                          value: currency,
+                                          child: Text(currency),
+                                        ),
+                                      )
+                                      .toList(),
+                                  onChanged: (value) async {
+                                    if (value == null) return;
+                                    setState(() {
+                                      _selectedCurrency = value;
+                                      _rateController.clear();
+                                      _rateError = null;
+                                    });
+                                  },
+                                  dropdownColor: Colors.white,
+                                  menuMaxHeight: 220,
                                 ),
                               ),
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              inputFormatters: [
-                                FilteringTextInputFormatter.allow(
-                                  RegExp(r'[0-9.,]'),
+                              const SizedBox(width: 6),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.add_circle_outline,
+                                  color: Colors.indigo,
+                                  size: 24,
                                 ),
-                                ThousandsFormatter(),
-                              ],
-                              focusNode: _balanceFocusNode,
-                              enabled:
-                                  !(widget.initialClient != null &&
-                                      widget.readOnlyBalance),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          SizedBox(
-                            width: 110,
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: DropdownButtonFormField<String>(
-                                    value: _selectedCurrency,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Moneda',
-                                      border: OutlineInputBorder(),
-                                      isDense: true,
-                                    ),
-                                    items: availableCurrencies
-                                        .map(
-                                          (currency) =>
-                                              DropdownMenuItem<String>(
-                                                value: currency,
-                                                child: Text(currency),
-                                              ),
-                                        )
-                                        .toList(),
-                                    onChanged: (value) async {
-                                      if (value == null) return;
-                                      setState(() {
-                                        _selectedCurrency = value;
-                                        _rateController.clear();
-                                        _rateError = null;
-                                      });
-                                    },
-                                    dropdownColor: Colors.white,
-                                    menuMaxHeight: 180,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.add_circle_outline,
-                                    color: Colors.indigo,
-                                    size: 22,
-                                  ),
-                                  tooltip: 'Agregar moneda',
-                                  onPressed: () async {
-                                    String? newCode = await showDialog<String>(
-                                      context: context,
-                                      builder: (ctx) {
-                                        final controller =
-                                            TextEditingController();
-                                        return AlertDialog(
-                                          title: const Text('Agregar moneda'),
-                                          content: TextField(
-                                            controller: controller,
-                                            decoration: const InputDecoration(
-                                              labelText: 'Código (ej: EUR)',
-                                              border: OutlineInputBorder(),
-                                              isDense: true,
-                                            ),
-                                            textCapitalization:
-                                                TextCapitalization.characters,
-                                            maxLength: 4,
+                                tooltip: 'Agregar moneda',
+                                onPressed: () async {
+                                  String? newCode = await showDialog<String>(
+                                    context: context,
+                                    builder: (ctx) {
+                                      final controller =
+                                          TextEditingController();
+                                      return AlertDialog(
+                                        title: const Text('Agregar moneda'),
+                                        content: TextField(
+                                          controller: controller,
+                                          decoration: const InputDecoration(
+                                            labelText: 'Código (ej: EUR)',
+                                            border: OutlineInputBorder(),
+                                            isDense: true,
                                           ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.of(ctx).pop(),
-                                              child: const Text('Cancelar'),
-                                            ),
-                                            ElevatedButton(
-                                              onPressed: () {
-                                                final code = controller.text
-                                                    .trim()
-                                                    .toUpperCase();
-                                                if (code.isEmpty ||
-                                                    code == 'USD' ||
-                                                    availableCurrencies
-                                                        .contains(code)) {
-                                                  Navigator.of(ctx).pop();
-                                                  return;
-                                                }
-                                                Navigator.of(ctx).pop(code);
-                                              },
-                                              child: const Text('Agregar'),
-                                            ),
-                                          ],
-                                        );
-                                      },
-                                    );
-                                    if (newCode != null &&
-                                        newCode.isNotEmpty &&
-                                        newCode != 'USD' &&
-                                        !availableCurrencies.contains(
-                                          newCode,
-                                        )) {
-                                      setState(() {
-                                        _selectedCurrency = newCode;
-                                        _rateController.clear();
-                                        _rateError = null;
-                                      });
-                                    }
-                                  },
-                                ),
-                              ],
-                            ),
+                                          textCapitalization:
+                                              TextCapitalization.characters,
+                                          maxLength: 4,
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.of(ctx).pop(),
+                                            child: const Text('Cancelar'),
+                                          ),
+                                          ElevatedButton(
+                                            onPressed: () {
+                                              final code = controller.text
+                                                  .trim()
+                                                  .toUpperCase();
+                                              if (code.isEmpty ||
+                                                  code == 'USD' ||
+                                                  availableCurrencies.contains(
+                                                    code,
+                                                  )) {
+                                                Navigator.of(ctx).pop();
+                                                return;
+                                              }
+                                              Navigator.of(ctx).pop(code);
+                                            },
+                                            child: const Text('Agregar'),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
+                                  if (newCode != null &&
+                                      newCode.isNotEmpty &&
+                                      newCode != 'USD' &&
+                                      !availableCurrencies.contains(newCode)) {
+                                    setState(() {
+                                      _selectedCurrency = newCode;
+                                      _rateController.clear();
+                                      _rateError = null;
+                                    });
+                                  }
+                                },
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -1503,25 +1495,62 @@ class _ClientFormState extends State<ClientForm> {
                         ),
                       Padding(
                         padding: const EdgeInsets.only(top: 8.0, bottom: 5.0),
-                        child: TextField(
-                          controller: _initialDescriptionController,
-                          decoration: InputDecoration(
-                            labelText: 'Descripción',
-                            prefixIcon: const Icon(Icons.description_outlined),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                        child: Stack(
+                          children: [
+                            TextField(
+                              controller: _initialDescriptionController,
+                              maxLines: 2,
+                              maxLength: 32,
+                              onChanged: (_) => setState(() {}),
+                              decoration: InputDecoration(
+                                labelText: 'Descripción',
+                                prefixIcon: const Icon(
+                                  Icons.description_outlined,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                filled: true,
+                                fillColor: const Color(
+                                  0xFF7C3AED,
+                                ).withOpacity(0.07),
+                                floatingLabelBehavior:
+                                    FloatingLabelBehavior.auto,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                  horizontal: 12,
+                                ),
+                                counterText: '', // ocultar contador por defecto
+                              ),
                             ),
-                            filled: true,
-                            fillColor: const Color(
-                              0xFF7C3AED,
-                            ).withOpacity(0.07),
-                            floatingLabelBehavior: FloatingLabelBehavior.auto,
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 16,
-                              horizontal: 12,
+                            Positioned(
+                              right: 12,
+                              bottom: 6,
+                              child: IgnorePointer(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.95),
+                                    border: Border.all(
+                                      color: Colors.grey.shade300,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    '${_initialDescriptionController.text.length}/32',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.black54,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
-                          maxLength: 60,
+                          ],
                         ),
                       ),
                     ],

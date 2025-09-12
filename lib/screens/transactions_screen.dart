@@ -131,29 +131,32 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final txProvider = Provider.of<TransactionProvider>(context);
     final clientProvider = Provider.of<ClientProvider>(context);
     final filterProvider = Provider.of<TransactionFilterProvider>(context);
-    // Formatea el valor mostrado según la moneda seleccionada.
-    // Para USD, siempre usa anchorUsdValue (o amount si es null).
-    // Para otras monedas, convierte desde anchorUsdValue usando el rate.
+
+    /// Formatea el valor mostrado según la moneda seleccionada.
+    /// - Si la moneda seleccionada es USD, muestra el valor en USD (anchorUsdValue).
+    /// - Si es otra moneda, muestra el valor convertido multiplicando por la tasa registrada.
+    /// - El valor almacenado en anchorUsdValue SIEMPRE está en USD.
+    /// - El label visual debe indicar la moneda mostrada.
     String format(dynamic transactionOrValue) {
+      final selectedCurrency = currencyProvider.currency;
+      final rate = currencyProvider.getRateFor(selectedCurrency) ?? 1.0;
       if (transactionOrValue is num) {
-        if (currencyProvider.currency == 'USD') {
+        if (selectedCurrency == 'USD') {
           return 'USD ${transactionOrValue.toStringAsFixed(2)}';
         } else {
-          final rate = currencyProvider.rate > 0 ? currencyProvider.rate : 1.0;
           final converted = transactionOrValue.toDouble() * rate;
-          return converted.toStringAsFixed(2);
+          return '$selectedCurrency ${converted.toStringAsFixed(2)}';
         }
       }
       if (transactionOrValue != null) {
         final anchorUsdValue = (transactionOrValue.anchorUsdValue != null)
             ? transactionOrValue.anchorUsdValue
             : (transactionOrValue.amount ?? 0.0);
-        if (currencyProvider.currency == 'USD') {
+        if (selectedCurrency == 'USD') {
           return 'USD ${anchorUsdValue.toStringAsFixed(2)}';
         } else {
-          final rate = currencyProvider.rate > 0 ? currencyProvider.rate : 1.0;
           final converted = anchorUsdValue.toDouble() * rate;
-          return converted.toStringAsFixed(2);
+          return '$selectedCurrency ${converted.toStringAsFixed(2)}';
         }
       }
       return '';

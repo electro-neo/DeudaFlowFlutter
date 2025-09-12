@@ -261,8 +261,8 @@ class _TransactionFormState extends State<TransactionForm> {
             listen: false,
           );
           final codeUC = _currencyCode!.toUpperCase();
-          rate = currencyProvider.exchangeRates[codeUC];
-          if (codeUC == 'USD') {
+          rate = currencyProvider.getRateFor(_currencyCode ?? '');
+          if ((_currencyCode ?? '').toUpperCase() == 'USD') {
             anchorUsdValue = CurrencyUtils.normalizeAnchorUsd(amount);
             rate = 1.0;
           } else if (rate != null && rate > 0) {
@@ -349,11 +349,13 @@ class _TransactionFormState extends State<TransactionForm> {
     final currencyProvider = Provider.of<CurrencyProvider>(context);
     final availableCurrencies = currencyProvider.availableCurrencies;
     final codeUC = _currencyCode?.toUpperCase();
+    final rate = _currencyCode != null
+        ? currencyProvider.getRateFor(_currencyCode!)
+        : null;
     final rateMissing =
-        codeUC != null &&
-        codeUC != 'USD' &&
-        (currencyProvider.exchangeRates[codeUC] == null ||
-            currencyProvider.exchangeRates[codeUC] == 0);
+        _currencyCode != null &&
+        _currencyCode!.toUpperCase() != 'USD' &&
+        (rate == null || rate == 0);
     _rateFieldVisible = rateMissing;
     final rateValid =
         double.tryParse(_rateController.text.replaceAll(',', '.')) != null &&

@@ -135,31 +135,39 @@ class CurrencyProvider with ChangeNotifier {
 
   void addManualCurrency(String currency) {
     String code;
-    if (currency.length > 3) {
+    final normalized = currency.trim();
+    if (normalized.length > 3) {
       code =
-          currency.substring(0, 1).toUpperCase() +
-          (currency.length > 1 ? currency.substring(1).toLowerCase() : '');
+          normalized.substring(0, 1).toUpperCase() +
+          (normalized.length > 1 ? normalized.substring(1).toLowerCase() : '');
     } else {
-      code = currency.toUpperCase();
+      code = normalized.toUpperCase();
     }
     if (code == 'USD' || _exchangeRates.containsKey(code)) return;
-    // Permite cualquier código de moneda, el usuario es responsable de ingresar correctamente.
     _exchangeRates[code] = 0.0;
     _updateStateFromRates(_exchangeRates);
     _persistRates();
   }
 
   Future<void> removeManualCurrency(String currency) async {
-    final upper = currency.toUpperCase();
-    if (upper == 'USD') return;
-    if (_exchangeRates.containsKey(upper)) {
-      _exchangeRates.remove(upper);
+    String code;
+    final normalized = currency.trim();
+    if (normalized.length > 3) {
+      code =
+          normalized.substring(0, 1).toUpperCase() +
+          (normalized.length > 1 ? normalized.substring(1).toLowerCase() : '');
+    } else {
+      code = normalized.toUpperCase();
+    }
+    if (code == 'USD') return;
+    if (_exchangeRates.containsKey(code)) {
+      _exchangeRates.remove(code);
       _updateStateFromRates(_exchangeRates);
       final List<String> pendingDeletions = _settingsBox
           .get('rates_to_delete', defaultValue: <String>[])!
           .cast<String>();
-      if (!pendingDeletions.contains(upper)) {
-        pendingDeletions.add(upper);
+      if (!pendingDeletions.contains(code)) {
+        pendingDeletions.add(code);
         await _settingsBox.put('rates_to_delete', pendingDeletions);
       }
       await _persistRates();
@@ -171,19 +179,35 @@ class CurrencyProvider with ChangeNotifier {
   }
 
   void setRateForCurrency(String currency, double rate) {
-    final upper = currency.toUpperCase();
-    if (upper == 'USD') return;
-    // Permite cualquier código de moneda que el usuario haya agregado manualmente
-    if (!_exchangeRates.containsKey(upper)) return;
-    _exchangeRates[upper] = rate;
+    String code;
+    final normalized = currency.trim();
+    if (normalized.length > 3) {
+      code =
+          normalized.substring(0, 1).toUpperCase() +
+          (normalized.length > 1 ? normalized.substring(1).toLowerCase() : '');
+    } else {
+      code = normalized.toUpperCase();
+    }
+    if (code == 'USD') return;
+    if (!_exchangeRates.containsKey(code)) return;
+    _exchangeRates[code] = rate;
     notifyListeners();
     _persistRates();
   }
 
   double? getRateFor(String currencyCode) {
-    if (currencyCode == 'USD') {
+    String code;
+    final normalized = currencyCode.trim();
+    if (normalized.length > 3) {
+      code =
+          normalized.substring(0, 1).toUpperCase() +
+          (normalized.length > 1 ? normalized.substring(1).toLowerCase() : '');
+    } else {
+      code = normalized.toUpperCase();
+    }
+    if (code == 'USD') {
       return 1.0;
     }
-    return _exchangeRates[currencyCode];
+    return _exchangeRates[code];
   }
 }

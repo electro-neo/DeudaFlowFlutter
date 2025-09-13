@@ -277,6 +277,7 @@ class _MyAppState extends State<MyApp> {
                                   color: Colors.white,
                                   letterSpacing: 0.8,
                                   decoration: TextDecoration.none,
+                                  fontFamily: 'Roboto',
                                 ),
                               ),
                             ],

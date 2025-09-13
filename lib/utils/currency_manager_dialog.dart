@@ -231,6 +231,10 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
                 ..addAll(current);
             } catch (_) {}
           }
+          // Actualizar el controlador de texto en memoria para mostrar la tasa guardada
+          if (rates.containsKey(selectedCurrency!)) {
+            rates[selectedCurrency!]!.text = val.toString();
+          }
         }
       }
 

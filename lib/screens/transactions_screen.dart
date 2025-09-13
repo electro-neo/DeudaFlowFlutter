@@ -142,7 +142,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       final rateForSelected =
           currencyProvider.getRateFor(selectedCurrency) ?? 1.0;
 
-      // If a raw number is passed, keep existing behavior (convert using selected rate)
+      // Si es un número crudo, convertir usando la tasa actual
       if (transactionOrValue is num) {
         if (selectedCurrency == 'USD') {
           return 'USD ${transactionOrValue.toStringAsFixed(2)}';
@@ -153,30 +153,29 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       }
 
       if (transactionOrValue != null) {
-        // Expect a Transaction-like object with amount, currencyCode and anchorUsdValue
+        // Espera un objeto tipo transacción con amount, currencyCode y anchorUsdValue
         final tx = transactionOrValue;
-        final txCurrency = (tx.currencyCode ?? 'VES');
+        double anchorUsd;
+        if (tx.anchorUsdValue != null) {
+          anchorUsd = tx.anchorUsdValue;
+        } else if (tx.amount != null &&
+            tx.originalRate != null &&
+            tx.originalRate > 0) {
+          // Si existe la tasa original usada al crear la transacción
+          anchorUsd = tx.amount / tx.originalRate;
+        } else if (tx.amount != null) {
+          // Fallback: mostrar el monto original si no hay tasa
+          anchorUsd = tx.amount;
+        } else {
+          anchorUsd = 0.0;
+        }
 
-        // Anchor USD value stored at creation (preferred). If missing, attempt to compute
-        final anchorUsd =
-            tx.anchorUsdValue ??
-            (tx.amount != null
-                ? (tx.amount / (currencyProvider.getRateFor(txCurrency) ?? 1.0))
-                : 0.0);
-
-        // If user wants to see USD, show anchorUsd (fixed at creation)
         if (selectedCurrency == 'USD') {
           return 'USD ${anchorUsd.toStringAsFixed(2)}';
+        } else {
+          final converted = anchorUsd * rateForSelected;
+          return '$selectedCurrency ${converted.toStringAsFixed(2)}';
         }
-
-        // If selected currency is the same as transaction original currency, show original amount
-        if (selectedCurrency == txCurrency) {
-          return '$txCurrency ${tx.amount.toStringAsFixed(2)}';
-        }
-
-        // Otherwise convert using the stored anchorUsd (do NOT recompute local amount from current rate)
-        final converted = anchorUsd * rateForSelected;
-        return '$selectedCurrency ${converted.toStringAsFixed(2)}';
       }
 
       return '';
@@ -830,12 +829,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             };
             for (var tx in filteredTransactions) {
               final valueInUsd = tx.anchorUsdValue ?? tx.amount;
+              // Usar ?? 0.0 para evitar null check operator sobre null
               if (tx.type == 'payment') {
                 clientBalances[tx.clientId] =
-                    clientBalances[tx.clientId]! + valueInUsd;
+                    (clientBalances[tx.clientId] ?? 0.0) + valueInUsd;
               } else if (tx.type == 'debt') {
                 clientBalances[tx.clientId] =
-                    clientBalances[tx.clientId]! - valueInUsd;
+                    (clientBalances[tx.clientId] ?? 0.0) - valueInUsd;
               }
             }
 
@@ -856,17 +856,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             // Abono: volver a la suma por transacción (como estaba antes)
             for (var tx in filteredTransactions) {
               if (tx.type != 'payment') continue;
-              final txCurrency = tx.currencyCode ?? 'VES';
-              final anchorUsd =
-                  tx.anchorUsdValue ??
-                  (tx.amount /
-                      (currencyProvider.getRateFor(txCurrency) ?? 1.0));
-
+              final anchorUsd = tx.anchorUsdValue ?? 0.0;
               double valueInSelected;
               if (selectedCurrency == 'USD') {
                 valueInSelected = anchorUsd;
-              } else if (txCurrency == selectedCurrency) {
-                valueInSelected = tx.amount;
               } else {
                 valueInSelected = anchorUsd * rateForSelected;
               }

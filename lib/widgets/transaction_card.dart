@@ -153,31 +153,40 @@ class TransactionCard extends StatelessWidget {
                               // --- PATCH: Visualización correcta de montos ---
                               Text(
                                 () {
-                                  final txCurrency = (t.currencyCode ?? 'USD');
+                                  final txCurrency = t.currencyCode ?? 'USD';
                                   final rateForSelected =
                                       exchangeRates[selectedCurrency] ?? 1.0;
-                                  final rateForTx =
-                                      exchangeRates[txCurrency] ?? 1.0;
-                                  final double anchorUsd =
-                                      (t.anchorUsdValue != null)
-                                      ? t.anchorUsdValue as double
-                                      : (t.amount != null
-                                            ? (t.amount / rateForTx)
-                                            : 0.0);
+                                  double anchorUsd;
+                                  if (t.anchorUsdValue != null) {
+                                    anchorUsd = t.anchorUsdValue as double;
+                                  } else if (t.amount != null &&
+                                      t.originalRate != null &&
+                                      t.originalRate > 0) {
+                                    anchorUsd = t.amount / t.originalRate;
+                                  } else if (t.amount != null) {
+                                    anchorUsd = t.amount;
+                                  } else {
+                                    anchorUsd = 0.0;
+                                  }
 
-                                  if (selectedCurrency == 'USD') {
+                                  if (selectedCurrency == txCurrency) {
+                                    debugPrint(
+                                      '[CARD][MONTO] id: ${t.id}, tipo: ${t.type}, montoOriginal: ${t.amount}, moneda: $selectedCurrency',
+                                    );
+                                    return '${CurrencyUtils.formatNumber(t.amount ?? 0.0)} $selectedCurrency';
+                                  } else if (selectedCurrency == 'USD') {
+                                    debugPrint(
+                                      '[CARD][MONTO] id: ${t.id}, tipo: ${t.type}, montoUSD: $anchorUsd, moneda: USD',
+                                    );
                                     return 'USD ${CurrencyUtils.formatNumber(anchorUsd)}';
+                                  } else {
+                                    final converted =
+                                        anchorUsd * rateForSelected;
+                                    debugPrint(
+                                      '[CARD][MONTO] id: ${t.id}, tipo: ${t.type}, montoUSD: $anchorUsd, tasa: $rateForSelected, convertido: $converted, moneda: $selectedCurrency',
+                                    );
+                                    return '${CurrencyUtils.formatNumber(converted)} $selectedCurrency';
                                   }
-
-                                  // Si la transacción ya está en la moneda seleccionada, mostrar el amount original.
-                                  if (txCurrency == selectedCurrency) {
-                                    final localValue = t.amount ?? 0.0;
-                                    return '${CurrencyUtils.formatNumber(localValue)} $selectedCurrency';
-                                  }
-
-                                  // En cualquier otro caso convertir desde anchorUsd a la moneda seleccionada
-                                  final converted = anchorUsd * rateForSelected;
-                                  return '${CurrencyUtils.formatNumber(converted)} $selectedCurrency';
                                 }(),
                                 style: TextStyle(
                                   color: t.type == 'payment'

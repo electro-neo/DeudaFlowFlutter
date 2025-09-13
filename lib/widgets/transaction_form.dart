@@ -584,14 +584,14 @@ class _TransactionFormState extends State<TransactionForm> {
                               color: Colors.indigo,
                               size: 24,
                             ),
-                            tooltip: 'Nombre de Moneda',
+                            tooltip: 'Agregar Moneda',
                             onPressed: () async {
                               String? newCode = await showDialog<String>(
                                 context: context,
                                 builder: (ctx) {
                                   final controller = TextEditingController();
                                   return AlertDialog(
-                                    title: const Text('Nombre de Moneda'),
+                                    title: const Text('Agregar Moneda'),
                                     content: TextField(
                                       controller: controller,
                                       decoration: const InputDecoration(
@@ -665,7 +665,7 @@ class _TransactionFormState extends State<TransactionForm> {
                                   );
                                 } catch (e) {
                                   debugPrint(
-                                    '[TX_FORM] Error al Nombre de Moneda manual: $e',
+                                    '[TX_FORM] Error al Agregar Moneda manual: $e',
                                   );
                                 }
                                 // Buscar la versión realmente insertada (el provider podría haber cambiado el casing)

@@ -727,7 +727,7 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              'Nombre de Moneda',
+                              'Agregar Moneda',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.onPrimary,

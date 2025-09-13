@@ -284,7 +284,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       await googleSignIn.initialize(
         serverClientId:
-            '1059073312131-cdq1c7et5squtreo5o9da0pog5bohog4.apps.googleusercontent.com',
+            '1059073312131-hj2t8nus9buk7ii3j7cj37bptsfonh8k.apps.googleusercontent.com',
       );
       debugPrint('DEBUG: googleSignIn.initialize completado');
       debugPrint('DEBUG: Llamando a googleSignIn.authenticate...');

@@ -422,16 +422,36 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
               style: pw.TextStyle(fontSize: 9),
             ),
             pw.SizedBox(width: 2),
+            pw.UrlLink(
+              destination:
+                  'https://play.google.com/store/apps/details?id=com.deudaflow.app',
+              child: pw.Text(
+                appName,
+                style: pw.TextStyle(
+                  fontSize: 9,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.blue,
+                ),
+              ),
+            ),
             pw.Text(
-              '$appName v$appVersion',
+              ' v$appVersion',
               style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
             ),
             pw.SizedBox(width: 6),
             pw.Text('puedes descargarla en ', style: pw.TextStyle(fontSize: 9)),
             pw.SizedBox(width: 2),
-            pw.Text(
-              'Play Store',
-              style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
+            pw.UrlLink(
+              destination:
+                  'https://play.google.com/store/apps/details?id=com.deudaflow.app',
+              child: pw.Text(
+                'Play Store',
+                style: pw.TextStyle(
+                  fontSize: 9,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.blue,
+                ),
+              ),
             ),
           ],
         ),

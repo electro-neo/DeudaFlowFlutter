@@ -7,10 +7,15 @@ import '../models/client.dart';
 import '../models/transaction.dart';
 import 'package:pdf/pdf.dart';
 import '../utils/string_sanitizer.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 // --- Constantes de la aplicación para el PDF ---
 const String appName = 'DeudaFlow';
-const String appVersion = '1.0.0'; // Puedes cambiar esto por la versión real
+
+Future<String> getAppVersion() async {
+  final info = await PackageInfo.fromPlatform();
+  return info.version;
+}
 
 // --- Utilidad para formateo de moneda en PDF ---
 // Se simplifica para solo formatear. La conversión se hace antes de llamar.
@@ -35,8 +40,8 @@ String getCurrencyLabel(String symbol) {
 // --- PDF builder para recibo general con movimientos filtrados ---
 pw.Document buildGeneralReceiptWithMovementsPDF(
   List<Map<String, dynamic>> filtered, {
-  required List<Map<String, dynamic>>
-  selectedCurrencies, // [{symbol: 'USD', rate: 1.0}, ...]
+  required List<Map<String, dynamic>> selectedCurrencies,
+  required String appVersion,
 }) {
   final pdf = pw.Document();
   // Totales generales por moneda seleccionada
@@ -58,18 +63,24 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
 
   pdf.addPage(
     pw.MultiPage(
-      header: (context) => pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+      header: (context) => pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: [
-          pw.Text(
-            filtered.length == 1
-                ? 'Recibo de ${(filtered[0]['client'] as Client).name}'
-                : 'Recibo General de Clientes',
-            style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
+          pw.Container(
+            alignment: pw.Alignment.centerRight,
+            child: pw.Text(
+              fechaRecibo,
+              style: pw.TextStyle(fontSize: 10, fontStyle: pw.FontStyle.italic),
+            ),
           ),
-          pw.Text(
-            fechaRecibo,
-            style: pw.TextStyle(fontSize: 10, fontStyle: pw.FontStyle.italic),
+          pw.Container(
+            alignment: pw.Alignment.centerLeft,
+            child: pw.Text(
+              filtered.length == 1
+                  ? 'Recibo de ${(filtered[0]['client'] as Client).name}'
+                  : 'Recibo General de Clientes',
+              style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -307,15 +318,15 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
                           pw.Container(
-                            padding: const pw.EdgeInsets.only(bottom: 2),
-                            decoration: pw.BoxDecoration(
-                              border: pw.Border(
-                                bottom: pw.BorderSide(
-                                  color: PdfColors.blue,
-                                  width: 2,
-                                ),
-                              ),
-                            ),
+                            // padding: const pw.EdgeInsets.only(bottom: 2),
+                            // decoration: pw.BoxDecoration(
+                            //   border: pw.Border(
+                            //     bottom: pw.BorderSide(
+                            //       color: PdfColors.blue,
+                            //       width: 2,
+                            //     ),
+                            //   ),
+                            // ),
                             child: pw.Text(
                               // Si todas las monedas tienen saldo 0, mostrar "Sin deuda"
                               saldoPendiente.values.every((v) => v == 0)
@@ -575,9 +586,11 @@ Future<void> exportGeneralReceiptWithMovementsPDF(
   List<Map<String, dynamic>> filtered, {
   required List<Map<String, dynamic>> selectedCurrencies,
 }) async {
+  final appVersion = await getAppVersion();
   final pdf = buildGeneralReceiptWithMovementsPDF(
     filtered,
     selectedCurrencies: selectedCurrencies,
+    appVersion: appVersion,
   );
   await Printing.layoutPdf(onLayout: (format) async => pdf.save());
 }
@@ -586,9 +599,11 @@ Future<void> exportAndShareGeneralReceiptWithMovementsPDF(
   List<Map<String, dynamic>> filtered, {
   required List<Map<String, dynamic>> selectedCurrencies,
 }) async {
+  final appVersion = await getAppVersion();
   final pdf = buildGeneralReceiptWithMovementsPDF(
     filtered,
     selectedCurrencies: selectedCurrencies,
+    appVersion: appVersion,
   );
   final bytes = await pdf.save();
   final dir = await getTemporaryDirectory();

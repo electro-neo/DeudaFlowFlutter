@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../providers/currency_provider.dart';
 import '../utils/currency_utils.dart';
 import '../utils/string_sanitizer.dart';
+import '../services/ad_service.dart';
 
 /// Estructura: [{client: Client, transactions: List<Transaction>}]
 
@@ -485,6 +486,22 @@ class _GeneralReceiptModalState extends State<GeneralReceiptModal> {
                                 },
                               )
                               .toList();
+                          // Pedir que el usuario vea un anuncio recompensado
+                          final allowed = await AdService.instance
+                              .showRewardedAd(context);
+                          if (!allowed) {
+                            // Si el usuario no ganó la recompensa, mostrar mensaje
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Necesitas ver el anuncio completo para exportar el recibo.',
+                                  ),
+                                ),
+                              );
+                            }
+                            return;
+                          }
                           if (isMobile) {
                             await exportAndShareGeneralReceiptWithMovementsPDF(
                               filtered,

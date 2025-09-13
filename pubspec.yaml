@@ -60,6 +60,7 @@ dependencies:
   app_links: ^6.4.1
   azlistview: ^2.0.0
   package_info_plus: ^9.0.0
+  google_mobile_ads: ^4.0.0
 
 dev_dependencies:
   flutter_test:

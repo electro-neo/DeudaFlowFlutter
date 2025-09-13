@@ -26,6 +26,7 @@ import 'providers/tab_provider.dart';
 import 'providers/theme_provider.dart';
 import 'widgets/budgeto_theme.dart';
 import 'services/session_authority_service.dart';
+import 'services/ad_service.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 String _initialRoute = '/'; // Se ajustará en _initializeApp según sesión
@@ -117,6 +118,8 @@ Future<void> _initializeApp() async {
 
     runApp(const MyApp());
     debugPrint('runApp ejecutado');
+    // Inicializar Mobile Ads en background (no bloquear arranque)
+    AdService.instance.initialize();
   } catch (e, st) {
     runApp(
       MaterialApp(

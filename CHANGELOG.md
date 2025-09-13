@@ -2,6 +2,17 @@
 
 Todas las novedades, mejoras y correcciones planeadas y lanzadas para Deuda Flow.
 
+## [1.0.6] - 2025-09-13
+
+### Cambios destacados (para todos)
+- Inicio de la app más rápido y mantiene tu sesión iniciada.
+- Funciona mejor sin internet: puedes seguir usando tus datos y se sincronizan luego.
+- Pantalla inicial (splash) más fluida y sin parpadeos.
+- Formularios de clientes y transacciones más claros (descripción y saldo inicial mejor guiados).
+- Recibos PDF con formato de montos más limpio.
+- Varias correcciones menores de estabilidad y datos duplicados.
+
+
 
 ## [1.0.3] - 2025-08-25
 - Selección automática de la última moneda nueva agregada en los chips de moneda.

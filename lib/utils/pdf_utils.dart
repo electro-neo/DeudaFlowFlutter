@@ -45,10 +45,14 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
 }) {
   final pdf = pw.Document();
   // Totales generales por moneda seleccionada
-  final Map<String, double> totalDeudaGeneral = {
+  // final Map<String, double> totalDeudaGeneral = {
+  //   for (var c in selectedCurrencies) c['symbol']: 0.0,
+  // };
+  final Map<String, double> totalAbonoGeneral = {
     for (var c in selectedCurrencies) c['symbol']: 0.0,
   };
-  final Map<String, double> totalAbonoGeneral = {
+  // Para deuda real: acumulamos los saldos negativos actuales de todos los clientes
+  final Map<String, double> totalDeudaRealGeneral = {
     for (var c in selectedCurrencies) c['symbol']: 0.0,
   };
 
@@ -125,13 +129,22 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
               }
             }
           }
-          // Sumar totales generales para cada moneda seleccionada
+          // Sumar totales generales para cada moneda seleccionada (para abonos, igual que antes)
           for (final currency in selectedCurrencies) {
             final symbol = currency['symbol'];
-            totalDeudaGeneral[symbol] =
-                (totalDeudaGeneral[symbol] ?? 0) + (totalDeuda[symbol] ?? 0);
             totalAbonoGeneral[symbol] =
                 (totalAbonoGeneral[symbol] ?? 0) + (totalAbono[symbol] ?? 0);
+          }
+          // --- NUEVO: sumar a totalDeudaRealGeneral el saldo negativo actual del cliente (en cada moneda) ---
+          for (final currency in selectedCurrencies) {
+            final symbol = currency['symbol'];
+            final rate = currency['rate'] as num;
+            // El balance del cliente está en USD, convertir a moneda
+            final clientBalance = client.balance * rate;
+            if (clientBalance < 0) {
+              totalDeudaRealGeneral[symbol] =
+                  (totalDeudaRealGeneral[symbol] ?? 0) + clientBalance.abs();
+            }
           }
           // --- BLOQUE DE INFORMACIÓN DEL CLIENTE ---
           widgets.add(
@@ -392,7 +405,7 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                     ],
                   ),
                   pw.SizedBox(width: 24), // Espacio entre columnas
-                  // --- Columna Total Deuda General (derecha) ---
+                  // --- Columna Total Deuda General (derecha, AHORA DEUDA REAL) ---
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
@@ -407,7 +420,7 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                       for (final currency in selectedCurrencies)
                         pw.Text(
                           formatAmount(
-                            totalDeudaGeneral[currency['symbol']] ?? 0,
+                            totalDeudaRealGeneral[currency['symbol']] ?? 0,
                             symbol: getCurrencyLabel(currency['symbol']),
                           ),
                           style: const pw.TextStyle(fontSize: 12),

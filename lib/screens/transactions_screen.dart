@@ -824,8 +824,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 currencyProvider.getRateFor(selectedCurrency) ?? 1.0;
 
             // --- Calcular balances por cliente en USD (para lógica interna) ---
-            // --- NUEVA LÓGICA: sumar por moneda seleccionada, solo convertir si es necesario ---
-            // NUEVA LÓGICA: siempre usar anchorUsdValue como base universal (USD)
             final rateToSelected = selectedCurrency == 'USD'
                 ? 1.0
                 : (currencyProvider.getRateFor(selectedCurrency) ?? 1.0);
@@ -844,6 +842,59 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             final showAbono = selectedType == null || selectedType == 'payment';
             final showDeuda = selectedType == null || selectedType == 'debt';
             if (!showAbono && !showDeuda) return const SizedBox.shrink();
+
+            // --- NUEVO: Mostrar mensaje de balance del cliente si hay cliente filtrado ---
+            Widget? clientBalanceMessage;
+            if (selectedClientId != null && selectedClientId.isNotEmpty) {
+              // Calcular balance neto del cliente filtrado (en USD, convertir a moneda seleccionada)
+              double clientBalance = 0.0;
+              for (var tx in filteredTransactions) {
+                final anchor = tx.anchorUsdValue ?? 0.0;
+                if (tx.type == 'payment') {
+                  clientBalance += anchor;
+                } else if (tx.type == 'debt') {
+                  clientBalance -= anchor;
+                }
+              }
+              final clientBalanceDisplay = clientBalance * rateToSelected;
+              String label;
+              Color color;
+              if (clientBalanceDisplay < -0.009) {
+                label = 'Deuda del cliente';
+                color = Colors.red[700]!;
+              } else if (clientBalanceDisplay > 0.009) {
+                label = 'Saldo a favor del cliente';
+                color = Colors.green[700]!;
+              } else {
+                label = 'Sin movimientos';
+                color = Colors.black87;
+              }
+              clientBalanceMessage = Padding(
+                padding: const EdgeInsets.only(top: 10.0, bottom: 2.0),
+                child: Column(
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: color,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    if (label != 'Sin movimientos')
+                      Text(
+                        CurrencyUtils.formatNumber(clientBalanceDisplay),
+                        style: TextStyle(
+                          color: color,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            }
+
             return Container(
               decoration: BoxDecoration(),
               child: Container(
@@ -969,6 +1020,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           ),
                       ],
                     ),
+                    if (clientBalanceMessage != null) clientBalanceMessage,
                     if (_selectedRange != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 8.0),

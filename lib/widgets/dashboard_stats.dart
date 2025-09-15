@@ -48,20 +48,7 @@ class _DashboardStatsState extends State<DashboardStats> {
         ? 1.0
         : (currencyProvider.getRateFor(selectedCurrency) ?? 1.0);
     double totalAbonado = 0.0;
-    double totalDeuda = 0.0;
-    for (final t in transactions) {
-      final anchor = t.anchorUsdValue ?? 0.0;
-      if (t.type == 'payment') {
-        totalAbonado += anchor;
-      } else if (t.type == 'debt') {
-        totalDeuda += anchor;
-      }
-    }
-    // Convertir totales a la moneda seleccionada solo al final
-    totalAbonado *= rateToSelected;
-    totalDeuda *= rateToSelected;
-    // Clientes con deudas: cuenta de clientes con balance negativo (en moneda seleccionada)
-    // Para mantener la lógica, calculamos balances por cliente en la moneda seleccionada
+    // --- Calcular balances por cliente (en USD, luego convertir) ---
     final Map<String, double> clientBalances = {
       for (var c in clients) c.id: 0.0,
     };
@@ -77,6 +64,18 @@ class _DashboardStatsState extends State<DashboardStats> {
     }
     // Convertir balances a la moneda seleccionada solo al final
     clientBalances.updateAll((key, val) => val * rateToSelected);
+    // Deuda real: suma de los balances negativos (en valor absoluto)
+    double totalDeuda = clientBalances.values
+        .where((b) => b < 0)
+        .fold(0.0, (sum, b) => sum + b.abs());
+    // Total abonado: suma de todos los pagos (como antes)
+    for (final t in transactions) {
+      final anchor = t.anchorUsdValue ?? 0.0;
+      if (t.type == 'payment') {
+        totalAbonado += anchor;
+      }
+    }
+    totalAbonado *= rateToSelected;
     final clientesConDeuda = clientBalances.values.where((b) => b < 0).length;
 
     // LOGS TEMPORALES PARA DEPURACIÓN
@@ -88,8 +87,8 @@ class _DashboardStatsState extends State<DashboardStats> {
       '[DashboardStats] Transacciones: ${transactions.length}',
     ); // Muestra en consola la cantidad de transacciones
     debugPrint(
-      '[DashboardStats] totalDeuda: $totalDeuda',
-    ); // Muestra el total de deuda
+      '[DashboardStats] totalDeuda (real): $totalDeuda',
+    ); // Muestra el total de deuda real
     debugPrint(
       '[DashboardStats] totalAbonado: $totalAbonado',
     ); // Muestra el total abonado

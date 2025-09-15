@@ -16,6 +16,7 @@ import 'faq_help_sheet.dart';
 import '../providers/transaction_provider.dart';
 import '../services/session_authority_service.dart';
 import '../utils/currency_manager_dialog.dart';
+import '../services/ad_service.dart';
 
 // Banner de debug para mostrar un número aleatorio que cambia en cada hot reload
 // class DebugBanner extends StatefulWidget {
@@ -196,6 +197,11 @@ class _MainScaffoldState extends State<MainScaffold>
         _chromeT = 0.0;
         _chromeTNotifier.value = 0.0;
       });
+      // Intentar mostrar interstitial con 20% de probabilidad y mínimo 2 minutos
+      AdService.instance.maybeShowInterstitialOnNavigation(
+        probability: 0.4,
+        minInterval: const Duration(minutes: 5),
+      );
       // Dispara animación en el siguiente frame para evitar parpadeo
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _tabAnimController.forward();
@@ -231,6 +237,11 @@ class _MainScaffoldState extends State<MainScaffold>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _tabAnimController.forward();
     });
+    // Intentar mostrar interstitial con 20% de probabilidad y mínimo 2 minutos
+    AdService.instance.maybeShowInterstitialOnNavigation(
+      probability: 0.4,
+      minInterval: const Duration(minutes: 5),
+    );
   }
 
   // Permite cambiar a la pestaña de movimientos y filtrar por cliente
@@ -248,6 +259,11 @@ class _MainScaffoldState extends State<MainScaffold>
       _chromeT = 0.0;
       _chromeTNotifier.value = 0.0;
     });
+    // Intentar mostrar interstitial al navegar a Movimientos
+    AdService.instance.maybeShowInterstitialOnNavigation(
+      probability: 0.4,
+      minInterval: const Duration(minutes: 5),
+    );
   }
 
   void _logout() async {

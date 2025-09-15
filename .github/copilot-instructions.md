@@ -1,6 +1,10 @@
 
 ## 📝 Cambios Recientes y Soluciones
 
+## Regla principal antes de hacer cambios
+no hagas cambios aun primero dime si es posible, analiza el escenario y dame una respuesta corta y brvee de todo, a menos que indique lo contrario. SE BREVE DA RESPUESTAS CORTAS
+
+
 ### Últimos cambios y refactorizaciones
 Ver archivo `CAMBIOS_ULTIMA_SESION.txt` para detalles de refactor, mejoras visuales, lógica de sincronización offline/online, gestión de monedas, fixes de Provider, y optimizaciones en recibos PDF y UI/UX. Incluye commits sugeridos y fechas de cada cambio relevante.
 

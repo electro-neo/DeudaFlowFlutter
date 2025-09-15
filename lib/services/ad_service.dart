@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -28,6 +29,21 @@ class AdService {
   int _consecutiveFailures = 0; // para cálculo de backoff
   Timer? _retryTimer; // reintento programado
 
+  // --- Interstitial state ---
+  InterstitialAd? _cachedInterstitialAd;
+  bool _isLoadingInterstitial = false;
+  Completer<InterstitialAd?>? _currentInterstitialLoadCompleter;
+  int _consecutiveInterstitialFailures = 0;
+  Timer? _interstitialRetryTimer;
+  int _interstitialTotalLoads = 0;
+  // ignore: unused_field
+  int _interstitialSuccessfulLoads = 0;
+  // ignore: unused_field
+  int _interstitialFailedLoads = 0;
+  DateTime? _lastInterstitialShownAt;
+  final Random _random = Random();
+  bool _isShowingAd = false; // evita mostrar varios full-screen a la vez
+
   // Métricas simples (solo debug)
   int _totalLoads = 0;
   int _successfulLoads = 0;
@@ -45,8 +61,21 @@ class AdService {
       await MobileAds.instance.initialize();
       // Pre-cargar un Rewarded al arrancar (no esperamos resultado)
       unawaited(preloadRewarded());
+      // También intentar precargar un Interstitial para inicio rápido
+      unawaited(preloadInterstitial());
     } catch (_) {}
     _initialised = true;
+  }
+
+  String _interstitialAdUnitId(TargetPlatform platform) {
+    if (kUseTestAds) {
+      return platform == TargetPlatform.iOS
+          ? 'ca-app-pub-3940256099942544/4411468910'
+          : 'ca-app-pub-3940256099942544/1033173712';
+    }
+    return platform == TargetPlatform.iOS
+        ? 'ca-app-pub-0202806937374735/REEMPLAZA_INTERSTITIAL'
+        : 'ca-app-pub-0202806937374735/6175605381';
   }
 
   /// Devuelve el adUnitId (usar test IDs hasta sustituir por producción)
@@ -139,6 +168,96 @@ class AdService {
         },
       ),
     );
+  }
+
+  /// Preloads an InterstitialAd and caches it for quick showing.
+  Future<void> preloadInterstitial() async {
+    if (kIsWeb) return;
+    if (_isLoadingInterstitial || _cachedInterstitialAd != null) return;
+
+    _interstitialRetryTimer?.cancel();
+    _isLoadingInterstitial = true;
+    final platform = defaultTargetPlatform;
+    if (!(platform == TargetPlatform.android ||
+        platform == TargetPlatform.iOS)) {
+      _isLoadingInterstitial = false;
+      return;
+    }
+
+    _currentInterstitialLoadCompleter = Completer<InterstitialAd?>();
+    _interstitialTotalLoads++;
+    final start = DateTime.now();
+    debugPrint(
+      '[AdService] Intentando precarga Interstitial (intento #${_interstitialTotalLoads})',
+    );
+
+    try {
+      InterstitialAd.load(
+        adUnitId: _interstitialAdUnitId(platform),
+        request: const AdRequest(),
+        adLoadCallback: InterstitialAdLoadCallback(
+          onAdLoaded: (ad) {
+            _cachedInterstitialAd = ad;
+            _isLoadingInterstitial = false;
+            _currentInterstitialLoadCompleter?.complete(ad);
+            _interstitialSuccessfulLoads++;
+            final ms = DateTime.now().difference(start).inMilliseconds;
+            debugPrint('[AdService] Interstitial precargado en ${ms}ms');
+            _consecutiveInterstitialFailures = 0;
+          },
+          onAdFailedToLoad: (error) {
+            _interstitialFailedLoads++;
+            final ms = DateTime.now().difference(start).inMilliseconds;
+            debugPrint(
+              '[AdService] Interstitial preload falló: ${error.message} tras ${ms}ms',
+            );
+            _isLoadingInterstitial = false;
+            _currentInterstitialLoadCompleter?.complete(null);
+            _handleInterstitialLoadFailure();
+          },
+        ),
+      );
+    } catch (e) {
+      debugPrint('[AdService] Excepción al pre-cargar Interstitial: $e');
+      _isLoadingInterstitial = false;
+      _currentInterstitialLoadCompleter?.complete(null);
+      _interstitialFailedLoads++;
+      _handleInterstitialLoadFailure();
+    }
+
+    unawaited(
+      _currentInterstitialLoadCompleter!.future.timeout(
+        const Duration(milliseconds: _loadTimeoutMs),
+        onTimeout: () {
+          if (!_currentInterstitialLoadCompleter!.isCompleted) {
+            _isLoadingInterstitial = false;
+            _currentInterstitialLoadCompleter!.complete(null);
+            _interstitialFailedLoads++;
+            debugPrint(
+              '[AdService] Timeout de precarga Interstitial ($_loadTimeoutMs ms).',
+            );
+            _handleInterstitialLoadFailure();
+          }
+          return null;
+        },
+      ),
+    );
+  }
+
+  void _handleInterstitialLoadFailure() {
+    _consecutiveInterstitialFailures++;
+    final raw =
+        _baseBackoffSeconds * (1 << (_consecutiveInterstitialFailures - 1));
+    final seconds = raw > _maxBackoffSeconds ? _maxBackoffSeconds : raw;
+    debugPrint(
+      '[AdService] Programando reintento Interstitial en ${seconds}s (fallos: $_consecutiveInterstitialFailures)',
+    );
+    _interstitialRetryTimer?.cancel();
+    _interstitialRetryTimer = Timer(Duration(seconds: seconds), () {
+      if (_cachedInterstitialAd == null && !_isLoadingInterstitial) {
+        preloadInterstitial();
+      }
+    });
   }
 
   /// Maneja un fallo de carga y programa reintento con backoff exponencial.
@@ -253,5 +372,99 @@ class AdService {
         return true;
       },
     );
+  }
+
+  /// Shows an interstitial if available. Returns true always (non-blocking UX);
+  /// the method will not show an interstitial if one is already showing or if
+  /// platform isn't supported.
+  Future<bool> showInterstitial({BuildContext? context}) async {
+    if (kIsWeb) return true;
+    final platform = context != null
+        ? Theme.of(context).platform
+        : defaultTargetPlatform;
+    if (!(platform == TargetPlatform.android || platform == TargetPlatform.iOS))
+      return true;
+
+    await initialize();
+    if (_isShowingAd) return true;
+
+    if (_cachedInterstitialAd == null) {
+      await preloadInterstitial();
+      if (_currentInterstitialLoadCompleter != null &&
+          !_currentInterstitialLoadCompleter!.isCompleted) {
+        try {
+          await _currentInterstitialLoadCompleter!.future.timeout(
+            const Duration(milliseconds: _loadTimeoutMs),
+          );
+        } catch (_) {}
+      }
+    }
+
+    final ad = _cachedInterstitialAd;
+    if (ad == null) {
+      debugPrint('[AdService] No hay Interstitial listo.');
+      return true;
+    }
+
+    final completer = Completer<bool>();
+    _isShowingAd = true;
+
+    ad.fullScreenContentCallback = FullScreenContentCallback(
+      onAdDismissedFullScreenContent: (ad) {
+        ad.dispose();
+        _cachedInterstitialAd = null;
+        _isShowingAd = false;
+        _lastInterstitialShownAt = DateTime.now();
+        unawaited(preloadInterstitial());
+        if (!completer.isCompleted) completer.complete(true);
+      },
+      onAdFailedToShowFullScreenContent: (ad, error) {
+        ad.dispose();
+        _cachedInterstitialAd = null;
+        _isShowingAd = false;
+        unawaited(preloadInterstitial());
+        if (!completer.isCompleted) completer.complete(true);
+      },
+    );
+
+    try {
+      ad.show();
+    } catch (e) {
+      debugPrint('[AdService] Error al mostrar Interstitial: $e');
+      _cachedInterstitialAd = null;
+      _isShowingAd = false;
+      unawaited(preloadInterstitial());
+      if (!completer.isCompleted) completer.complete(true);
+    }
+
+    // timeout guard
+    return completer.future.timeout(
+      const Duration(seconds: 10),
+      onTimeout: () {
+        if (!completer.isCompleted) completer.complete(true);
+        _isShowingAd = false;
+        return true;
+      },
+    );
+  }
+
+  /// Call this from navigation events to maybe show an interstitial.
+  /// Default: 20% chance, minInterval 2 minutes between interstitials.
+  Future<bool> maybeShowInterstitialOnNavigation({
+    double probability = 0.4, 
+    Duration minInterval = const Duration(minutes: 5),
+  }) async {
+    // Basic guards
+    if (_isShowingAd) return false;
+    final now = DateTime.now();
+    if (_lastInterstitialShownAt != null &&
+        now.difference(_lastInterstitialShownAt!) < minInterval) {
+      return false;
+    }
+    final roll = _random.nextDouble();
+    if (roll > probability) return false;
+
+    final shown = await showInterstitial();
+    return shown;
   }
 }

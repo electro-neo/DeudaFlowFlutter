@@ -42,64 +42,31 @@ class _DashboardStatsState extends State<DashboardStats> {
       return currencyProvider.currency;
     }
 
-    // --- NUEVA LÓGICA: sumar por moneda seleccionada, solo convertir si es necesario ---
+    // --- NUEVA LÓGICA: siempre usar anchorUsdValue como base universal (USD) ---
     final selectedCurrency = currencyProvider.currency;
+    final rateToSelected = selectedCurrency == 'USD'
+        ? 1.0
+        : (currencyProvider.getRateFor(selectedCurrency) ?? 1.0);
     double totalAbonado = 0.0;
     double totalDeuda = 0.0;
     for (final t in transactions) {
+      final anchor = t.anchorUsdValue ?? 0.0;
       if (t.type == 'payment') {
-        if ((t.currencyCode ?? 'USD') == selectedCurrency) {
-          totalAbonado += t.amount ?? 0.0;
-        } else if ((t.currencyCode ?? 'USD') == 'USD' &&
-            selectedCurrency != 'USD') {
-          final rate = currencyProvider.getRateFor(selectedCurrency) ?? 1.0;
-          totalAbonado += (t.anchorUsdValue ?? t.amount ?? 0.0) * rate;
-        } else if (selectedCurrency == 'USD' &&
-            (t.currencyCode ?? 'USD') != 'USD') {
-          final rate =
-              currencyProvider.getRateFor(t.currencyCode ?? 'USD') ?? 1.0;
-          if (rate > 0) {
-            totalAbonado += (t.amount ?? 0.0) / rate;
-          }
-        }
+        totalAbonado += anchor;
       } else if (t.type == 'debt') {
-        if ((t.currencyCode ?? 'USD') == selectedCurrency) {
-          totalDeuda += t.amount ?? 0.0;
-        } else if ((t.currencyCode ?? 'USD') == 'USD' &&
-            selectedCurrency != 'USD') {
-          final rate = currencyProvider.getRateFor(selectedCurrency) ?? 1.0;
-          totalDeuda += (t.anchorUsdValue ?? t.amount ?? 0.0) * rate;
-        } else if (selectedCurrency == 'USD' &&
-            (t.currencyCode ?? 'USD') != 'USD') {
-          final rate =
-              currencyProvider.getRateFor(t.currencyCode ?? 'USD') ?? 1.0;
-          if (rate > 0) {
-            totalDeuda += (t.amount ?? 0.0) / rate;
-          }
-        }
+        totalDeuda += anchor;
       }
     }
+    // Convertir totales a la moneda seleccionada solo al final
+    totalAbonado *= rateToSelected;
+    totalDeuda *= rateToSelected;
     // Clientes con deudas: cuenta de clientes con balance negativo (en moneda seleccionada)
     // Para mantener la lógica, calculamos balances por cliente en la moneda seleccionada
     final Map<String, double> clientBalances = {
       for (var c in clients) c.id: 0.0,
     };
     for (final t in transactions) {
-      double value = 0.0;
-      if ((t.currencyCode ?? 'USD') == selectedCurrency) {
-        value = t.amount ?? 0.0;
-      } else if ((t.currencyCode ?? 'USD') == 'USD' &&
-          selectedCurrency != 'USD') {
-        final rate = currencyProvider.getRateFor(selectedCurrency) ?? 1.0;
-        value = (t.anchorUsdValue ?? t.amount ?? 0.0) * rate;
-      } else if (selectedCurrency == 'USD' &&
-          (t.currencyCode ?? 'USD') != 'USD') {
-        final rate =
-            currencyProvider.getRateFor(t.currencyCode ?? 'USD') ?? 1.0;
-        if (rate > 0) {
-          value = (t.amount ?? 0.0) / rate;
-        }
-      }
+      double value = t.anchorUsdValue ?? 0.0;
       if (clientBalances.containsKey(t.clientId)) {
         if (t.type == 'payment') {
           clientBalances[t.clientId] = clientBalances[t.clientId]! + value;
@@ -108,6 +75,8 @@ class _DashboardStatsState extends State<DashboardStats> {
         }
       }
     }
+    // Convertir balances a la moneda seleccionada solo al final
+    clientBalances.updateAll((key, val) => val * rateToSelected);
     final clientesConDeuda = clientBalances.values.where((b) => b < 0).length;
 
     // LOGS TEMPORALES PARA DEPURACIÓN

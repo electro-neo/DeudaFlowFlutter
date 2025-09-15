@@ -2,7 +2,7 @@
 
 Todas las novedades, mejoras y correcciones planeadas y lanzadas para Deuda Flow.
 
-## [1.0.6] - 2025-09-13
+## [1.0.7] - 2025-09-13
 
 ### Cambios destacados (para todos)
 - Inicio de la app más rápido y mantiene tu sesión iniciada.

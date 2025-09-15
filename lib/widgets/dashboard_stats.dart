@@ -32,18 +32,9 @@ class _DashboardStatsState extends State<DashboardStats> {
     final transactions = context.watch<TransactionProvider>().transactions;
     final totalClients = clients.length;
 
-    // 2. Lógica de formato y conversión explícita DENTRO del widget
-    // Nueva función para obtener solo el monto formateado
+    // 2. Lógica de formato: SOLO formatea, NO convierte (el valor ya está en la moneda seleccionada)
     String getFormattedAmount(num value) {
-      final selectedCurrency = currencyProvider.currency;
-      // FIX: Se usa getRateFor para obtener la tasa correcta de la moneda seleccionada.
-      final rate = currencyProvider.getRateFor(selectedCurrency) ?? 1.0;
-      num displayValue = value;
-
-      if (selectedCurrency != 'USD' && rate > 0) {
-        displayValue = value * rate;
-      }
-      return NumberFormat("#,##0.00", "en_US").format(displayValue);
+      return NumberFormat("#,##0.00", "en_US").format(value);
     }
 
     // Nueva función para obtener solo el símbolo de la moneda
@@ -51,15 +42,64 @@ class _DashboardStatsState extends State<DashboardStats> {
       return currencyProvider.currency;
     }
 
-    // --- INICIO: Cálculo de estadísticas basado en anchorUsdValue ---
-    // Se calculan todos los valores desde la lista de transacciones para asegurar consistencia.
-
-    // 1. Calcular el balance individual de cada cliente en USD
+    // --- NUEVA LÓGICA: sumar por moneda seleccionada, solo convertir si es necesario ---
+    final selectedCurrency = currencyProvider.currency;
+    double totalAbonado = 0.0;
+    double totalDeuda = 0.0;
+    for (final t in transactions) {
+      if (t.type == 'payment') {
+        if ((t.currencyCode ?? 'USD') == selectedCurrency) {
+          totalAbonado += t.amount ?? 0.0;
+        } else if ((t.currencyCode ?? 'USD') == 'USD' &&
+            selectedCurrency != 'USD') {
+          final rate = currencyProvider.getRateFor(selectedCurrency) ?? 1.0;
+          totalAbonado += (t.anchorUsdValue ?? t.amount ?? 0.0) * rate;
+        } else if (selectedCurrency == 'USD' &&
+            (t.currencyCode ?? 'USD') != 'USD') {
+          final rate =
+              currencyProvider.getRateFor(t.currencyCode ?? 'USD') ?? 1.0;
+          if (rate > 0) {
+            totalAbonado += (t.amount ?? 0.0) / rate;
+          }
+        }
+      } else if (t.type == 'debt') {
+        if ((t.currencyCode ?? 'USD') == selectedCurrency) {
+          totalDeuda += t.amount ?? 0.0;
+        } else if ((t.currencyCode ?? 'USD') == 'USD' &&
+            selectedCurrency != 'USD') {
+          final rate = currencyProvider.getRateFor(selectedCurrency) ?? 1.0;
+          totalDeuda += (t.anchorUsdValue ?? t.amount ?? 0.0) * rate;
+        } else if (selectedCurrency == 'USD' &&
+            (t.currencyCode ?? 'USD') != 'USD') {
+          final rate =
+              currencyProvider.getRateFor(t.currencyCode ?? 'USD') ?? 1.0;
+          if (rate > 0) {
+            totalDeuda += (t.amount ?? 0.0) / rate;
+          }
+        }
+      }
+    }
+    // Clientes con deudas: cuenta de clientes con balance negativo (en moneda seleccionada)
+    // Para mantener la lógica, calculamos balances por cliente en la moneda seleccionada
     final Map<String, double> clientBalances = {
       for (var c in clients) c.id: 0.0,
     };
     for (final t in transactions) {
-      final value = t.anchorUsdValue ?? 0.0;
+      double value = 0.0;
+      if ((t.currencyCode ?? 'USD') == selectedCurrency) {
+        value = t.amount ?? 0.0;
+      } else if ((t.currencyCode ?? 'USD') == 'USD' &&
+          selectedCurrency != 'USD') {
+        final rate = currencyProvider.getRateFor(selectedCurrency) ?? 1.0;
+        value = (t.anchorUsdValue ?? t.amount ?? 0.0) * rate;
+      } else if (selectedCurrency == 'USD' &&
+          (t.currencyCode ?? 'USD') != 'USD') {
+        final rate =
+            currencyProvider.getRateFor(t.currencyCode ?? 'USD') ?? 1.0;
+        if (rate > 0) {
+          value = (t.amount ?? 0.0) / rate;
+        }
+      }
       if (clientBalances.containsKey(t.clientId)) {
         if (t.type == 'payment') {
           clientBalances[t.clientId] = clientBalances[t.clientId]! + value;
@@ -68,22 +108,7 @@ class _DashboardStatsState extends State<DashboardStats> {
         }
       }
     }
-
-    // 2. Calcular las estadísticas globales usando los balances y transacciones
-    // Deuda total: suma de los balances negativos de los clientes (deuda real pendiente)
-    final totalDeuda = clientBalances.values
-        .where((balance) => balance < 0)
-        .fold<double>(0, (sum, balance) => sum + balance.abs());
-
-    // Total abonado: suma de todas las transacciones de tipo 'payment' en USD
-    final totalAbonado = transactions
-        .where((t) => t.type == 'payment')
-        .fold<double>(0, (sum, t) => sum + (t.anchorUsdValue ?? 0.0));
-
-    // Clientes con deudas: cuenta de clientes con balance negativo
     final clientesConDeuda = clientBalances.values.where((b) => b < 0).length;
-
-    // --- FIN: Cálculo de estadísticas ---
 
     // LOGS TEMPORALES PARA DEPURACIÓN
     final totalSaldo = totalAbonado - totalDeuda; // <-- CÁLCULO AÑADIDO

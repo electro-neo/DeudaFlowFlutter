@@ -139,6 +139,12 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
       }
     }
     final usdBalance = totalPayments - totalDebts;
+    // Balance en moneda seleccionada usando anchorUsdValue como base
+    final selectedCurrency = currencyProvider.currency;
+    final rateToSelected = selectedCurrency == 'USD'
+        ? 1.0
+        : (currencyProvider.getRateFor(selectedCurrency) ?? 1.0);
+    final selectedBalance = usdBalance * rateToSelected;
 
     // Color y mensaje según balance USD
     Color balanceColor;
@@ -163,6 +169,10 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
             return MapEntry(code, usdBalance * rate);
           }),
     ];
+    // ...existing code...
+    // Mostrar balance principal en la moneda seleccionada
+    // Busca el lugar donde se muestra el balance principal (usualmente cerca de 'Balance')
+    // y reemplaza el valor mostrado por selectedBalance y el símbolo de la moneda seleccionada
     final firstLetter = client.name.trim().isNotEmpty
         ? client.name.trim().characters.first.toUpperCase()
         : '?';

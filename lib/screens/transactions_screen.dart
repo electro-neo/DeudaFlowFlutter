@@ -824,52 +824,50 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 currencyProvider.getRateFor(selectedCurrency) ?? 1.0;
 
             // --- Calcular balances por cliente en USD (para lógica interna) ---
-            final Map<String, double> clientBalances = {
-              for (var c in clients) c.id: 0.0,
-            };
-            for (var tx in filteredTransactions) {
-              final valueInUsd = tx.anchorUsdValue ?? tx.amount;
-              // Usar ?? 0.0 para evitar null check operator sobre null
-              if (tx.type == 'payment') {
-                clientBalances[tx.clientId] =
-                    (clientBalances[tx.clientId] ?? 0.0) + valueInUsd;
-              } else if (tx.type == 'debt') {
-                clientBalances[tx.clientId] =
-                    (clientBalances[tx.clientId] ?? 0.0) - valueInUsd;
-              }
-            }
-
-            // Total deuda en USD (calculado por cliente above, not used directly here)
-
-            // Ahora calculamos la presentación de Abono/Deuda usando los saldos netos por cliente
-            // clientBalances ya contiene el balance neto por cliente en USD (payment +, debt -)
+            // --- NUEVA LÓGICA: sumar por moneda seleccionada, solo convertir si es necesario ---
             double displayAbono = 0.0;
             double displayDeuda = 0.0;
-
-            double deudaUsdTotal = 0.0;
-            clientBalances.forEach((_, balanceUsd) {
-              if (balanceUsd < 0) {
-                deudaUsdTotal += -balanceUsd; // net debt (abs)
-              }
-            });
-
-            // Abono: volver a la suma por transacción (como estaba antes)
             for (var tx in filteredTransactions) {
-              if (tx.type != 'payment') continue;
-              final anchorUsd = tx.anchorUsdValue ?? 0.0;
-              double valueInSelected;
-              if (selectedCurrency == 'USD') {
-                valueInSelected = anchorUsd;
-              } else {
-                valueInSelected = anchorUsd * rateForSelected;
+              // Sumar solo si la transacción está en la moneda seleccionada
+              if (tx.type == 'payment') {
+                if ((tx.currencyCode ?? 'USD') == selectedCurrency) {
+                  displayAbono += tx.amount ?? 0.0;
+                } else if ((tx.currencyCode ?? 'USD') == 'USD' &&
+                    selectedCurrency != 'USD') {
+                  // Convertir USD a moneda seleccionada
+                  final rate =
+                      currencyProvider.getRateFor(selectedCurrency) ?? 1.0;
+                  displayAbono +=
+                      (tx.anchorUsdValue ?? tx.amount ?? 0.0) * rate;
+                } else if (selectedCurrency == 'USD' &&
+                    (tx.currencyCode ?? 'USD') != 'USD') {
+                  // Convertir de moneda local a USD
+                  final rate =
+                      currencyProvider.getRateFor(tx.currencyCode ?? 'USD') ??
+                      1.0;
+                  if (rate > 0) {
+                    displayAbono += (tx.amount ?? 0.0) / rate;
+                  }
+                }
+              } else if (tx.type == 'debt') {
+                if ((tx.currencyCode ?? 'USD') == selectedCurrency) {
+                  displayDeuda += tx.amount ?? 0.0;
+                } else if ((tx.currencyCode ?? 'USD') == 'USD' &&
+                    selectedCurrency != 'USD') {
+                  final rate =
+                      currencyProvider.getRateFor(selectedCurrency) ?? 1.0;
+                  displayDeuda +=
+                      (tx.anchorUsdValue ?? tx.amount ?? 0.0) * rate;
+                } else if (selectedCurrency == 'USD' &&
+                    (tx.currencyCode ?? 'USD') != 'USD') {
+                  final rate =
+                      currencyProvider.getRateFor(tx.currencyCode ?? 'USD') ??
+                      1.0;
+                  if (rate > 0) {
+                    displayDeuda += (tx.amount ?? 0.0) / rate;
+                  }
+                }
               }
-              displayAbono += valueInSelected;
-            }
-
-            if (selectedCurrency == 'USD') {
-              displayDeuda = deudaUsdTotal;
-            } else {
-              displayDeuda = deudaUsdTotal * rateForSelected;
             }
             final showAbono = selectedType == null || selectedType == 'payment';
             final showDeuda = selectedType == null || selectedType == 'debt';

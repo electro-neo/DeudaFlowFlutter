@@ -760,13 +760,61 @@ class TransactionProvider extends ChangeNotifier {
 
     await loadTransactions(userId);
 
-    // --- NUEVO: Recalcular y sincronizar balances de todos los clientes en Supabase tras la sync ---
+    // --- NUEVO: Recalcular balances localmente y FORZAR actualización remota en Supabase tras la sync ---
     try {
       final clientBox = Hive.isBoxOpen('clients')
           ? Hive.box<ClientHive>('clients')
           : await Hive.openBox<ClientHive>('clients');
+      // 1) Recalcular localmente (esto mantiene la lógica existente)
       for (final client in clientBox.values) {
         await recalculateClientBalance(client.id);
+      }
+
+      // 2) Intentar forzar la actualización remota de los balances para garantizar consistencia
+      try {
+        final localContext = navigatorKey.currentContext;
+        bool allowed = true;
+        if (localContext != null) {
+          // Valida la autoridad del dispositivo y, en caso de conflicto, la función internamente puede cerrar sesión
+          allowed = await SessionAuthorityService.instance
+              .validateDeviceAuthorityOrLogout(
+                localContext,
+                userId,
+                source:
+                    'TransactionProvider.syncPendingTransactions.forcedBalanceUpdate',
+              );
+        } else {
+          // Si no hay contexto UI disponible, revisa el flag de sesión autoriza
+          allowed = await _isSessionAuthorized();
+        }
+
+        if (!allowed) {
+          debugPrint(
+            '[SYNC][WARN] No autorizado para forzar actualización remota de balances.',
+          );
+        } else if (Supabase.instance.client.auth.currentSession == null) {
+          debugPrint(
+            '[SYNC][WARN] No hay sesión activa en Supabase, se omite forzar balances remotos.',
+          );
+        } else {
+          for (final client in clientBox.values) {
+            try {
+              final double balanceValue = client.balance;
+              await _service.updateClientBalance(client.id, balanceValue);
+              debugPrint(
+                '[SYNC] Balance forzado en Supabase para cliente ${client.id}: $balanceValue',
+              );
+            } catch (e) {
+              debugPrint(
+                '[SYNC][ERROR] Falló updateClientBalance para cliente ${client.id}: $e',
+              );
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint(
+          '[SYNC][ERROR] Error al forzar actualización remota de balances: $e',
+        );
       }
     } catch (e) {
       debugPrint(

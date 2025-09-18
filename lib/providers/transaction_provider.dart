@@ -9,11 +9,25 @@ import '../models/transaction_hive.dart';
 import '../models/client_hive.dart';
 import '../models/client.dart';
 import '../services/supabase_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/session_authority_service.dart';
 import '../main.dart';
 import 'client_provider.dart';
 
 class TransactionProvider extends ChangeNotifier {
+  // Lee el flag de sesión en Hive para saber si la sesión ya está autorizada
+  Future<bool> _isSessionAuthorized() async {
+    try {
+      final box = Hive.isBoxOpen('session')
+          ? Hive.box('session')
+          : await Hive.openBox('session');
+      final state = box.get('session_state');
+      return state == 'authorized';
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Elimina una transacción de la lista en memoria y notifica listeners (solo UI, no Hive)
   void removeTransactionLocally(String transactionId) {
     _transactions.removeWhere((t) => t.id == transactionId);
@@ -29,7 +43,11 @@ class TransactionProvider extends ChangeNotifier {
     if (localContext != null) {
       // ignore: use_build_context_synchronously
       final ok = await SessionAuthorityService.instance
-          .validateDeviceAuthorityOrLogout(localContext, userId);
+          .validateDeviceAuthorityOrLogout(
+            localContext,
+            userId,
+            source: 'TransactionProvider.markTransactionForDeletionAndSync',
+          );
       if (!ok) return;
     }
     debugPrint(
@@ -212,7 +230,11 @@ class TransactionProvider extends ChangeNotifier {
         // ignore: use_build_context_synchronously
         final ok = await SessionAuthorityService.instance
             // ignore: use_build_context_synchronously
-            .validateDeviceAuthorityOrLogout(localContext, effectiveUserId);
+            .validateDeviceAuthorityOrLogout(
+              localContext,
+              effectiveUserId,
+              source: 'TransactionProvider.syncPendingTransactionsOnConnection',
+            );
         if (!ok) return;
       }
       debugPrint(
@@ -350,12 +372,14 @@ class TransactionProvider extends ChangeNotifier {
     }
     // DEBUG: Mostrar tipos de monedas detectadas en Supabase y Hive
     final hiveCurrencies = box.values
-        .map((t) => t.currencyCode.trim().toUpperCase())
-        .where((c) => c.isNotEmpty)
+        .map((t) => t.currencyCode)
+        .where((c) => c != null && c.trim().isNotEmpty)
+        .map((c) => c!.trim().toUpperCase())
         .toSet();
     final supabaseCurrencies = remoteTxs
-        .map((t) => t.currencyCode.trim().toUpperCase())
-        .where((c) => c.isNotEmpty)
+        .map((t) => t.currencyCode)
+        .where((c) => c != null && c.trim().isNotEmpty)
+        .map((c) => c!.trim().toUpperCase())
         .toSet();
     debugPrint(
       '[MONEDAS][HIVE] Tipos detectados: ${hiveCurrencies.join(', ')}',
@@ -429,7 +453,7 @@ class TransactionProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('[recalculateClientBalance][UI-REFRESH][ERROR] $e');
     }
-    // Sincroniza con Supabase SOLO si hay userId, pero no bloquea el flujo local
+    // Sincroniza con Supabase SOLO si la sesión está autorizada y válida; de lo contrario, evita llamadas remotas en arranque en frío
     if (shouldUpdateRemote) {
       try {
         final clientModel = Client(
@@ -441,10 +465,16 @@ class TransactionProvider extends ChangeNotifier {
           localId: client.localId,
         );
         final userId = _lastKnownUserId ?? '';
-        if (userId.isNotEmpty) {
+        final isAuthorized = await _isSessionAuthorized();
+        final hasSession = Supabase.instance.client.auth.currentSession != null;
+        if (userId.isNotEmpty && isAuthorized && hasSession) {
           await SupabaseService().updateClient(clientModel);
           debugPrint(
             '>>> [recalculateClientBalance] Balance actualizado en Supabase',
+          );
+        } else {
+          debugPrint(
+            '[recalculateClientBalance] SKIP remote update (authorized=$isAuthorized, hasSession=$hasSession, userIdEmpty=${userId.isEmpty})',
           );
         }
       } catch (e, stack) {
@@ -730,13 +760,61 @@ class TransactionProvider extends ChangeNotifier {
 
     await loadTransactions(userId);
 
-    // --- NUEVO: Recalcular y sincronizar balances de todos los clientes en Supabase tras la sync ---
+    // --- NUEVO: Recalcular balances localmente y FORZAR actualización remota en Supabase tras la sync ---
     try {
       final clientBox = Hive.isBoxOpen('clients')
           ? Hive.box<ClientHive>('clients')
           : await Hive.openBox<ClientHive>('clients');
+      // 1) Recalcular localmente (esto mantiene la lógica existente)
       for (final client in clientBox.values) {
         await recalculateClientBalance(client.id);
+      }
+
+      // 2) Intentar forzar la actualización remota de los balances para garantizar consistencia
+      try {
+        final localContext = navigatorKey.currentContext;
+        bool allowed = true;
+        if (localContext != null) {
+          // Valida la autoridad del dispositivo y, en caso de conflicto, la función internamente puede cerrar sesión
+          allowed = await SessionAuthorityService.instance
+              .validateDeviceAuthorityOrLogout(
+                localContext,
+                userId,
+                source:
+                    'TransactionProvider.syncPendingTransactions.forcedBalanceUpdate',
+              );
+        } else {
+          // Si no hay contexto UI disponible, revisa el flag de sesión autoriza
+          allowed = await _isSessionAuthorized();
+        }
+
+        if (!allowed) {
+          debugPrint(
+            '[SYNC][WARN] No autorizado para forzar actualización remota de balances.',
+          );
+        } else if (Supabase.instance.client.auth.currentSession == null) {
+          debugPrint(
+            '[SYNC][WARN] No hay sesión activa en Supabase, se omite forzar balances remotos.',
+          );
+        } else {
+          for (final client in clientBox.values) {
+            try {
+              final double balanceValue = client.balance;
+              await _service.updateClientBalance(client.id, balanceValue);
+              debugPrint(
+                '[SYNC] Balance forzado en Supabase para cliente ${client.id}: $balanceValue',
+              );
+            } catch (e) {
+              debugPrint(
+                '[SYNC][ERROR] Falló updateClientBalance para cliente ${client.id}: $e',
+              );
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint(
+          '[SYNC][ERROR] Error al forzar actualización remota de balances: $e',
+        );
       }
     } catch (e) {
       debugPrint(

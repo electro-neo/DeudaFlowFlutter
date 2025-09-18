@@ -91,7 +91,11 @@ class SyncProvider extends ChangeNotifier {
       if (localContext is Element && !localContext.mounted) return;
       // Validar device_id antes de sincronizar
       final ok = await SessionAuthorityService.instance
-          .validateDeviceAuthorityOrLogout(localContext, userId);
+          .validateDeviceAuthorityOrLogout(
+            localContext,
+            userId,
+            source: 'SyncProvider._syncAll',
+          );
       if (!ok) return;
       if (localContext is Element && !localContext.mounted) return;
       final clientProvider = Provider.of<ClientProvider>(

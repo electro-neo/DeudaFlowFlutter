@@ -1,3 +1,5 @@
+
+---
 Errores encontrados y soluciones aplicadas en la sesión:
 
 1. Error: Al presionar el botón "Movimientos" en la barra inferior, los filtros de cliente y tipo no se limpiaban correctamente o no se reflejaban en la UI.
@@ -94,3 +96,55 @@ Fecha: 2025-07-29
    - Resultado: Los recibos en PDF ahora son mucho más profesionales, claros y consistentes con la UI de la aplicación. La información es fácil de leer, incluso con números grandes, y la presentación de múltiples monedas es explícita y correcta.
 
 Fecha: 2025-08-08
+
+17. Error: Aparente cierre de sesión (navegación a Welcome) al guardar una transacción desde TransactionForm tras un cold start.
+    - Causa: No era un signOut real, sino un doble pop en la navegación. TransactionForm ya cerraba el modal vía onClose (Navigator.pop), y además el caller ejecutaba otro Navigator.pop(), cerrando la ruta inferior y enviando a '/'. Tras el siguiente arranque, la sesión se restauraba y llevaba a Dashboard.
+    - Solución: Se eliminó el pop duplicado y se delegó el cierre únicamente a onClose del TransactionForm.
+       • Archivos: ClientsScreen (handleTransactionSave) y ClientDetailsModal (callback de onSave del TransactionForm).
+    - Resultado: Al guardar, solo se cierra el modal/hoja y se permanece en Dashboard mostrando el snackbar “Transacción guardada correctamente”, sin saltos a Welcome.
+    - Fecha: 2025-09-10
+
+9. Error: Al mostrar montos de transacciones en monedas distintas de USD (ej. VES, COP), el valor visual era incorrecto (mostraba el monto convertido desde USD en vez del monto original registrado).
+   - Solución: Se corrigió la lógica en transaction_card.dart y transactions_screen.dart para que, si la moneda seleccionada no es USD, se muestre siempre el campo amount (monto original en la moneda local) y debajo el monto en USD solo como referencia. Así, el valor visual coincide con el registrado y no hay confusión.
+
+10. Error: El campo de monto en el modal de agregar transacción no formateaba correctamente los miles y decimales en tiempo real, permitiendo más de dos decimales y no agregando ",00" al perder el foco.
+   - Solución: Se implementó un TextInputFormatter personalizado (ThousandsFormatter) y lógica con FocusNode para formatear el monto en tiempo real, restringir a dos decimales y agregar ",00" automáticamente si el usuario no lo escribe. El valor se guarda y muestra siempre con el formato correcto.
+
+11. Error: Al eliminar transacciones y navegar rápidamente, la pantalla de movimientos mostraba un error "Null check operator used on a null value" y se colgaba.
+   - Solución: Se corrigió la lógica de filtrado y fallback en transactions_screen.dart para que, si no hay cliente válido, se use un objeto Client vacío en vez de null, evitando el error y asegurando que la pantalla nunca se cuelgue por falta de datos.
+
+12. Error: Al registrar un cliente con nombre compuesto solo de emojis, la app se colgaba o mostraba errores de renderizado en el modal de detalles.
+Solución: Se implementó un sanitizador y manejo seguro de strings usando graphemes para evitar que nombres con solo emojis causen errores en la UI. Ahora los nombres se procesan correctamente y la app no se cuelga.
+
+Fecha: 2025-09-11
+
+18. Error: Campo "Monto" (TransactionForm) auto-agregaba ",00" al escribir el primer dígito (por ejemplo, al teclear "1" quedaba "1,00") y bloqueaba seguir escribiendo o borrar.
+   - Causa: El TextInputFormatter forzaba el formato completo con decimales durante la escritura y reposicionaba el cursor al final.
+   - Solución: Se reescribió el formateador para que solo agrupe miles en tiempo real y permita decimales opcionales, sin agregar ",00" al escribir. La completitud de decimales (agregar ",00", pad a 2 o recortar a 2) ocurre solo al perder el foco (FocusNode listener).
+   - Archivos: lib/widgets/transaction_form.dart
+   - Resultado: La escritura es natural (1 → "1", 1000 → "1.000", 1.000,5 → "1.000,5" → "1.000,50"), se puede borrar sin trabas, y al perder foco se normaliza a dos decimales.
+
+19. Error de compilación: Clase ThousandsFormatter declarada dentro de otra clase y falta de import para NumberFormat.
+   - Síntomas: "Classes can't be declared inside other classes", "Undefined class 'NumberFormat'".
+   - Solución: Mover ThousandsFormatter y las utilidades de formato a nivel superior del archivo; agregar import correcto `package:intl/intl.dart` y declarar `NumberFormat` global. Se ajustó también el orden de inputFormatters (primero filtro `[0-9.,]`, luego el formateador) para evitar conflictos.
+   - Archivos: lib/widgets/transaction_form.dart
+   - Resultado: Compilación sin errores y formateo estable.
+
+20. Mejora: Normalización robusta del monto al guardar.
+   - Cambio: Antes de parsear se normaliza el texto del monto: `1.234,56` → `1234.56` usando `replaceAll('.', '')` y `replaceAll(',', '.')`.
+   - Archivos: lib/widgets/transaction_form.dart (método _save)
+   - Resultado: Se evita parseo inválido y el monto se guarda correctamente como double, respetando el formato de entrada en español.
+
+21. Mejora: UX de decimales en blur para el campo "Monto".
+   - Cambio: Si no hay decimales, se agrega ",00" al perder foco; si hay 1 decimal, se completa a 2; si hay más de 2, se recorta a 2. Durante la escritura no se fuerza este comportamiento.
+   - Archivos: lib/widgets/transaction_form.dart (listener de FocusNode)
+   - Resultado: Consistencia visual sin obstaculizar la escritura.
+
+---
+12/09/2025
+transaction_form.dart: Contador de caracteres de descripción ahora aparece dentro del campo, abajo a la derecha, usando Stack.
+Detalles:
+- Reemplazo del TextField por Stack.
+- counterText oculto.
+- Padding extra para no solapar texto.
+- Badge con color dinámico (gris / naranja / rojo).

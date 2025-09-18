@@ -11,6 +11,28 @@ import '../main.dart';
 import 'transaction_provider.dart';
 
 class ClientProvider extends ChangeNotifier {
+  /// Actualiza el balance local de un cliente y sincroniza en Hive y Supabase si es posible
+  Future<void> updateClientBalance(String clientId, double newBalance) async {
+    final clientBox = Hive.box<ClientHive>('clients');
+    final c = clientBox.get(clientId);
+    if (c != null) {
+      c.balance = newBalance;
+      await c.save();
+    }
+    // Intentar actualizar en Supabase si hay internet
+    if (await _isOnline()) {
+      try {
+        await _service.updateClientBalance(clientId, newBalance);
+      } catch (e) {
+        debugPrint(
+          '[SYNC][ERROR] No se pudo actualizar balance en Supabase para cliente $clientId: $e',
+        );
+      }
+    }
+    await _refreshClientsFromHive();
+    notifyListeners();
+  }
+
   /// Recalcula el balance de un cliente sumando todas sus transacciones y lo sincroniza en Hive y Supabase
   Future<void> recalculateAndSyncClientBalance(
     String clientId,
@@ -59,7 +81,11 @@ class ClientProvider extends ChangeNotifier {
       // Evitar usar un BuildContext no montado
       if (!localContext.mounted) return;
       final ok = await SessionAuthorityService.instance
-          .validateDeviceAuthorityOrLogout(localContext, userId);
+          .validateDeviceAuthorityOrLogout(
+            localContext,
+            userId,
+            source: 'ClientProvider.syncPendingClients',
+          );
       if (!ok) return;
     }
     if (!await _isOnline()) return;
@@ -383,7 +409,11 @@ class ClientProvider extends ChangeNotifier {
       if (localContext != null) {
         if (!localContext.mounted) return finalId;
         ok = await SessionAuthorityService.instance
-            .validateDeviceAuthorityOrLogout(localContext, userId);
+            .validateDeviceAuthorityOrLogout(
+              localContext,
+              userId,
+              source: 'ClientProvider.addClient',
+            );
       }
       if (!ok) return finalId;
       await syncPendingClients(userId);
@@ -441,7 +471,11 @@ class ClientProvider extends ChangeNotifier {
       if (localContext != null) {
         if (!localContext.mounted) return;
         ok = await SessionAuthorityService.instance
-            .validateDeviceAuthorityOrLogout(localContext, userId);
+            .validateDeviceAuthorityOrLogout(
+              localContext,
+              userId,
+              source: 'ClientProvider.updateClient',
+            );
       }
       if (!ok) return;
       await syncPendingClients(userId);
@@ -491,7 +525,11 @@ class ClientProvider extends ChangeNotifier {
       if (localContext != null) {
         if (!localContext.mounted) return;
         final ok = await SessionAuthorityService.instance
-            .validateDeviceAuthorityOrLogout(localContext, userId);
+            .validateDeviceAuthorityOrLogout(
+              localContext,
+              userId,
+              source: 'ClientProvider.deleteClient',
+            );
         if (!ok) return;
       }
       // Si hay internet, sincroniza inmediatamente (elimina en Supabase y luego en Hive)

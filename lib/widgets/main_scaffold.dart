@@ -1,7 +1,6 @@
 import 'scale_on_tap.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../screens/dashboard_screen.dart';
 import '../screens/clients_screen.dart';
 import '../screens/transactions_screen.dart';
@@ -15,7 +14,9 @@ import 'add_global_transaction_modal.dart';
 import 'faq_help_sheet.dart';
 
 import '../providers/transaction_provider.dart';
+import '../services/session_authority_service.dart';
 import '../utils/currency_manager_dialog.dart';
+import '../services/ad_service.dart';
 
 // Banner de debug para mostrar un número aleatorio que cambia en cada hot reload
 // class DebugBanner extends StatefulWidget {
@@ -196,6 +197,11 @@ class _MainScaffoldState extends State<MainScaffold>
         _chromeT = 0.0;
         _chromeTNotifier.value = 0.0;
       });
+      // Intentar mostrar interstitial con 20% de probabilidad y mínimo 2 minutos
+      AdService.instance.maybeShowInterstitialOnNavigation(
+        probability: 0.4,
+        minInterval: const Duration(minutes: 5),
+      );
       // Dispara animación en el siguiente frame para evitar parpadeo
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _tabAnimController.forward();
@@ -231,6 +237,11 @@ class _MainScaffoldState extends State<MainScaffold>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _tabAnimController.forward();
     });
+    // Intentar mostrar interstitial con 20% de probabilidad y mínimo 2 minutos
+    AdService.instance.maybeShowInterstitialOnNavigation(
+      probability: 0.4,
+      minInterval: const Duration(minutes: 5),
+    );
   }
 
   // Permite cambiar a la pestaña de movimientos y filtrar por cliente
@@ -248,6 +259,11 @@ class _MainScaffoldState extends State<MainScaffold>
       _chromeT = 0.0;
       _chromeTNotifier.value = 0.0;
     });
+    // Intentar mostrar interstitial al navegar a Movimientos
+    AdService.instance.maybeShowInterstitialOnNavigation(
+      probability: 0.4,
+      minInterval: const Duration(minutes: 5),
+    );
   }
 
   void _logout() async {
@@ -256,12 +272,10 @@ class _MainScaffoldState extends State<MainScaffold>
     if (guestCleanup != null) {
       await guestCleanup();
     }
-    // Intenta cerrar sesión en Supabase; si no hay internet, evita crashear
     try {
-      await Supabase.instance.client.auth.signOut();
+      await SessionAuthorityService.instance.signOutAndDisposeListener();
     } catch (e) {
-      // Offline u otros errores de red no deben detener el logout local
-      debugPrint('[LOGOUT] Error al cerrar sesión en Supabase: $e');
+      debugPrint('[LOGOUT] Error al cerrar sesión: $e');
     }
     if (mounted) {
       Navigator.of(context).pushReplacementNamed('/');
@@ -569,7 +583,7 @@ class _MainScaffoldState extends State<MainScaffold>
                                                 const SizedBox(height: 16),
                                                 Consumer<CurrencyProvider>(
                                                   builder: (context, currencyProvider, _) {
-                                                    onPressedAction() {
+                                                    onPressedAction() async {
                                                       final monedasConTasa =
                                                           currencyProvider
                                                               .exchangeRates
@@ -587,10 +601,8 @@ class _MainScaffoldState extends State<MainScaffold>
                                                       debugPrint(
                                                         '[DEBUG][GESTION MONEDAS] Monedas con tasa registrada: ${monedasConTasa.join(', ')}',
                                                       );
-                                                      showDialog(
-                                                        context: context,
-                                                        builder: (ctx2) =>
-                                                            const CurrencyManagerDialog(),
+                                                      await CurrencyManagerDialog.show(
+                                                        context,
                                                       );
                                                     }
 

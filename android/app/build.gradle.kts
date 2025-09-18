@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -5,17 +8,26 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Load keystore properties (release signing)
+val keystorePropertiesFile = rootProject.file("key.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    FileInputStream(keystorePropertiesFile).use { keystoreProperties.load(it) }
+}
+
 android {
-    namespace = "com.example.deuda_flow_flutter"
+    namespace = "com.deudaflow.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "29.0.13846066"
 
     signingConfigs {
         create("release") {
-            storeFile = file("C:/Users/MARIA/OneDrive/Desktop/Aplicacion Deudas/release-key.jks")
-            storePassword = "23893937d" // Cambia aquí por tu contraseña real si es diferente
-            keyAlias = "deuda_flow_release"
-            keyPassword = "23893937d" // Cambia aquí por tu contraseña real si es diferente
+            if (keystoreProperties.containsKey("storeFile")) {
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+            }
         }
     }
 
@@ -29,7 +41,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.deuda_flow_flutter"
+    applicationId = "com.deudaflow.app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

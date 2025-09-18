@@ -32,18 +32,9 @@ class _DashboardStatsState extends State<DashboardStats> {
     final transactions = context.watch<TransactionProvider>().transactions;
     final totalClients = clients.length;
 
-    // 2. Lógica de formato y conversión explícita DENTRO del widget
-    // Nueva función para obtener solo el monto formateado
+    // 2. Lógica de formato: SOLO formatea, NO convierte (el valor ya está en la moneda seleccionada)
     String getFormattedAmount(num value) {
-      final selectedCurrency = currencyProvider.currency;
-      // FIX: Se usa getRateFor para obtener la tasa correcta de la moneda seleccionada.
-      final rate = currencyProvider.getRateFor(selectedCurrency) ?? 1.0;
-      num displayValue = value;
-
-      if (selectedCurrency != 'USD' && rate > 0) {
-        displayValue = value * rate;
-      }
-      return NumberFormat("#,##0.00", "en_US").format(displayValue);
+      return NumberFormat("#,##0.00", "en_US").format(value);
     }
 
     // Nueva función para obtener solo el símbolo de la moneda
@@ -51,15 +42,18 @@ class _DashboardStatsState extends State<DashboardStats> {
       return currencyProvider.currency;
     }
 
-    // --- INICIO: Cálculo de estadísticas basado en anchorUsdValue ---
-    // Se calculan todos los valores desde la lista de transacciones para asegurar consistencia.
-
-    // 1. Calcular el balance individual de cada cliente en USD
+    // --- NUEVA LÓGICA: siempre usar anchorUsdValue como base universal (USD) ---
+    final selectedCurrency = currencyProvider.currency;
+    final rateToSelected = selectedCurrency == 'USD'
+        ? 1.0
+        : (currencyProvider.getRateFor(selectedCurrency) ?? 1.0);
+    double totalAbonado = 0.0;
+    // --- Calcular balances por cliente (en USD, luego convertir) ---
     final Map<String, double> clientBalances = {
       for (var c in clients) c.id: 0.0,
     };
     for (final t in transactions) {
-      final value = t.anchorUsdValue ?? 0.0;
+      double value = t.anchorUsdValue ?? 0.0;
       if (clientBalances.containsKey(t.clientId)) {
         if (t.type == 'payment') {
           clientBalances[t.clientId] = clientBalances[t.clientId]! + value;
@@ -68,22 +62,21 @@ class _DashboardStatsState extends State<DashboardStats> {
         }
       }
     }
-
-    // 2. Calcular las estadísticas globales usando los balances y transacciones
-    // Deuda total: suma de los balances negativos de los clientes (deuda real pendiente)
-    final totalDeuda = clientBalances.values
-        .where((balance) => balance < 0)
-        .fold<double>(0, (sum, balance) => sum + balance.abs());
-
-    // Total abonado: suma de todas las transacciones de tipo 'payment' en USD
-    final totalAbonado = transactions
-        .where((t) => t.type == 'payment')
-        .fold<double>(0, (sum, t) => sum + (t.anchorUsdValue ?? 0.0));
-
-    // Clientes con deudas: cuenta de clientes con balance negativo
+    // Convertir balances a la moneda seleccionada solo al final
+    clientBalances.updateAll((key, val) => val * rateToSelected);
+    // Deuda real: suma de los balances negativos (en valor absoluto)
+    double totalDeuda = clientBalances.values
+        .where((b) => b < 0)
+        .fold(0.0, (sum, b) => sum + b.abs());
+    // Total abonado: suma de todos los pagos (como antes)
+    for (final t in transactions) {
+      final anchor = t.anchorUsdValue ?? 0.0;
+      if (t.type == 'payment') {
+        totalAbonado += anchor;
+      }
+    }
+    totalAbonado *= rateToSelected;
     final clientesConDeuda = clientBalances.values.where((b) => b < 0).length;
-
-    // --- FIN: Cálculo de estadísticas ---
 
     // LOGS TEMPORALES PARA DEPURACIÓN
     final totalSaldo = totalAbonado - totalDeuda; // <-- CÁLCULO AÑADIDO
@@ -94,8 +87,8 @@ class _DashboardStatsState extends State<DashboardStats> {
       '[DashboardStats] Transacciones: ${transactions.length}',
     ); // Muestra en consola la cantidad de transacciones
     debugPrint(
-      '[DashboardStats] totalDeuda: $totalDeuda',
-    ); // Muestra el total de deuda
+      '[DashboardStats] totalDeuda (real): $totalDeuda',
+    ); // Muestra el total de deuda real
     debugPrint(
       '[DashboardStats] totalAbonado: $totalAbonado',
     ); // Muestra el total abonado
@@ -151,10 +144,13 @@ class _DashboardStatsState extends State<DashboardStats> {
       color: Colors.red, // Color rojo
       isButton: true, // Es un botón
       onTap: goToDeudaTab, // Acción al pulsar
-      contentPadding: const EdgeInsets.symmetric(
-        vertical: 12.0,
-        horizontal: 16.0,
-      ), // Padding reducido
+      // Padding personalizado: puedes ajustar cada lado de forma independiente
+      contentPadding: const EdgeInsets.fromLTRB(
+        16.0, // padding izquierdo
+        25.0, // padding superior
+        16.0, // padding derecho
+        5.0, // padding inferior
+      ),
     );
     final statAbonado = _StatCard(
       label: 'Total abonado', // Título del statcard
@@ -164,10 +160,13 @@ class _DashboardStatsState extends State<DashboardStats> {
       color: Colors.green, // Color verde
       isButton: true, // Es un botón
       onTap: goToAbonoTab, // Acción al pulsar
-      contentPadding: const EdgeInsets.symmetric(
-        vertical: 12.0,
-        horizontal: 16.0,
-      ), // Padding reducido
+      // Padding personalizado: puedes ajustar cada lado de forma independiente
+      contentPadding: const EdgeInsets.fromLTRB(
+        16.0, // padding izquierdo
+        25.0, // padding superior
+        16.0, // padding derecho
+        5.0, // padding inferior
+      ),
     );
     // StatCard Clientes con deudas (balance < 0)
     final statClientesConDeuda = _StatCard(
@@ -360,8 +359,7 @@ class _StatCard extends StatelessWidget {
     // - El ancho máximo del label depende del ancho real del statcard
     final cardContent = Padding(
       padding:
-          contentPadding ??
-          const EdgeInsets.symmetric(vertical: 15.0, horizontal: 16.0),
+          contentPadding ?? const EdgeInsets.fromLTRB(16.0, 25.0, 16.0, 5.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -395,7 +393,7 @@ class _StatCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 4),
           // Columna para el valor principal y el símbolo de la moneda
           Column(
             mainAxisSize: MainAxisSize.min,
@@ -433,7 +431,7 @@ class _StatCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13, // Tamaño de fuente reducido
                       fontWeight: FontWeight.w500,
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white,
                     ),
                   ),
                 ),
@@ -447,28 +445,32 @@ class _StatCard extends StatelessWidget {
                 width: double.infinity,
                 alignment: Alignment.center,
                 constraints: BoxConstraints(
-                  minHeight: 28, // Altura mínima reducida para el label
+                  minHeight: 10, // Altura mínima aún más reducida para el label
                   minWidth: 0,
                   maxWidth: maxLabelWidth,
                 ),
-                child: Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Color.fromARGB(255, 252, 252, 252),
-                    shadows: [
-                      Shadow(
-                        color: Color.fromARGB(0, 0, 0, 0),
-                        offset: Offset(0, 2),
-                        blurRadius: 8,
-                      ),
-                    ],
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Color.fromARGB(255, 252, 252, 252),
+                      height: 1.05, // Reduce el espacio entre líneas
+                      shadows: [
+                        Shadow(
+                          color: Color.fromARGB(0, 0, 0, 0),
+                          offset: Offset(0, 2),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    softWrap: true,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  softWrap: true,
                 ),
               );
             },

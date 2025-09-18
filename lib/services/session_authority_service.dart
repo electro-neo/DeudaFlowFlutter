@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -6,6 +7,9 @@ import '../models/client_hive.dart';
 import '../models/transaction_hive.dart';
 import '../services/supabase_service.dart';
 import '../main.dart';
+import 'package:provider/provider.dart';
+import '../providers/client_provider.dart';
+import '../providers/transaction_provider.dart';
 
 /// Representa el estado de autoridad evaluado.
 /// Usado por Login y por SyncProvider durante reconexiones.
@@ -32,44 +36,362 @@ enum AuthorityState {
 /// Usado por Login y por SyncProvider durante reconexiones.
 
 class SessionAuthorityService {
+  // Clave nueva para la sesión persistida con el formato oficial de Supabase
+  static const String _kPersistSessionKey = 'supabase_session_ps';
+
+  /// Guarda la sesión actual serializada como JSON en Hive.
+  Future<void> saveSupabaseSessionLocally() async {
+    try {
+      final session = Supabase.instance.client.auth.currentSession;
+      if (session == null) return;
+      final box = await Hive.openBox('session');
+      final jsonStr = jsonEncode(session.toJson());
+      if (jsonStr.trim().isEmpty) return;
+      await box.put(_kPersistSessionKey, jsonStr);
+      debugPrint(
+        '[SESSION][save] session JSON guardado (${jsonStr.length} chars)',
+      );
+    } catch (e) {
+      debugPrint('[SESSION][save] Error: $e');
+    }
+  }
+
+  /// Intenta restaurar la sesión sólo si aún no existe una en memoria.
+  /// Estrategia:
+  /// 1. Si currentSession != null => nada.
+  /// 2. Leer string persistido; si no existe => nada.
+  /// 3. Intentar recoverSession(); si falla por red => permitir modo offline (no borra la cadena).
+  Future<void> restoreSessionIfNeeded({bool hasInternet = true}) async {
+    try {
+      if (Supabase.instance.client.auth.currentSession != null) {
+        return; // Ya hay sesión en memoria
+      }
+      final box = await Hive.openBox('session');
+      final stored = box.get(_kPersistSessionKey);
+      if (stored is! String || stored.trim().isEmpty) {
+        return; // Nada que restaurar
+      }
+      if (!hasInternet) {
+        // Offline: no podemos refrescar tokens; se dejará que AuthGate decida modo offline.
+        debugPrint('[SESSION][restore] Offline: se pospone recoverSession');
+        return;
+      }
+      try {
+        final result = await Supabase.instance.client.auth.recoverSession(
+          stored,
+        );
+        if (result.session != null) {
+          debugPrint('[SESSION][restore] Sesión recuperada correctamente');
+        } else {
+          debugPrint('[SESSION][restore] recoverSession retornó sin sesión');
+        }
+      } catch (e) {
+        debugPrint('[SESSION][restore] Error en recoverSession: $e');
+      }
+    } catch (e) {
+      debugPrint('[SESSION][restore] Error general: $e');
+    }
+  }
+
+  /// Borra la sesión persistida localmente.
+  Future<void> clearLocalSupabaseSession() async {
+    try {
+      final box = await Hive.openBox('session');
+      await box.delete(_kPersistSessionKey);
+      debugPrint('[SESSION][clear] persistSession eliminada');
+    } catch (e) {
+      debugPrint('[SESSION][clear] Error: $e');
+    }
+  }
+
+  /// Cierra sesión y detiene el listener de device_id en tiempo real.
+  Future<void> signOutAndDisposeListener() async {
+    disposeDeviceIdListener();
+    await Supabase.instance.client.auth.signOut();
+    await clearLocalSupabaseSession();
+  }
+
+  // --- Realtime device_id listener ---
+  RealtimeChannel? _deviceIdChannel;
+
+  /// Inicia la escucha en tiempo real del device_id para el usuario dado.
+  /// Si el device_id remoto cambia y no coincide con el local, dispara la lógica de conflicto en tiempo real.
+  void listenToDeviceIdChanges(String userId, BuildContext context) {
+    debugPrint(
+      '[AUTH-DEVICE][Realtime] Suscribiendo listener de device_id para user: $userId',
+    );
+    _deviceIdChannel?.unsubscribe();
+
+    _deviceIdChannel = Supabase.instance.client
+        .channel('public:user_settings')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'user_settings',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user_id',
+            value: userId,
+          ),
+          callback: (payload) async {
+            debugPrint(
+              '[AUTH-DEVICE][Realtime] Evento recibido: newRecord =\n[33m${payload.newRecord.toString()}[0m',
+            );
+            final newDeviceId =
+                (payload.newRecord['value']?['device_id']) as String?;
+            debugPrint(
+              '[AUTH-DEVICE][Realtime] newDeviceId extraído: '
+              '\x1B[33m$newDeviceId\x1B[0m',
+            );
+            if (newDeviceId != null) {
+              final localId = await getOrCreateLocalDeviceId();
+              debugPrint(
+                '[AUTH-DEVICE][Realtime] localId actual: '
+                '\x1B[36m$localId\x1B[0m',
+              );
+              if (newDeviceId != localId) {
+                debugPrint(
+                  '[AUTH-DEVICE][Realtime] ¡Conflicto detectado! Ejecutando validateDeviceAuthorityOrLogout...',
+                );
+                // ---
+                // Seguridad: El context recibido puede no estar montado si el widget fue destruido.
+                // Se verifica si es un Element y está montado, y si no, se usa navigatorKey.currentContext como fallback global.
+                // Esto mitiga la mayoría de los riesgos de usar context tras async gaps en callbacks realtime.
+                // ---
+                // ignore: use_build_context_synchronously
+                await validateDeviceAuthorityOrLogout(
+                  // ignore: use_build_context_synchronously
+                  context,
+                  userId,
+                  knownRemoteId: newDeviceId,
+                  source: 'SessionAuthorityService.listenToDeviceIdChanges',
+                );
+              } else {
+                debugPrint(
+                  '[AUTH-DEVICE][Realtime] device_id coincide, no hay conflicto.',
+                );
+              }
+            } else {
+              debugPrint(
+                '[AUTH-DEVICE][Realtime] newDeviceId es null, no se procesa.',
+              );
+            }
+          },
+        )
+        .subscribe();
+    debugPrint(
+      '[AUTH-DEVICE][Realtime] Listener suscrito (canal public:user_settings)',
+    );
+  }
+
+  /// Detiene la escucha en tiempo real del device_id.
+  void disposeDeviceIdListener() {
+    _deviceIdChannel?.unsubscribe();
+    _deviceIdChannel = null;
+  }
+
+  /// Listener de depuración para cambios de estado de autenticación de Supabase.
+  /// Muestra logs y un SnackBar breve con el evento que provocó el cambio.
+  void startAuthStateDebugListener() {
+    try {
+      Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+        final event = data.event;
+        final session = data.session;
+        debugPrint(
+          '[AUTH][STATE] event=$event, sessionNull=${session == null}',
+        );
+        final ctx = navigatorKey.currentContext;
+        if (ctx != null) {
+          // Evitar spamear: solo avisar cuando la sesión se vuelve null o se hace signedOut
+          if (session == null || event == AuthChangeEvent.signedOut) {
+            ScaffoldMessenger.maybeOf(ctx)?.showSnackBar(
+              const SnackBar(
+                content: Text('Cierre de sesión exitoso'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        }
+      });
+    } catch (e) {
+      debugPrint('[AUTH][STATE] Listener error: $e');
+    }
+  }
+
   /// Valida que el device_id local coincida con el remoto antes de sincronizar.
   /// Si no coincide, muestra un diálogo y cierra sesión automáticamente tras 4 segundos.
   Future<bool> validateDeviceAuthorityOrLogout(
     BuildContext context,
-    String userId,
-  ) async {
+    String userId, {
+    String? knownRemoteId, // Opcional: evita fetch si ya lo tenemos (realtime)
+    bool? hasInternet, // Nuevo parámetro opcional para saber si hay internet
+    String source =
+        'unknown', // NUEVO: para rastrear quién disparó la validación
+  }) async {
+    // GRACIA DE ARRANQUE: si la sesión aún no está marcada como 'authorized' o no hay currentSession, evita validar para no cerrar sesión en arranque en frío
+    try {
+      final sessionBox = await Hive.openBox('session');
+      final sessionFlag = sessionBox.get(kSessionFlagKey);
+      final hasSupaSession =
+          Supabase.instance.client.auth.currentSession != null;
+      if (sessionFlag != 'authorized' || !hasSupaSession) {
+        debugPrint(
+          '[AUTH-DEVICE][validate] Skip por arranque (source=$source): session_flag=$sessionFlag, supaSession=$hasSupaSession',
+        );
+        return true;
+      }
+    } catch (_) {}
+    // Debug: imprimir el estado de la sesión (flag) antes de validar
+    try {
+      final sessionBox = await Hive.openBox('session');
+      final sessionFlag = sessionBox.get(kSessionFlagKey);
+      final wasAuthOffline = sessionBox.get('was_authorized_offline') == true;
+      debugPrint(
+        '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Estado actual de la sesión (flag): $sessionFlag | was_authorized_offline=$wasAuthOffline',
+      );
+    } catch (e) {
+      debugPrint(
+        '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Error leyendo flag de sesión: $e',
+      );
+    }
+    final totalSw = Stopwatch()..start();
+    // Debug: imprimir el estado de la sesión (flag) antes de validar
+    try {
+      final sessionBox = await Hive.openBox('session');
+      final sessionFlag = sessionBox.get(kSessionFlagKey);
+      final wasAuthOffline = sessionBox.get('was_authorized_offline') == true;
+      debugPrint(
+        '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Estado actual de la sesión (flag): $sessionFlag | was_authorized_offline=$wasAuthOffline',
+      );
+    } catch (e) {
+      debugPrint(
+        '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Error leyendo flag de sesión: $e',
+      );
+    }
+    // Si estamos offline, no intentes validar contra remoto. Solo registra el flag y termina.
+    if (hasInternet == false) {
+      try {
+        final sessionBox = await Hive.openBox('session');
+        final sessionFlag = sessionBox.get(kSessionFlagKey);
+        debugPrint(
+          '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Modo OFFLINE (source=$source): evitando chequeos remotos. Flag actual: \u001b[36m$sessionFlag\u001b[0m',
+        );
+      } catch (e) {
+        debugPrint(
+          '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] OFFLINE: Error leyendo flag de sesión: $e',
+        );
+      }
+      totalSw.stop();
+      debugPrint(
+        '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Fin (offline, sin conflicto). Duración total: ${totalSw.elapsedMilliseconds} ms',
+      );
+      return true;
+    }
+
+    // Conteo de ráfaga: cuántas veces se llama en una ventana corta
+    final now = DateTime.now();
+    int deltaMs = -1;
+    if (_lastValidateCallAt != null) {
+      deltaMs = now.difference(_lastValidateCallAt!).inMilliseconds;
+      if (deltaMs <= _validateBurstWindowMs) {
+        _validateBurstCount += 1;
+      } else {
+        _validateBurstCount = 1;
+      }
+    } else {
+      _validateBurstCount = 1;
+    }
+    _lastValidateCallAt = now;
+    debugPrint(
+      '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Inicio de validación (source=$source) para user: $userId | burst#=$_validateBurstCount (Δ ${deltaMs}ms, ventana ${_validateBurstWindowMs}ms)',
+    );
+
+    // Si acabamos de hacer un bind exitoso, saltar validaciones por una ventana corta
+    if (_skipValidationsUntil != null && now.isBefore(_skipValidationsUntil!)) {
+      debugPrint(
+        '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Saltando validación por bind reciente hasta ${_skipValidationsUntil!.toIso8601String()}',
+      );
+      totalSw.stop();
+      debugPrint(
+        '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Fin (omitido por ventana de skip). Duración total: ${totalSw.elapsedMilliseconds} ms',
+      );
+      return true;
+    }
     final localId = await getOrCreateLocalDeviceId();
-    final remoteId = await fetchServerDeviceId(userId);
+    final remoteId = await _getRemoteDeviceIdCached(
+      userId,
+      knownRemoteId: knownRemoteId,
+    );
+    debugPrint(
+      '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] localId: $localId, remoteId: $remoteId, source=$source',
+    );
+    if (remoteId == null || remoteId.isEmpty) {
+      debugPrint(
+        '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Sin device_id remoto para este usuario (posible primer inicio). Se permite continuar.',
+      );
+    }
     if (remoteId != null && remoteId.isNotEmpty && remoteId != localId) {
-      if (context is Element && !context.mounted) return false;
-      // Detectar si es reconexión tras autorizado offline
-      final box = await Hive.openBox('session');
-      final prevFlag = box.get(kSessionFlagKey);
-      final wasAuthorizedOffline = prevFlag == 'authorized';
-      if (wasAuthorizedOffline) {
-        // Mostrar diálogo de opciones en vez de cerrar sesión automática
+      debugPrint(
+        '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Conflicto detectado (source=$source), context: $context',
+      );
+      // Si el context local no está montado, usar navigatorKey.currentContext como fallback global
+      BuildContext? safeContext = context;
+      if (context is Element && !context.mounted) {
+        debugPrint(
+          '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Context no montado, usando navigatorKey.currentContext como fallback.',
+        );
+        safeContext = navigatorKey.currentContext;
+        if (safeContext == null) {
+          debugPrint(
+            '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] navigatorKey.currentContext también es null, abortando.',
+          );
+          return false;
+        }
+      }
+      // --- Si la app estuvo autorizada offline, mostrar diálogo de conflicto ---
+      // Preferir la bandera explícita para evitar carreras; fallback al flag antiguo
+      bool wasOffline = false;
+      try {
+        final box = await Hive.openBox('session');
+        wasOffline =
+            (box.get('was_authorized_offline') == true) ||
+            (await wasAuthorizedOffline());
+      } catch (_) {
+        wasOffline = await wasAuthorizedOffline();
+      }
+      if (wasOffline) {
+        debugPrint(
+          '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] OFFLINE: Mostrando diálogo de conflicto (reconexión offline)',
+        );
         final ok = await SessionAuthorityService.instance.handleConflictDialog(
           // ignore: use_build_context_synchronously
-          context,
+          safeContext,
           userId,
           isLoginFlow: false,
           wasAuthorizedOffline: true,
         );
+        debugPrint(
+          '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] handleConflictDialog retornó: $ok',
+        );
         return ok;
       }
-      // Si no es reconexión offline, cerrar sesión automática
+      // --- En cualquier otro caso de conflicto, cerrar sesión automática ---
+      debugPrint(
+        '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] ONLINE: Cierre de sesión automática por conflicto (source=$source).',
+      );
+      // Seguridad: safeContext puede ser el context original o un fallback global.
+      // Ya se verificó que no sea null ni esté desmontado antes de llegar aquí.
       await showDialog(
         // ignore: use_build_context_synchronously
-        context: context,
+        context: safeContext,
         barrierDismissible: false,
         builder: (ctx) {
           Future.delayed(const Duration(seconds: 4), () async {
             // ignore: use_build_context_synchronously
             if (Navigator.of(ctx).canPop()) Navigator.of(ctx).pop();
             try {
-              await Supabase.instance.client.auth.signOut();
+              await signOutAndDisposeListener();
             } catch (_) {}
-            // Navegar a login tras cerrar sesión
             try {
               navigatorKey.currentState?.pushNamedAndRemoveUntil(
                 '/login',
@@ -79,40 +401,110 @@ class SessionAuthorityService {
           });
           return AlertDialog(
             title: const Text('Sesión cerrada por seguridad'),
-            content: const Text(
-              'Tu cuenta ha sido activada en otro equipo. Por seguridad, se cerrará la sesión en este equipo.',
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Tu cuenta ha sido activada en otro equipo. Por seguridad, se cerrará la sesión en este equipo.',
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Origen: $source',
+                  style: const TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+              ],
             ),
           );
         },
       );
+      debugPrint(
+        '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] showDialog de cierre de sesión automática mostrado (source=$source)',
+      );
+      totalSw.stop();
+      debugPrint(
+        '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Fin (conflicto-auto-logout, online/fallback). Duración total: ���[36m${totalSw.elapsedMilliseconds} ms���[0m',
+      );
       return false;
     }
+    debugPrint(
+      '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] No hay conflicto, todo ok.',
+    );
+    // Al reconectar sin conflicto, normaliza el flag a 'authorized' y limpia la marca
+    try {
+      final box = await Hive.openBox('session');
+      final current = box.get(kSessionFlagKey);
+      if (current == 'authorized_offline') {
+        await box.put(kSessionFlagKey, 'authorized');
+        debugPrint(
+          '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Reconexión sin conflicto: session_state => authorized',
+        );
+      }
+      if (box.get('was_authorized_offline') == true) {
+        await box.put('was_authorized_offline', false);
+        debugPrint(
+          '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Limpieza: was_authorized_offline=false',
+        );
+      }
+    } catch (e) {
+      debugPrint(
+        '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Error normalizando flag tras reconexión: $e',
+      );
+    }
+    totalSw.stop();
+    debugPrint(
+      '[AUTH-DEVICE][validateDeviceAuthorityOrLogout] Fin (sin conflicto). Duración total: ${totalSw.elapsedMilliseconds} ms',
+    );
     return true;
   }
 
   SessionAuthorityService._();
   static final SessionAuthorityService instance = SessionAuthorityService._();
 
+  // --- Burst/debug counters (solo diagnóstico) ---
+  static DateTime? _lastValidateCallAt;
+  static int _validateBurstCount = 0;
+  static const int _validateBurstWindowMs = 2000; // 2s
+  static DateTime? _lastFetchCallAt;
+  static int _fetchBurstCount = 0;
+  // Cache ligero del device_id remoto para evitar fetch redundantes en ráfaga
+  static String? _cachedRemoteId;
+  static DateTime? _cachedRemoteIdAt;
+  static const int _remoteCacheTtlMs = 2500; // 2.5s
+  // Ventana de gracia tras bind para no revalidar inmediatamente
+  static DateTime? _skipValidationsUntil;
+
   /// Estados de autoridad de sesión.
-  ///
   /// authorized: Remoto coincide (o estaba vacío y ya se fijó) con el deviceId local.
   /// unverifiedOffline: Se accedió sin conexión y nunca se confirmó autoridad.
   /// authorizedOffline: Estaba autorizado y se perdió conexión (permite operar).
   /// conflict: El device_id remoto existe y NO coincide con el local.
-  @visibleForTesting
   static const String kSessionFlagKey = 'session_state';
 
   /// Obtiene o crea un deviceId local estable.
   /// Persistencia: Hive box 'session', clave 'device_id'.
   Future<String> getOrCreateLocalDeviceId() async {
+    final sw = Stopwatch()..start();
     final box = await Hive.openBox('session');
+    sw.stop();
+    debugPrint(
+      '[AUTH-DEVICE][getOrCreateLocalDeviceId] openBox(session) tomó ${sw.elapsedMilliseconds} ms',
+    );
     final existing = box.get('device_id');
-    if (existing is String && existing.trim().isNotEmpty) return existing;
+    if (existing is String && existing.trim().isNotEmpty) {
+      debugPrint(
+        '[AUTH-DEVICE][getOrCreateLocalDeviceId] device_id local existente: $existing',
+      );
+      return existing;
+    }
     // Genera un id simple y suficientemente único sin dependencia extra.
     final rnd = Random();
     final id =
         '${DateTime.now().microsecondsSinceEpoch.toRadixString(16)}-${rnd.nextInt(1 << 32).toRadixString(16)}';
     await box.put('device_id', id);
+    debugPrint(
+      '[AUTH-DEVICE][getOrCreateLocalDeviceId] No existía device_id local. Generado nuevo: $id',
+    );
     return id;
   }
 
@@ -120,7 +512,33 @@ class SessionAuthorityService {
   Future<String?> fetchServerDeviceId(String userId) async {
     try {
       // Centralizado en SupabaseService
-      return await SupabaseService().getDeviceId();
+      final sw = Stopwatch()..start();
+      // Burst info
+      final now = DateTime.now();
+      int deltaMs = -1;
+      if (_lastFetchCallAt != null) {
+        deltaMs = now.difference(_lastFetchCallAt!).inMilliseconds;
+        if (deltaMs <= _validateBurstWindowMs) {
+          _fetchBurstCount += 1;
+        } else {
+          _fetchBurstCount = 1;
+        }
+      } else {
+        _fetchBurstCount = 1;
+      }
+      _lastFetchCallAt = now;
+      debugPrint(
+        '[AUTH-DEVICE][fetchServerDeviceId] Iniciando consulta para user: $userId | burst#=$_fetchBurstCount (Δ ${deltaMs}ms)',
+      );
+      final value = await SupabaseService().getDeviceId();
+      sw.stop();
+      debugPrint(
+        '[AUTH-DEVICE][fetchServerDeviceId] Completado en ${sw.elapsedMilliseconds} ms. Valor remoto: ${value ?? 'null'}',
+      );
+      // Actualiza cache
+      _cachedRemoteId = value;
+      _cachedRemoteIdAt = DateTime.now();
+      return value;
     } catch (e) {
       debugPrint('[AUTH-DEVICE] fetchServerDeviceId error: $e');
       return null;
@@ -130,7 +548,19 @@ class SessionAuthorityService {
   /// Establece/actualiza el device_id remoto en Supabase (upsert por (user_id,key)).
   Future<void> setServerDeviceId(String userId, String deviceId) async {
     // Centralizado en SupabaseService
+    final sw = Stopwatch()..start();
+    debugPrint(
+      '[AUTH-DEVICE][setServerDeviceId] Guardando device_id remoto para user: $userId => $deviceId',
+    );
     await SupabaseService().saveDeviceId(deviceId);
+    sw.stop();
+    debugPrint(
+      '[AUTH-DEVICE][setServerDeviceId] guardado en ${sw.elapsedMilliseconds} ms',
+    );
+    // Actualiza cache y aplica ventana de gracia
+    _cachedRemoteId = deviceId;
+    _cachedRemoteIdAt = DateTime.now();
+    _skipValidationsUntil = DateTime.now().add(const Duration(seconds: 2));
   }
 
   /// Evalúa el estado de autoridad dadas la conectividad y el userId actual.
@@ -143,15 +573,66 @@ class SessionAuthorityService {
     final sessionBox = await Hive.openBox('session');
     final localFlag = sessionBox.get(kSessionFlagKey);
     if (!hasInternet) {
-      if (localFlag == 'authorized') return AuthorityState.authorizedOffline;
+      // Tratar 'authorized' y 'authorized_offline' como equivalentes al estar offline
+      if (localFlag == 'authorized' || localFlag == 'authorized_offline') {
+        debugPrint(
+          '[AUTH-DEVICE][evaluate] Offline => state=authorizedOffline (flag=$localFlag)',
+        );
+        return AuthorityState.authorizedOffline;
+      }
+      debugPrint(
+        '[AUTH-DEVICE][evaluate] Offline => state=unverifiedOffline (flag=$localFlag)',
+      );
       return AuthorityState.unverifiedOffline;
     }
     final localId = await getOrCreateLocalDeviceId();
-    final remoteId = await fetchServerDeviceId(userId);
+    // Nota: En primer login es común que device_id remoto no exista; tratar null/empty como autorizado
+    final remoteId = await _getRemoteDeviceIdCached(userId);
     if (remoteId == null || remoteId.isEmpty || remoteId == localId) {
+      if (remoteId == null || remoteId.isEmpty) {
+        debugPrint(
+          '[AUTH-DEVICE][evaluate] remoteId null/empty (posible primer inicio). localId=$localId',
+        );
+      } else {
+        debugPrint(
+          '[AUTH-DEVICE][evaluate] remoteId coincide con localId. Autorizado.',
+        );
+      }
+      debugPrint('[AUTH-DEVICE][evaluate] Online => state=authorized');
       return AuthorityState.authorized;
     }
+    debugPrint(
+      '[AUTH-DEVICE][evaluate] Conflicto: remoteId=$remoteId, localId=$localId => state=conflict',
+    );
     return AuthorityState.conflict;
+  }
+
+  /// Devuelve el device_id remoto usando un cache de corta duración.
+  /// Si [knownRemoteId] se provee (p.ej., desde realtime), se usa y se cachea sin hacer red.
+  Future<String?> _getRemoteDeviceIdCached(
+    String userId, {
+    String? knownRemoteId,
+    int? ttlMs,
+  }) async {
+    final now = DateTime.now();
+    final ttl = ttlMs ?? _remoteCacheTtlMs;
+    if (knownRemoteId != null) {
+      // Normaliza empty a '' y cachea
+      _cachedRemoteId = knownRemoteId;
+      _cachedRemoteIdAt = now;
+      return knownRemoteId;
+    }
+    if (_cachedRemoteIdAt != null) {
+      final age = now.difference(_cachedRemoteIdAt!).inMilliseconds;
+      if (age <= ttl) {
+        debugPrint(
+          '[AUTH-DEVICE][_getRemoteDeviceIdCached] Usando cache (${age}ms) => ${_cachedRemoteId ?? 'null'}',
+        );
+        return _cachedRemoteId;
+      }
+    }
+    // Cache caduco: ir a red
+    return await fetchServerDeviceId(userId);
   }
 
   /// Marca una bandera de sesión en Hive 'session' para reflejar el estado más reciente.
@@ -165,7 +646,7 @@ class SessionAuthorityService {
   Future<bool> wasAuthorizedOffline() async {
     final box = await Hive.openBox('session');
     final val = box.get(kSessionFlagKey);
-    return val == 'authorized';
+    return val == 'authorized_offline';
   }
 
   /// Devuelve true si existen cambios locales pendientes (clientes o transacciones) no sincronizados
@@ -213,7 +694,8 @@ class SessionAuthorityService {
           balance: c.balance,
           synced: true,
           pendingDelete: false,
-          currencyCode: 'VES',
+          // Respetar la moneda del servidor (puede ser null)
+          currencyCode: c.currencyCode,
         ),
       );
     }
@@ -284,9 +766,11 @@ class SessionAuthorityService {
             ElevatedButton.icon(
               icon: const Icon(Icons.delete_forever, size: 18),
               label: const Text(
-                'Eliminar cambios locales y continuar',
+                'Borrar cambios locales y continuar',
                 style: TextStyle(fontSize: 13),
               ),
+              // Uso seguro: ctx es el contexto del builder del diálogo, garantizado como válido para Navigator.of(ctx).pop().
+              // ignore: use_build_context_synchronously
               onPressed: () => Navigator.of(ctx).pop('discard'),
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(0, 36),
@@ -299,9 +783,11 @@ class SessionAuthorityService {
             ElevatedButton.icon(
               icon: const Icon(Icons.sync, size: 18),
               label: const Text(
-                'Sincroniza y continua en este equipo',
+                'Guardar cambios locales y continuar',
                 style: TextStyle(fontSize: 13),
               ),
+              // Uso seguro: ctx es el contexto del builder del diálogo, garantizado como válido para Navigator.of(ctx).pop().
+              // ignore: use_build_context_synchronously
               onPressed: () => Navigator.of(ctx).pop('claim'),
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(0, 36),
@@ -317,6 +803,8 @@ class SessionAuthorityService {
                 'Cerrar sesión',
                 style: TextStyle(fontSize: 13, color: Colors.white),
               ),
+              // Uso seguro: ctx es el contexto del builder del diálogo, garantizado como válido para Navigator.of(ctx).pop().
+              // ignore: use_build_context_synchronously
               onPressed: () => Navigator.of(ctx).pop('logout'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
@@ -337,6 +825,35 @@ class SessionAuthorityService {
       final localId = await getOrCreateLocalDeviceId();
       await setServerDeviceId(userId, localId);
       await markSessionFlag('authorized');
+      // Limpiar la bandera de reconexión offline
+      try {
+        final box = await Hive.openBox('session');
+        if (box.get('was_authorized_offline') == true) {
+          await box.put('was_authorized_offline', false);
+        }
+      } catch (_) {}
+      // --- Sincroniza automáticamente los cambios locales pendientes ---
+      try {
+        final ctx = navigatorKey.currentContext;
+        if (ctx != null) {
+          final clientProvider = Provider.of<ClientProvider>(
+            // ignore: use_build_context_synchronously
+            ctx,
+            listen: false,
+          );
+          final txProvider = Provider.of<TransactionProvider>(
+            // ignore: use_build_context_synchronously
+            ctx,
+            listen: false,
+          );
+          await clientProvider.syncPendingClients(userId);
+          await txProvider.syncPendingTransactions(userId);
+        }
+      } catch (e, st) {
+        debugPrint(
+          '[AUTH-DEVICE][handleConflictDialog] Error al sincronizar automáticamente: $e\n$st',
+        );
+      }
       return true; // se puede continuar con sync
     }
     if (result == 'discard') {
@@ -345,11 +862,41 @@ class SessionAuthorityService {
       final localId = await getOrCreateLocalDeviceId();
       await setServerDeviceId(userId, localId);
       await markSessionFlag('authorized');
+      // Limpiar la bandera de reconexión offline
+      try {
+        final box = await Hive.openBox('session');
+        if (box.get('was_authorized_offline') == true) {
+          await box.put('was_authorized_offline', false);
+        }
+      } catch (_) {}
       return true; // datos limpios, seguir con sync ligera si aplica
     }
     if (result == 'logout') {
       try {
-        await Supabase.instance.client.auth.signOut();
+        await signOutAndDisposeListener();
+        // Cerrar el diálogo antes de navegar
+        // ignore: use_build_context_synchronously
+        if (Navigator.of(context).canPop()) {
+          // ignore: use_build_context_synchronously
+          Navigator.of(context).pop();
+        }
+        // Navegar a login tras cerrar sesión en el siguiente microtask
+        Future.microtask(() {
+          final ctx = navigatorKey.currentContext;
+          if (ctx != null) {
+            Navigator.of(
+              // ignore: use_build_context_synchronously
+              ctx,
+            ).pushNamedAndRemoveUntil('/login', (route) => false);
+          }
+        });
+      } catch (_) {}
+      // Limpiar la bandera también al cerrar sesión
+      try {
+        final box = await Hive.openBox('session');
+        if (box.get('was_authorized_offline') == true) {
+          await box.put('was_authorized_offline', false);
+        }
       } catch (_) {}
       return false;
     }

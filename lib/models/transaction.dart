@@ -1,3 +1,4 @@
+import '../utils/currency_utils.dart';
 import 'package:flutter/foundation.dart';
 
 class Transaction {
@@ -12,7 +13,9 @@ class Transaction {
   final bool? synced;
   final bool? pendingDelete;
   final String? localId;
-  final String currencyCode;
+
+  /// Puede ser null solo si el cliente no tiene transacción inicial
+  final String? currencyCode;
   final double? anchorUsdValue;
 
   Transaction({
@@ -27,9 +30,11 @@ class Transaction {
     this.synced,
     this.pendingDelete,
     this.localId,
-    required this.currencyCode,
-    this.anchorUsdValue,
-  }) {
+    this.currencyCode,
+    double? anchorUsdValue,
+  }) : anchorUsdValue = anchorUsdValue != null
+           ? CurrencyUtils.normalizeAnchorUsd(anchorUsdValue)
+           : null {
     debugPrint(
       '\u001b[43m[TX][CREACION] id=$id, clientId=$clientId, type=$type, amount=$amount, currency=$currencyCode, anchorUsdValue=${anchorUsdValue?.toString() ?? 'null'}\u001b[0m',
     );

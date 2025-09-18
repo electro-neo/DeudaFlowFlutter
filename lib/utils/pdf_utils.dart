@@ -6,10 +6,16 @@ import 'package:path_provider/path_provider.dart';
 import '../models/client.dart';
 import '../models/transaction.dart';
 import 'package:pdf/pdf.dart';
+import '../utils/string_sanitizer.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 // --- Constantes de la aplicación para el PDF ---
 const String appName = 'DeudaFlow';
-const String appVersion = '1.0.0'; // Puedes cambiar esto por la versión real
+
+Future<String> getAppVersion() async {
+  final info = await PackageInfo.fromPlatform();
+  return info.version;
+}
 
 // --- Utilidad para formateo de moneda en PDF ---
 // Se simplifica para solo formatear. La conversión se hace antes de llamar.
@@ -34,15 +40,19 @@ String getCurrencyLabel(String symbol) {
 // --- PDF builder para recibo general con movimientos filtrados ---
 pw.Document buildGeneralReceiptWithMovementsPDF(
   List<Map<String, dynamic>> filtered, {
-  required List<Map<String, dynamic>>
-  selectedCurrencies, // [{symbol: 'USD', rate: 1.0}, ...]
+  required List<Map<String, dynamic>> selectedCurrencies,
+  required String appVersion,
 }) {
   final pdf = pw.Document();
   // Totales generales por moneda seleccionada
-  final Map<String, double> totalDeudaGeneral = {
+  // final Map<String, double> totalDeudaGeneral = {
+  //   for (var c in selectedCurrencies) c['symbol']: 0.0,
+  // };
+  final Map<String, double> totalAbonoGeneral = {
     for (var c in selectedCurrencies) c['symbol']: 0.0,
   };
-  final Map<String, double> totalAbonoGeneral = {
+  // Para deuda real: acumulamos los saldos negativos actuales de todos los clientes
+  final Map<String, double> totalDeudaRealGeneral = {
     for (var c in selectedCurrencies) c['symbol']: 0.0,
   };
 
@@ -57,18 +67,24 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
 
   pdf.addPage(
     pw.MultiPage(
-      header: (context) => pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+      header: (context) => pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: [
-          pw.Text(
-            filtered.length == 1
-                ? 'Recibo de ${(filtered[0]['client'] as Client).name}'
-                : 'Recibo General de Clientes',
-            style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
+          pw.Container(
+            alignment: pw.Alignment.centerRight,
+            child: pw.Text(
+              fechaRecibo,
+              style: pw.TextStyle(fontSize: 10, fontStyle: pw.FontStyle.italic),
+            ),
           ),
-          pw.Text(
-            fechaRecibo,
-            style: pw.TextStyle(fontSize: 10, fontStyle: pw.FontStyle.italic),
+          pw.Container(
+            alignment: pw.Alignment.centerLeft,
+            child: pw.Text(
+              filtered.length == 1
+                  ? 'Recibo de ${(filtered[0]['client'] as Client).name}'
+                  : 'Recibo General de Clientes',
+              style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -113,13 +129,22 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
               }
             }
           }
-          // Sumar totales generales para cada moneda seleccionada
+          // Sumar totales generales para cada moneda seleccionada (para abonos, igual que antes)
           for (final currency in selectedCurrencies) {
             final symbol = currency['symbol'];
-            totalDeudaGeneral[symbol] =
-                (totalDeudaGeneral[symbol] ?? 0) + (totalDeuda[symbol] ?? 0);
             totalAbonoGeneral[symbol] =
                 (totalAbonoGeneral[symbol] ?? 0) + (totalAbono[symbol] ?? 0);
+          }
+          // --- NUEVO: sumar a totalDeudaRealGeneral el saldo negativo actual del cliente (en cada moneda) ---
+          for (final currency in selectedCurrencies) {
+            final symbol = currency['symbol'];
+            final rate = currency['rate'] as num;
+            // El balance del cliente está en USD, convertir a moneda
+            final clientBalance = client.balance * rate;
+            if (clientBalance < 0) {
+              totalDeudaRealGeneral[symbol] =
+                  (totalDeudaRealGeneral[symbol] ?? 0) + clientBalance.abs();
+            }
           }
           // --- BLOQUE DE INFORMACIÓN DEL CLIENTE ---
           widgets.add(
@@ -133,7 +158,9 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                         text: 'Nombre Cliente: ',
                         style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                       ),
-                      pw.TextSpan(text: client.name),
+                      pw.TextSpan(
+                        text: StringSanitizer.sanitizeForText(client.name),
+                      ),
                     ],
                   ),
                 ),
@@ -148,11 +175,12 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                         ),
                       ),
                       pw.TextSpan(
-                        text:
-                            (client.phone != null &&
-                                client.phone.toString().trim().isNotEmpty)
-                            ? client.phone.toString()
-                            : 'Sin Información',
+                        text: StringSanitizer.sanitizeForText(
+                          (client.phone != null &&
+                                  client.phone.toString().trim().isNotEmpty)
+                              ? client.phone.toString()
+                              : 'Sin Información',
+                        ),
                         style: pw.TextStyle(fontSize: 10),
                       ),
                     ],
@@ -169,11 +197,12 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                         ),
                       ),
                       pw.TextSpan(
-                        text:
-                            (client.address != null &&
-                                client.address.toString().trim().isNotEmpty)
-                            ? client.address.toString()
-                            : 'Sin Información',
+                        text: StringSanitizer.sanitizeForText(
+                          (client.address != null &&
+                                  client.address.toString().trim().isNotEmpty)
+                              ? client.address.toString()
+                              : 'Sin Información',
+                        ),
                         style: pw.TextStyle(fontSize: 10),
                       ),
                     ],
@@ -223,7 +252,7 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
               headers.add('Monto ${getCurrencyLabel(currency['symbol'])}');
             }
             widgets.add(
-              pw.Table.fromTextArray(
+              pw.TableHelper.fromTextArray(
                 headers: headers,
                 headerStyle: pw.TextStyle(
                   fontWeight: pw.FontWeight.bold,
@@ -251,9 +280,8 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                   for (final currency in selectedCurrencies) {
                     final usdValue = (tx.anchorUsdValue ?? tx.amount) as num;
                     final rate = currency['rate'] as num;
-                    row.add(
-                      formatAmount(usdValue * rate, symbol: currency['symbol']),
-                    );
+                    // Mostrar solo el monto en la celda (sin código/símbolo de moneda)
+                    row.add(formatAmount(usdValue * rate));
                   }
                   return row;
                 }).toList(),
@@ -303,15 +331,15 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
                           pw.Container(
-                            padding: const pw.EdgeInsets.only(bottom: 2),
-                            decoration: pw.BoxDecoration(
-                              border: pw.Border(
-                                bottom: pw.BorderSide(
-                                  color: PdfColors.blue,
-                                  width: 2,
-                                ),
-                              ),
-                            ),
+                            // padding: const pw.EdgeInsets.only(bottom: 2),
+                            // decoration: pw.BoxDecoration(
+                            //   border: pw.Border(
+                            //     bottom: pw.BorderSide(
+                            //       color: PdfColors.blue,
+                            //       width: 2,
+                            //     ),
+                            //   ),
+                            // ),
                             child: pw.Text(
                               // Si todas las monedas tienen saldo 0, mostrar "Sin deuda"
                               saldoPendiente.values.every((v) => v == 0)
@@ -377,7 +405,7 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                     ],
                   ),
                   pw.SizedBox(width: 24), // Espacio entre columnas
-                  // --- Columna Total Deuda General (derecha) ---
+                  // --- Columna Total Deuda General (derecha, AHORA DEUDA REAL) ---
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
@@ -392,7 +420,7 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
                       for (final currency in selectedCurrencies)
                         pw.Text(
                           formatAmount(
-                            totalDeudaGeneral[currency['symbol']] ?? 0,
+                            totalDeudaRealGeneral[currency['symbol']] ?? 0,
                             symbol: getCurrencyLabel(currency['symbol']),
                           ),
                           style: const pw.TextStyle(fontSize: 12),
@@ -418,16 +446,36 @@ pw.Document buildGeneralReceiptWithMovementsPDF(
               style: pw.TextStyle(fontSize: 9),
             ),
             pw.SizedBox(width: 2),
+            pw.UrlLink(
+              destination:
+                  'https://play.google.com/store/apps/details?id=com.deudaflow.app',
+              child: pw.Text(
+                appName,
+                style: pw.TextStyle(
+                  fontSize: 9,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.blue,
+                ),
+              ),
+            ),
             pw.Text(
-              '$appName v$appVersion',
+              ' v$appVersion',
               style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
             ),
             pw.SizedBox(width: 6),
             pw.Text('puedes descargarla en ', style: pw.TextStyle(fontSize: 9)),
             pw.SizedBox(width: 2),
-            pw.Text(
-              'Play Store',
-              style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
+            pw.UrlLink(
+              destination:
+                  'https://play.google.com/store/apps/details?id=com.deudaflow.app',
+              child: pw.Text(
+                'Play Store',
+                style: pw.TextStyle(
+                  fontSize: 9,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.blue,
+                ),
+              ),
             ),
           ],
         ),
@@ -510,7 +558,7 @@ Future<void> exportAndShareClientReceiptPDF(
             ),
             pw.Text('ID: ${client.id}'),
             pw.SizedBox(height: 10),
-            pw.Table.fromTextArray(
+            pw.TableHelper.fromTextArray(
               headers: ['Fecha', 'Descripción', 'Tipo', 'Monto'],
               headerStyle: pw.TextStyle(
                 fontWeight: pw.FontWeight.bold,
@@ -551,9 +599,11 @@ Future<void> exportGeneralReceiptWithMovementsPDF(
   List<Map<String, dynamic>> filtered, {
   required List<Map<String, dynamic>> selectedCurrencies,
 }) async {
+  final appVersion = await getAppVersion();
   final pdf = buildGeneralReceiptWithMovementsPDF(
     filtered,
     selectedCurrencies: selectedCurrencies,
+    appVersion: appVersion,
   );
   await Printing.layoutPdf(onLayout: (format) async => pdf.save());
 }
@@ -562,9 +612,11 @@ Future<void> exportAndShareGeneralReceiptWithMovementsPDF(
   List<Map<String, dynamic>> filtered, {
   required List<Map<String, dynamic>> selectedCurrencies,
 }) async {
+  final appVersion = await getAppVersion();
   final pdf = buildGeneralReceiptWithMovementsPDF(
     filtered,
     selectedCurrencies: selectedCurrencies,
+    appVersion: appVersion,
   );
   final bytes = await pdf.save();
   final dir = await getTemporaryDirectory();
@@ -607,7 +659,7 @@ Future<void> exportClientReceiptToPDF(
             ),
             pw.Text('ID: ${client.id}'),
             pw.SizedBox(height: 10),
-            pw.Table.fromTextArray(
+            pw.TableHelper.fromTextArray(
               headers: [
                 'Fecha',
                 'Descripción',
@@ -635,7 +687,6 @@ Future<void> exportClientReceiptToPDF(
                       ...selectedCurrencies.map(
                         (c) => formatAmount(
                           (tx.anchorUsdValue ?? tx.amount) * (c['rate'] as num),
-                          symbol: c['symbol'],
                         ),
                       ),
                     ],

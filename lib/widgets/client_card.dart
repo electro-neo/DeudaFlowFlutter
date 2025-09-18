@@ -8,6 +8,8 @@ import '../providers/transaction_provider.dart';
 import 'client_details_modal.dart';
 import 'sync_message_state.dart';
 import 'scale_on_tap.dart'; // Importar el widget de animación
+import 'package:characters/characters.dart';
+import '../utils/string_sanitizer.dart';
 
 // --- ExpandableClientCard y su estado deben estar al tope del archivo para evitar errores de anidación ---
 class ExpandableClientCard extends StatefulWidget {
@@ -47,6 +49,20 @@ class ExpandableClientCard extends StatefulWidget {
 
 class _ExpandableClientCardState extends State<ExpandableClientCard> {
   bool _isAnimating = false;
+  // Controller for the Scrollbar with thumbVisibility=true
+  late final ScrollController _balanceScrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _balanceScrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _balanceScrollController.dispose();
+    super.dispose();
+  }
 
   void _handleExpand() {
     if (widget.onExpand != null) {
@@ -123,6 +139,12 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
       }
     }
     final usdBalance = totalPayments - totalDebts;
+    // Balance en moneda seleccionada usando anchorUsdValue como base
+    final selectedCurrency = currencyProvider.currency;
+    final rateToSelected = selectedCurrency == 'USD'
+        ? 1.0
+        : (currencyProvider.getRateFor(selectedCurrency) ?? 1.0);
+    final selectedBalance = usdBalance * rateToSelected;
 
     // Color y mensaje según balance USD
     Color balanceColor;
@@ -147,18 +169,33 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
             return MapEntry(code, usdBalance * rate);
           }),
     ];
-    final firstLetter = client.name.isNotEmpty
-        ? client.name[0].toUpperCase()
+    // ...existing code...
+    // Mostrar balance principal en la moneda seleccionada
+    // Busca el lugar donde se muestra el balance principal (usualmente cerca de 'Balance')
+    // y reemplaza el valor mostrado por selectedBalance y el símbolo de la moneda seleccionada
+    final firstLetter = client.name.trim().isNotEmpty
+        ? client.name.trim().characters.first.toUpperCase()
         : '?';
 
-    final displayName = client.name
-        .split(' ')
-        .map((word) {
-          if (word.isEmpty) return '';
-          // Capitaliza la primera letra y pone el resto en minúsculas para un formato consistente.
-          return '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}';
-        })
-        .join(' ');
+    // Capitalización segura por grafemas y sanitización
+    String _capitalizeGraphemeWords(String input) {
+      final parts = input.split(RegExp(r"\s+"));
+      return parts
+          .map((w) {
+            final t = w.trim();
+            if (t.isEmpty) return '';
+            final chars = t.characters;
+            final first = chars.isNotEmpty ? chars.first.toUpperCase() : '';
+            final rest = chars.skip(1).toString().toLowerCase();
+            return '$first$rest';
+          })
+          .where((e) => e.isNotEmpty)
+          .join(' ');
+    }
+
+    final displayName = StringSanitizer.sanitizeForText(
+      _capitalizeGraphemeWords(client.name),
+    );
 
     return Card(
       color: Colors.white,
@@ -195,7 +232,9 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                         height: 36,
                         child: Center(
                           child: _AvatarLetter(
-                            letter: firstLetter,
+                            letter: StringSanitizer.sanitizeForText(
+                              firstLetter,
+                            ),
                           ), // <-- pasar la letra
                         ),
                       ),
@@ -365,7 +404,9 @@ class _ExpandableClientCardState extends State<ExpandableClientCard> {
                                     18.0, // USD + 3 monedas visibles, luego scroll
                                 child: Scrollbar(
                                   thumbVisibility: true,
+                                  controller: _balanceScrollController,
                                   child: SingleChildScrollView(
+                                    controller: _balanceScrollController,
                                     child: Table(
                                       columnWidths: const {
                                         0: IntrinsicColumnWidth(),

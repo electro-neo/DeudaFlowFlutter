@@ -1,4 +1,7 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:azlistview/azlistview.dart';
+import 'package:characters/characters.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import '../screens/welcome_screen.dart' as welcome_screen;
 import 'package:permission_handler/permission_handler.dart';
@@ -8,9 +11,72 @@ import 'package:provider/provider.dart';
 import '../providers/currency_provider.dart';
 import '../models/client_hive.dart';
 import '../widgets/scale_on_tap.dart';
+import '../utils/currency_utils.dart';
+import 'package:intl/intl.dart';
+
+// Formateador de miles en vivo (estilo es-ES), sin forzar decimales mientras se escribe
+final NumberFormat _groupFormatEs = NumberFormat.decimalPattern('es');
+
+class ThousandsFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text;
+    if (text.isEmpty) return newValue;
+
+    // Mantener solo dígitos y separadores
+    String filtered = text.replaceAll(RegExp(r"[^0-9.,]"), '');
+
+    // Colapsar múltiples comas a una sola (mantener la primera)
+    final firstComma = filtered.indexOf(',');
+    if (firstComma >= 0) {
+      filtered =
+          filtered.substring(0, firstComma + 1) +
+          filtered.substring(firstComma + 1).replaceAll(',', '');
+    }
+
+    // Eliminar puntos de miles previos
+    String noThousands = filtered.replaceAll('.', '');
+
+    // Separar parte entera y decimal
+    final parts = noThousands.split(',');
+    String intPart = parts.isNotEmpty ? parts[0] : '';
+    String decPart = parts.length > 1 ? parts[1] : '';
+
+    // Limitar decimales a 2 mientras se escribe
+    if (decPart.length > 2) decPart = decPart.substring(0, 2);
+
+    // Agrupar miles en la parte entera
+    String grouped = '';
+    if (intPart.isNotEmpty) {
+      try {
+        grouped = _groupFormatEs.format(int.parse(intPart));
+      } catch (_) {
+        grouped = intPart; // fallback si excede int, muy raro al escribir
+      }
+    }
+
+    final hasComma = noThousands.contains(',');
+    String result;
+    if (hasComma) {
+      if (grouped.isEmpty) grouped = '0'; // permite "," inicial -> "0,"
+      result = '$grouped,$decPart';
+    } else {
+      result = grouped;
+    }
+
+    return TextEditingValue(
+      text: result,
+      selection: TextSelection.collapsed(offset: result.length),
+      composing: TextRange.empty,
+    );
+  }
+}
 
 class ClientForm extends StatefulWidget {
-  final Future<ClientHive> Function(ClientHive) onSave;
+  final Future<ClientHive> Function(ClientHive, String?) onSave;
   final ClientHive? initialClient;
   final String userId;
   final bool readOnlyBalance;
@@ -28,65 +94,18 @@ class ClientForm extends StatefulWidget {
 }
 
 class _ClientFormState extends State<ClientForm> {
-  // Simulación de almacenamiento de tasas (puedes reemplazar por tu lógica real)
+  // Búsqueda robusta de tasa usando provider.getRateFor
   bool _hasRateForCurrency(String currency) {
     final provider = Provider.of<CurrencyProvider>(context, listen: false);
-    return provider.exchangeRates.containsKey(currency.toUpperCase());
+    final code = currency.toUpperCase();
+    if (code == 'USD') return true;
+    final rate = provider.getRateFor(code);
+    return rate != null && rate > 0;
   }
 
-  Future<void> _showRegisterRateDialog(String currency) async {
-    final controller = TextEditingController();
-    double? rate;
-    final result = await showDialog<double>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) {
-        return AlertDialog(
-          title: Text('Registrar tasa para $currency'),
-          content: TextField(
-            controller: controller,
-            keyboardType: TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(
-              labelText: 'Tasa de cambio',
-              hintText: 'Ej: 36.5',
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final text = controller.text.trim();
-                final value = double.tryParse(text);
-                if (value == null || value <= 0) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Ingresa una tasa válida.')),
-                  );
-                  return;
-                }
-                rate = value;
-                Navigator.of(ctx).pop(rate);
-              },
-              child: Text('Guardar'),
-            ),
-          ],
-        );
-      },
-    );
-    if (result != null) {
-      // ignore: use_build_context_synchronously
-      final provider = Provider.of<CurrencyProvider>(context, listen: false);
-      provider.setRateForCurrency(currency, result);
-      // Asegura que la moneda esté en availableCurrencies si no hay transacción aún
-      final upper = currency.toUpperCase();
-      if (!provider.availableCurrencies.contains(upper)) {
-        provider.addManualCurrency(upper);
-      }
-      setState(() {}); // Para refrescar el widget
-    }
-  }
+  final TextEditingController _rateController = TextEditingController();
+  String? _rateError;
+  late final FocusNode _balanceFocusNode;
 
   Future<Contact?> _selectContactModal(BuildContext context) async {
     List<Contact> contacts = welcome_screen.globalContacts;
@@ -94,10 +113,28 @@ class _ClientFormState extends State<ClientForm> {
     String search = '';
     Contact? selectedContact;
     int currentPage = 0; // <-- Ahora persiste entre setModalState
+    String activeTag = '';
+
+    // Utilidades de normalización y etiquetas
+    String _labelOf(Contact c) {
+      final name = c.displayName.trim();
+      if (name.isNotEmpty) return name;
+      return c.phones.isNotEmpty ? c.phones.first.number : '';
+    }
+
+    String _tagFor(String label) {
+      if (label.isEmpty) return '#';
+      final ch = label.trim().characters.first.toUpperCase();
+      final code = ch.codeUnitAt(0);
+      // A-Z
+      if (code >= 65 && code <= 90) return ch;
+      return '#';
+    }
 
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setModalState) {
@@ -107,84 +144,525 @@ class _ClientFormState extends State<ClientForm> {
                 child: Center(child: CircularProgressIndicator()),
               );
             }
-            List<Contact> filtered = contacts
-                .where(
-                  (c) =>
-                      c.displayName.toLowerCase().contains(
-                        search.toLowerCase(),
-                      ) ||
-                      (c.phones.isNotEmpty &&
-                          c.phones.first.number.contains(search)),
-                )
-                .toList();
-            int pageSize = 50;
-            int pageCount = (filtered.length / pageSize).ceil();
-            return SizedBox(
-              height: MediaQuery.of(context).size.height * 0.7,
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: TextField(
-                      decoration: InputDecoration(
-                        labelText: 'Buscar contacto',
-                        prefixIcon: Icon(Icons.search),
-                        border: OutlineInputBorder(),
+            // Filtrar contactos: excluir entradas totalmente vacías (sin nombre ni teléfono)
+            List<Contact> filtered = contacts.where((c) {
+              final label = _labelOf(c).trim();
+              final hasPhone =
+                  c.phones.isNotEmpty &&
+                  (c.phones.first.number.trim().isNotEmpty);
+              if (!hasPhone && label.isEmpty) return false;
+              if (search.isEmpty) return true;
+              final s = search.toLowerCase();
+              return label.toLowerCase().contains(s) ||
+                  (hasPhone && c.phones.first.number.toLowerCase().contains(s));
+            }).toList();
+
+            // Ordenar alfabéticamente por etiqueta visible (case-insensitive)
+            filtered.sort(
+              (a, b) => _labelOf(
+                a,
+              ).toLowerCase().compareTo(_labelOf(b).toLowerCase()),
+            );
+
+            // Decidir si usar paginación (> 3000)
+            final bool usePagination = filtered.length > 3000;
+            final int pageSize = usePagination ? 1000 : filtered.length;
+            final int pageCount = filtered.isEmpty
+                ? 1
+                : ((filtered.length - 1) / pageSize).floor() + 1;
+
+            // Cortar por página si aplica
+            final int start = (currentPage * pageSize).clamp(
+              0,
+              filtered.length,
+            );
+            final int end = (start + pageSize).clamp(0, filtered.length);
+            final List<Contact> pageSlice = filtered.isEmpty
+                ? []
+                : filtered.sublist(start, end);
+
+            // Adaptar a AzListView con índice alfabético
+            final List<_ContactItem> items = pageSlice.map((c) {
+              final label = _labelOf(c);
+              return _ContactItem(
+                contact: c,
+                name: label,
+                phone: c.phones.isNotEmpty ? c.phones.first.number : '',
+                tag: _tagFor(label),
+              );
+            }).toList();
+
+            // Ordenar por tag y preparar cabeceras
+            SuspensionUtil.sortListBySuspensionTag(items);
+            SuspensionUtil.setShowSuspensionStatus(items);
+            final indexTags = SuspensionUtil.getTagIndexList(items);
+            if (activeTag.isEmpty || !indexTags.contains(activeTag)) {
+              activeTag = indexTags.isNotEmpty ? indexTags.first : '#';
+            }
+
+            final screenHeight = MediaQuery.of(ctx).size.height;
+            final keyboardHeight = MediaQuery.of(ctx).viewInsets.bottom;
+            final isMobile = MediaQuery.of(ctx).size.width < 600;
+            final percent = isMobile ? 0.65 : 0.8;
+            final maxModalHeight = 520.0;
+            final availableHeight = screenHeight - keyboardHeight;
+            final modalHeight = [
+              screenHeight * percent,
+              availableHeight,
+              maxModalHeight,
+            ].reduce((a, b) => a < b ? a : b);
+            return AnimatedPadding(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
+              padding: EdgeInsets.only(bottom: keyboardHeight),
+              child: SafeArea(
+                top: false,
+                child: SizedBox(
+                  height: modalHeight,
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: TextField(
+                          decoration: InputDecoration(
+                            labelText: 'Buscar contacto',
+                            prefixIcon: Icon(Icons.search),
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (val) {
+                            setModalState(() {
+                              search = val;
+                              currentPage = 0;
+                            });
+                          },
+                        ),
                       ),
-                      onChanged: (val) {
-                        setModalState(() => search = val);
-                      },
-                    ),
-                  ),
-                  Expanded(
-                    child: filtered.isEmpty
-                        ? Center(child: Text('No se encontraron contactos'))
-                        : ListView.builder(
-                            itemCount: (filtered.length > pageSize
-                                ? pageSize
-                                : filtered.length - currentPage * pageSize >
-                                      pageSize
-                                ? pageSize
-                                : filtered.length - currentPage * pageSize),
-                            itemBuilder: (ctx, i) {
-                              final c = filtered[i + currentPage * pageSize];
-                              final phone = c.phones.isNotEmpty
-                                  ? c.phones.first.number
-                                  : '';
-                              return ListTile(
-                                title: Text(c.displayName),
-                                subtitle: Text(phone),
-                                onTap: () {
-                                  selectedContact = c;
-                                  Navigator.of(ctx).pop();
+                      Expanded(
+                        child: items.isEmpty
+                            ? const Center(
+                                child: Text('No se encontraron contactos'),
+                              )
+                            : LayoutBuilder(
+                                builder: (ctx, constraints) {
+                                  final double vh = constraints.maxHeight;
+                                  final int tagCount = indexTags.isEmpty
+                                      ? 1
+                                      : indexTags.length;
+                                  // Calcular altura segura por ítem del index bar considerando márgenes,
+                                  // para que quepa sin overflow incluso con teclado abierto.
+                                  final double vSpacing =
+                                      1.0; // espaciado vertical por elemento
+                                  final double totalSpacing =
+                                      vSpacing * 2 * tagCount;
+                                  final double availableForItems = math.max(
+                                    0.0,
+                                    vh - totalSpacing - 4.0,
+                                  );
+                                  final double itemH =
+                                      (availableForItems / tagCount).clamp(
+                                        6.0,
+                                        18.0,
+                                      );
+                                  // Lista + overlay de índice interactivo con "zoom" visual.
+                                  return Stack(
+                                    children: [
+                                      AzListView(
+                                        data: items,
+                                        itemCount: items.length,
+                                        padding: EdgeInsets.zero,
+                                        indexBarItemHeight: itemH,
+                                        indexBarMargin: EdgeInsets.symmetric(
+                                          vertical: vSpacing,
+                                        ),
+                                        itemBuilder: (ctx, i) {
+                                          final item = items[i];
+                                          final titleText = item.name.isNotEmpty
+                                              ? item.name
+                                              : (item.phone.isNotEmpty
+                                                    ? item.phone
+                                                    : 'Contacto');
+                                          return ListTile(
+                                            title: Text(titleText),
+                                            subtitle:
+                                                item.phone.isNotEmpty &&
+                                                    item.name != item.phone
+                                                ? Text(item.phone)
+                                                : null,
+                                            onTap: () {
+                                              selectedContact = item.contact;
+                                              Navigator.of(ctx).pop();
+                                            },
+                                          );
+                                        },
+                                        susItemBuilder: (ctx, i) {
+                                          final tag = items[i]
+                                              .getSuspensionTag();
+                                          return _AzHeader(tag: tag);
+                                        },
+                                        indexBarData: keyboardHeight > 0
+                                            ? const <String>[]
+                                            : indexTags,
+                                        indexBarOptions: const IndexBarOptions(
+                                          needRebuild: true,
+                                          selectTextStyle: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          selectItemDecoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Colors.deepPurple,
+                                          ),
+                                        ),
+                                        indexHintBuilder: (ctx, hint) {
+                                          // Oculta el bubble si el teclado está abierto
+                                          final kb = MediaQuery.of(
+                                            ctx,
+                                          ).viewInsets.bottom;
+                                          if (kb > 0) {
+                                            return const SizedBox.shrink();
+                                          }
+                                          // Actualiza la letra activa mientras el usuario interactúa con el índice
+                                          if (hint.isNotEmpty) {
+                                            WidgetsBinding.instance
+                                                .addPostFrameCallback((_) {
+                                                  if (mounted) {
+                                                    setModalState(
+                                                      () => activeTag = hint,
+                                                    );
+                                                  }
+                                                });
+                                          }
+                                          return Container(
+                                            width: 84,
+                                            height: 84,
+                                            decoration: BoxDecoration(
+                                              color: Colors.black.withOpacity(
+                                                0.65,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
+                                            ),
+                                            alignment: Alignment.center,
+                                            child: Text(
+                                              hint,
+                                              style: const TextStyle(
+                                                fontSize: 42,
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w800,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      // Máscara visual para ocultar el índice nativo pero conservar gestos debajo
+                                      if (keyboardHeight <= 0 &&
+                                          indexTags.isNotEmpty)
+                                        IgnorePointer(
+                                          child: Align(
+                                            alignment: Alignment.centerRight,
+                                            child: Container(
+                                              width: 28,
+                                              margin: const EdgeInsets.only(
+                                                right: 0,
+                                                bottom: 8,
+                                              ),
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                      // Overlay visual del índice (ventana alrededor del tag activo)
+                                      if (keyboardHeight <= 0)
+                                        IgnorePointer(
+                                          child: Align(
+                                            alignment: Alignment.centerRight,
+                                            child: Padding(
+                                              padding: EdgeInsets.only(
+                                                right: 6.0,
+                                                bottom: keyboardHeight > 0
+                                                    ? keyboardHeight + 8
+                                                    : 8,
+                                              ),
+                                              child: LayoutBuilder(
+                                                builder: (c, cons) {
+                                                  final tags = indexTags;
+                                                  final int total = tags.length;
+                                                  if (total == 0)
+                                                    return const SizedBox.shrink();
+                                                  final int centerIndex = tags
+                                                      .indexOf(activeTag)
+                                                      .clamp(0, total - 1);
+                                                  const int window =
+                                                      11; // 9-11 letras visibles
+                                                  int start =
+                                                      centerIndex -
+                                                      (window ~/ 2);
+                                                  if (start < 0) start = 0;
+                                                  int end = (start + window);
+                                                  if (end > total) {
+                                                    end = total;
+                                                    start = math.max(
+                                                      0,
+                                                      end - window,
+                                                    );
+                                                  }
+                                                  final visible = tags.sublist(
+                                                    start,
+                                                    end,
+                                                  );
+
+                                                  return Column(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .center,
+                                                    children: visible.map((t) {
+                                                      final isActive =
+                                                          t == activeTag;
+                                                      return Container(
+                                                        margin:
+                                                            const EdgeInsets.symmetric(
+                                                              vertical: 2,
+                                                            ),
+                                                        padding:
+                                                            const EdgeInsets.symmetric(
+                                                              vertical: 2,
+                                                              horizontal: 6,
+                                                            ),
+                                                        decoration: isActive
+                                                            ? BoxDecoration(
+                                                                color: Colors
+                                                                    .deepPurple
+                                                                    .withOpacity(
+                                                                      0.15,
+                                                                    ),
+                                                                borderRadius:
+                                                                    BorderRadius.circular(
+                                                                      8,
+                                                                    ),
+                                                              )
+                                                            : null,
+                                                        child: Text(
+                                                          t,
+                                                          style: TextStyle(
+                                                            fontSize: isActive
+                                                                ? 16
+                                                                : 12,
+                                                            fontWeight: isActive
+                                                                ? FontWeight
+                                                                      .w700
+                                                                : FontWeight
+                                                                      .w500,
+                                                            color: isActive
+                                                                ? Colors
+                                                                      .deepPurple
+                                                                : Colors.black
+                                                                      .withOpacity(
+                                                                        0.55,
+                                                                      ),
+                                                          ),
+                                                        ),
+                                                      );
+                                                    }).toList(),
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  );
                                 },
-                              );
-                            },
-                          ),
-                  ),
-                  if (pageCount > 1)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          IconButton(
-                            icon: Icon(Icons.arrow_back),
-                            onPressed: currentPage > 0
-                                ? () => setModalState(() => currentPage--)
-                                : null,
-                          ),
-                          Text('Página ${currentPage + 1} de $pageCount'),
-                          IconButton(
-                            icon: Icon(Icons.arrow_forward),
-                            onPressed: currentPage < pageCount - 1
-                                ? () => setModalState(() => currentPage++)
-                                : null,
-                          ),
-                        ],
+                              ),
                       ),
-                    ),
-                ],
+                      SizedBox(
+                        height: 40,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (pageCount > 1)
+                                IconButton(
+                                  icon: Icon(Icons.arrow_back),
+                                  onPressed: currentPage > 0
+                                      ? () => setModalState(() => currentPage--)
+                                      : null,
+                                ),
+                              if (pageCount > 1)
+                                Text('Página ${currentPage + 1} de $pageCount'),
+                              if (pageCount > 1)
+                                IconButton(
+                                  icon: Icon(Icons.arrow_forward),
+                                  onPressed: currentPage < pageCount - 1
+                                      ? () => setModalState(() => currentPage++)
+                                      : null,
+                                ),
+                              // Botón de sincronizar contactos
+                              if (keyboardHeight <= 0)
+                                IconButton(
+                                  icon: Icon(Icons.sync),
+                                  tooltip: 'Sincronizar contactos',
+                                  onPressed: () async {
+                                    try {
+                                      final status =
+                                          await Permission.contacts.status;
+                                      if (status.isGranted ||
+                                          (await Permission.contacts.request())
+                                              .isGranted) {
+                                        // Mostrar diálogo inmediatamente: estado "Cargando contactos..."
+                                        final progress = ValueNotifier<int>(0);
+                                        final totalNotifier =
+                                            ValueNotifier<int?>(
+                                              null,
+                                            ); // null = cargando
+                                        showDialog(
+                                          context: ctx,
+                                          barrierDismissible: false,
+                                          builder: (dctx) => AlertDialog(
+                                            title: const Text(
+                                              'Sincronizando contactos',
+                                            ),
+                                            content: Row(
+                                              children: [
+                                                const SizedBox(
+                                                  width: 24,
+                                                  height: 24,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                        strokeWidth: 2.5,
+                                                      ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Expanded(
+                                                  child: ValueListenableBuilder<int?>(
+                                                    valueListenable:
+                                                        totalNotifier,
+                                                    builder: (_, totalVal, __) {
+                                                      if (totalVal == null) {
+                                                        return const Text(
+                                                          'Cargando contactos.',
+                                                        );
+                                                      }
+                                                      return ValueListenableBuilder<
+                                                        int
+                                                      >(
+                                                        valueListenable:
+                                                            progress,
+                                                        builder:
+                                                            (
+                                                              _,
+                                                              saved,
+                                                              __,
+                                                            ) => Text(
+                                                              'Sincronizados: $saved / $totalVal',
+                                                            ),
+                                                      );
+                                                    },
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+
+                                        // Obtener contactos del sistema
+                                        final systemContacts =
+                                            await FlutterContacts.getContacts(
+                                              withProperties: true,
+                                            );
+
+                                        // Calcular total y actualizar UI
+                                        final total = systemContacts
+                                            .where((c) => c.phones.isNotEmpty)
+                                            .length;
+                                        totalNotifier.value = total;
+
+                                        if (total == 0) {
+                                          if (Navigator.of(ctx).canPop()) {
+                                            Navigator.of(ctx).pop();
+                                          }
+                                          progress.dispose();
+                                          totalNotifier.dispose();
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: const Text(
+                                                'No hay contactos con teléfono para sincronizar.',
+                                              ),
+                                              backgroundColor:
+                                                  Colors.orange[700],
+                                              duration: const Duration(
+                                                seconds: 2,
+                                              ),
+                                            ),
+                                          );
+                                          return;
+                                        }
+
+                                        // Guardar con progreso
+                                        await welcome_screen.saveContactsToHive(
+                                          systemContacts,
+                                          onProgress: (saved, _) =>
+                                              progress.value = saved,
+                                        );
+
+                                        if (Navigator.of(ctx).canPop()) {
+                                          Navigator.of(
+                                            ctx,
+                                          ).pop(); // Cierra el diálogo de progreso
+                                        }
+
+                                        progress.dispose();
+                                        totalNotifier.dispose();
+
+                                        welcome_screen.globalContacts =
+                                            systemContacts;
+                                        contacts = systemContacts;
+                                        setModalState(() {
+                                          currentPage = 0;
+                                        });
+
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Contactos sincronizados correctamente.',
+                                            ),
+                                            backgroundColor: Colors.green,
+                                            duration: Duration(seconds: 2),
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      debugPrint(
+                                        '[SYNC] Error al sincronizar contactos: $e',
+                                      );
+                                      if (Navigator.of(ctx).canPop()) {
+                                        Navigator.of(ctx).pop();
+                                      }
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Error al sincronizar: $e',
+                                          ),
+                                          backgroundColor: Colors.red[700],
+                                        ),
+                                      );
+                                    }
+                                  },
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             );
           },
@@ -201,35 +679,9 @@ class _ClientFormState extends State<ClientForm> {
   late final TextEditingController _addressController;
   late final TextEditingController _phoneController;
   late final TextEditingController _balanceController;
+  late final TextEditingController _initialDescriptionController;
   bool _isSaving = false;
 
-  // Lista de monedas (prioridad: USD, VES, COP, EUR, luego otras)
-  final List<String> currencyList = [
-    'USD',
-    'VES',
-    'COP',
-    'EUR',
-    'ARS',
-    'BRL',
-    'CLP',
-    'MXN',
-    'PEN',
-    'UYU',
-    'GBP',
-    'CHF',
-    'RUB',
-    'TRY',
-    'JPY',
-    'CNY',
-    'KRW',
-    'INR',
-    'SGD',
-    'HKD',
-    'CAD',
-    'AUD',
-    'NZD',
-    'ZAR',
-  ];
   String? _selectedCurrency;
   @override
   void initState() {
@@ -241,6 +693,9 @@ class _ClientFormState extends State<ClientForm> {
     _balanceController = TextEditingController(
       text: c != null ? c.balance.toString() : '',
     );
+    _initialDescriptionController = TextEditingController();
+    _balanceFocusNode = FocusNode();
+    _balanceFocusNode.addListener(_onBalanceFocusChange);
     if (widget.initialClient != null && widget.readOnlyBalance) {
       // Si es edición, deshabilitar el tipo (deuda/abono) y el balance
       _initialType = c!.balance < 0 ? 'debt' : 'payment';
@@ -249,39 +704,79 @@ class _ClientFormState extends State<ClientForm> {
     }
   }
 
+  void _onBalanceFocusChange() {
+    if (!_balanceFocusNode.hasFocus) {
+      final t = _balanceController.text.trim();
+      if (t.isEmpty) return;
+      // Quitar puntos (miles) y normalizar coma decimal
+      String cleaned = t.replaceAll('.', '');
+      int commaIdx = cleaned.indexOf(',');
+      String intPart;
+      String decPart;
+      if (commaIdx >= 0) {
+        intPart = cleaned.substring(0, commaIdx);
+        decPart = cleaned
+            .substring(commaIdx + 1)
+            .replaceAll(RegExp(r'[^0-9]'), '');
+      } else {
+        intPart = cleaned;
+        decPart = '';
+      }
+      if (intPart.isEmpty) intPart = '0';
+      // Asegurar exactamente 2 decimales
+      decPart = (decPart + '00').substring(0, 2);
+      String grouped;
+      try {
+        grouped = _groupFormatEs.format(int.parse(intPart));
+      } catch (_) {
+        grouped = intPart;
+      }
+      final result = '$grouped,$decPart';
+      _balanceController.value = TextEditingValue(
+        text: result,
+        selection: TextSelection.collapsed(offset: result.length),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _balanceFocusNode.removeListener(_onBalanceFocusChange);
+    _balanceFocusNode.dispose();
+    _nameController.dispose();
+    _addressController.dispose();
+    _phoneController.dispose();
+    _balanceController.dispose();
+    _initialDescriptionController.dispose();
+    _rateController.dispose();
+    super.dispose();
+  }
+
   String? _error;
 
   void _save() async {
-    if (!mounted) return;
-    // Validaciones antes de mostrar loading
     final nameText = _nameController.text.trim();
+    final phoneText = _phoneController.text.trim();
+    // Validación de campos obligatorios
     if (nameText.isEmpty) {
       setState(() {
-        _error = 'El nombre es obligatorio';
+        _error = 'El nombre es obligatorio.';
         _isSaving = false;
       });
       return;
     }
-    if (nameText.length > 27) {
-      setState(() {
-        _error = 'El nombre no puede tener más de 27 caracteres';
-        _isSaving = false;
-      });
-      return;
-    }
-    final phoneText = _phoneController.text.trim();
     if (phoneText.isEmpty) {
       setState(() {
-        _error = 'El teléfono es obligatorio';
+        _error = 'El teléfono es obligatorio.';
         _isSaving = false;
       });
       return;
     }
-
     double balance = 0.0;
     String? type = _initialType;
     double? anchorUsdValue;
-    // Validar moneda seleccionada
+    String? currencyCode;
+    String initialDescription = '';
     if (_showInitialBalanceFields) {
       if (_selectedCurrency == null || _selectedCurrency!.isEmpty) {
         setState(() {
@@ -290,6 +785,7 @@ class _ClientFormState extends State<ClientForm> {
         });
         return;
       }
+      currencyCode = _selectedCurrency;
       if (type == null) {
         setState(() {
           _error = 'Debes seleccionar Deuda o Abono';
@@ -305,25 +801,62 @@ class _ClientFormState extends State<ClientForm> {
         });
         return;
       }
-      balance = double.tryParse(balanceText) ?? 0.0;
-      if (balance == 0.0 && balanceText != '0' && balanceText != '0.0') {
+      // Normalizar: "1.234,56" -> "1234.56"
+      final normalized = balanceText.replaceAll('.', '').replaceAll(',', '.');
+      final parsed = double.tryParse(normalized);
+      if (parsed == null) {
         setState(() {
-          _error = 'Saldo inválido. Solo números y punto decimal.';
+          _error = 'Saldo inválido. Usa coma o punto para decimales.';
           _isSaving = false;
         });
         return;
       }
-      // --- Cálculo de anchorUsdValue ---
+      balance = parsed;
+      initialDescription = _initialDescriptionController.text.trim();
+      if (initialDescription.isEmpty) {
+        setState(() {
+          _error = 'Debes agregar una descripción';
+          _isSaving = false;
+        });
+        return;
+      }
+      // --- Cálculo de anchorUsdValue usando provider.getRateFor ---
       final provider = Provider.of<CurrencyProvider>(context, listen: false);
       final codeUC = _selectedCurrency!.toUpperCase();
-      final rate = provider.exchangeRates[codeUC];
+      double? rate = provider.getRateFor(codeUC);
+      if (codeUC != 'USD' && (rate == null || rate <= 0)) {
+        // Si no hay tasa registrada, tomar la del campo manual
+        final rateText = _rateController.text.trim().replaceAll(',', '.');
+        if (rateText.isEmpty) {
+          setState(() {
+            _rateError = 'Debes ingresar la tasa para $codeUC.';
+            _isSaving = false;
+          });
+          return;
+        }
+        final manualRate = double.tryParse(rateText);
+        if (manualRate == null || manualRate <= 0) {
+          setState(() {
+            _rateError = 'Tasa inválida. Solo números mayores a 0.';
+            _isSaving = false;
+          });
+          return;
+        }
+        // Guardar la tasa en el provider para futuras operaciones
+        if (!provider.availableCurrencies.contains(codeUC)) {
+          provider.addManualCurrency(codeUC);
+        }
+        provider.setRateForCurrency(codeUC, manualRate);
+        rate = manualRate;
+        _rateError = null;
+      }
       if (rate != null && rate > 0) {
-        anchorUsdValue = balance / rate;
+        anchorUsdValue = CurrencyUtils.normalizeAnchorUsd(balance / rate);
         debugPrint(
           '\u001b[41m[FORM][CALC] balance=$balance, currency=$_selectedCurrency, rate=$rate, anchorUsdValue=$anchorUsdValue\u001b[0m',
         );
       } else if (codeUC == 'USD') {
-        anchorUsdValue = balance;
+        anchorUsdValue = CurrencyUtils.normalizeAnchorUsd(balance);
         debugPrint(
           '\u001b[41m[FORM][CALC] balance=$balance, currency=USD, anchorUsdValue=$anchorUsdValue\u001b[0m',
         );
@@ -334,10 +867,12 @@ class _ClientFormState extends State<ClientForm> {
         );
       }
     } else {
-      // Si no se presionó el botón, balance 0 y tipo null
+      // Si no se muestran los campos de saldo inicial, no se requiere moneda
       balance = 0.0;
       type = null;
       anchorUsdValue = null;
+      currencyCode = null;
+      initialDescription = '';
     }
     setState(() {
       _error = null;
@@ -348,7 +883,7 @@ class _ClientFormState extends State<ClientForm> {
     String newId =
         widget.initialClient?.id ??
         DateTime.now().millisecondsSinceEpoch.toString();
-    final name = capitalizeWords(_nameController.text.trim());
+    final name = capitalizeWords(nameText);
     final client = ClientHive(
       id: newId,
       name: name,
@@ -357,8 +892,8 @@ class _ClientFormState extends State<ClientForm> {
       balance: type == 'debt' ? -balance : balance,
       synced: widget.initialClient?.synced ?? false,
       pendingDelete: widget.initialClient?.pendingDelete ?? false,
-      currencyCode: _selectedCurrency!, // safe, ya validado
-      anchorUsdValue: anchorUsdValue, // <-- Ahora sí se pasa correctamente
+      currencyCode: currencyCode ?? 'VES', // Nunca null, por defecto VES
+      anchorUsdValue: anchorUsdValue, // Puede ser null si no hay saldo inicial
     );
     debugPrint(
       '\u001b[41m[FORM][SAVE] Cliente id=$newId, balance=$balance, currency=$_selectedCurrency, anchorUsdValue=$anchorUsdValue\u001b[0m',
@@ -373,7 +908,7 @@ class _ClientFormState extends State<ClientForm> {
 
     // Guardar en background (sin esperar el cierre del formulario)
     try {
-      await widget.onSave(client);
+      await widget.onSave(client, initialDescription);
     } catch (e) {
       if (!mounted) return;
       final msg = e.toString();
@@ -412,18 +947,24 @@ class _ClientFormState extends State<ClientForm> {
   }
 
   String capitalizeWords(String name) {
+    // Usa Characters para no romper pares sustitutos (emoji, acentos compuestos)
     return name
-        .split(' ')
-        .map(
-          (word) => word.isEmpty
-              ? ''
-              : '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}',
-        )
+        .trim()
+        .split(RegExp(r'\s+'))
+        .map((word) {
+          final chars = word.characters;
+          if (chars.isEmpty) return '';
+          final first = chars.first.toUpperCase();
+          final rest = chars.skip(1).toString().toLowerCase();
+          return '$first$rest';
+        })
         .join(' ');
   }
 
   @override
   Widget build(BuildContext context) {
+    final currencyProvider = Provider.of<CurrencyProvider>(context);
+    final availableCurrencies = currencyProvider.availableCurrencies;
     final colorScheme = Theme.of(context).colorScheme;
     final isMobile = MediaQuery.of(context).size.width < 600;
     // Elimina el overlay manual, solo muestra la tarjeta del formulario
@@ -536,8 +1077,12 @@ class _ClientFormState extends State<ClientForm> {
                                 selected.phones.isNotEmpty) {
                               _phoneController.text =
                                   selected.phones.first.number;
+                              _nameController.text = selected.displayName;
                               debugPrint(
                                 '[CONTACTS] Teléfono seleccionado: ${selected.phones.first.number}',
+                              );
+                              debugPrint(
+                                '[CONTACTS] Nombre seleccionado: ${selected.displayName}',
                               );
                             } else {
                               debugPrint(
@@ -676,8 +1221,8 @@ class _ClientFormState extends State<ClientForm> {
                     keyboardType: TextInputType.phone,
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(
-                        RegExp(r'[0-9a-zA-Z+\-() ]'),
-                      ),
+                        RegExp(r'[0-9 +\-]'),
+                      ), //
                     ],
                   ),
                   const SizedBox(height: 14),
@@ -698,7 +1243,9 @@ class _ClientFormState extends State<ClientForm> {
                                 vertical: 12,
                               ),
                               decoration: BoxDecoration(
-                                color: colorScheme.primary.withOpacity(0.08),
+                                color: colorScheme.primary.withValues(
+                                  alpha: 0.08 * 255,
+                                ),
                                 borderRadius: BorderRadius.circular(18),
                                 border: Border.all(
                                   color: colorScheme.primary,
@@ -760,103 +1307,252 @@ class _ClientFormState extends State<ClientForm> {
                           ),
                         ),
                       ),
-                      Row(
+                      // Campo Monto ocupa toda la fila y debajo fila con Moneda + botón agregar
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _balanceController,
+                          TextField(
+                            controller: _balanceController,
+                            decoration: InputDecoration(
+                              labelText: 'Monto',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.attach_money_outlined,
+                              ),
+                              filled: true,
+                              fillColor: const Color(
+                                0xFF7C3AED,
+                              ).withValues(alpha: 0.10 * 255),
+                              hoverColor: const Color(
+                                0xFF7C3AED,
+                              ).withValues(alpha: 0.13 * 255),
+                              focusColor: const Color(
+                                0xFF7C3AED,
+                              ).withValues(alpha: 0.16 * 255),
+                              floatingLabelBehavior: FloatingLabelBehavior.auto,
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 16,
+                                horizontal: 12,
+                              ),
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'[0-9.,]'),
+                              ),
+                              ThousandsFormatter(),
+                            ],
+                            focusNode: _balanceFocusNode,
+                            enabled:
+                                !(widget.initialClient != null &&
+                                    widget.readOnlyBalance),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: DropdownButtonFormField<String>(
+                                  value: _selectedCurrency,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Moneda',
+                                    border: OutlineInputBorder(),
+                                    isDense: true,
+                                  ),
+                                  items: availableCurrencies
+                                      .map(
+                                        (currency) => DropdownMenuItem<String>(
+                                          value: currency,
+                                          child: Text(currency),
+                                        ),
+                                      )
+                                      .toList(),
+                                  onChanged: (value) async {
+                                    if (value == null) return;
+                                    setState(() {
+                                      _selectedCurrency = value;
+                                      _rateController.clear();
+                                      _rateError = null;
+                                    });
+                                  },
+                                  dropdownColor: Colors.white,
+                                  menuMaxHeight: 220,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.add_circle_outline,
+                                  color: Colors.indigo,
+                                  size: 24,
+                                ),
+                                tooltip: 'Agregar Moneda',
+                                onPressed: () async {
+                                  String? newCode = await showDialog<String>(
+                                    context: context,
+                                    builder: (ctx) {
+                                      final controller =
+                                          TextEditingController();
+                                      return AlertDialog(
+                                        title: const Text('Agregar Moneda'),
+                                        content: TextField(
+                                          controller: controller,
+                                          decoration: const InputDecoration(
+                                            labelText:
+                                                '(ej: Pesos, Bolivares, Libras)',
+                                            border: OutlineInputBorder(),
+                                            isDense: true,
+                                          ),
+                                          textCapitalization:
+                                              TextCapitalization.characters,
+                                          maxLength: 4,
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.of(ctx).pop(),
+                                            child: const Text('Cancelar'),
+                                          ),
+                                          ElevatedButton(
+                                            onPressed: () {
+                                              final code = controller.text
+                                                  .trim()
+                                                  .toUpperCase();
+                                              if (code.isEmpty ||
+                                                  code == 'USD' ||
+                                                  availableCurrencies.contains(
+                                                    code,
+                                                  )) {
+                                                Navigator.of(ctx).pop();
+                                                return;
+                                              }
+                                              Navigator.of(ctx).pop(code);
+                                            },
+                                            child: const Text('Agregar'),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
+                                  if (newCode != null &&
+                                      newCode.isNotEmpty &&
+                                      newCode != 'USD' &&
+                                      !availableCurrencies.contains(newCode)) {
+                                    setState(() {
+                                      _selectedCurrency = newCode;
+                                      _rateController.clear();
+                                      _rateError = null;
+                                    });
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      // Campo de tasa si la moneda seleccionada no tiene tasa y no es USD
+                      if (_selectedCurrency != null &&
+                          _selectedCurrency!.toUpperCase() != 'USD' &&
+                          !_hasRateForCurrency(_selectedCurrency!))
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            top: 10.0,
+                            left: 2.0,
+                            right: 2.0,
+                          ),
+                          child: TextField(
+                            controller: _rateController,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: InputDecoration(
+                              labelText: 'Tasa',
+                              hintText:
+                                  'Tasa ${_selectedCurrency?.toUpperCase() ?? ''} a USD',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              prefixIcon: const Icon(Icons.currency_exchange),
+                              errorText: _rateError,
+                              filled: true,
+                              fillColor: const Color(
+                                0xFF7C3AED,
+                              ).withOpacity(0.07),
+                              floatingLabelBehavior: FloatingLabelBehavior.auto,
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 16,
+                                horizontal: 12,
+                              ),
+                            ),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'[0-9.,]'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0, bottom: 5.0),
+                        child: Stack(
+                          children: [
+                            TextField(
+                              controller: _initialDescriptionController,
+                              maxLines: 2,
+                              maxLength: 32,
+                              onChanged: (_) => setState(() {}),
                               decoration: InputDecoration(
-                                labelText: 'Monto',
+                                labelText: 'Descripción',
+                                prefixIcon: const Icon(
+                                  Icons.description_outlined,
+                                ),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                ),
-                                prefixIcon: const Icon(
-                                  Icons.attach_money_outlined,
                                 ),
                                 filled: true,
                                 fillColor: const Color(
                                   0xFF7C3AED,
-                                ).withValues(alpha: 0.10 * 255),
-                                hoverColor: const Color(
-                                  0xFF7C3AED,
-                                ).withValues(alpha: 0.13 * 255),
-                                focusColor: const Color(
-                                  0xFF7C3AED,
-                                ).withValues(alpha: 0.16 * 255),
+                                ).withOpacity(0.07),
                                 floatingLabelBehavior:
                                     FloatingLabelBehavior.auto,
                                 contentPadding: const EdgeInsets.symmetric(
                                   vertical: 16,
                                   horizontal: 12,
                                 ),
+                                counterText: '', // ocultar contador por defecto
                               ),
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              inputFormatters: [
-                                FilteringTextInputFormatter.allow(
-                                  RegExp(r'[0-9.]'),
-                                ),
-                              ],
-                              enabled:
-                                  !(widget.initialClient != null &&
-                                      widget.readOnlyBalance),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          SizedBox(
-                            width: 110,
-                            child: DropdownButtonFormField<String>(
-                              value: _selectedCurrency,
-                              decoration: const InputDecoration(
-                                labelText: 'Moneda',
-                                border: OutlineInputBorder(),
-                                isDense: true,
-                              ),
-                              items: [
-                                ...currencyList.map(
-                                  (currency) => DropdownMenuItem<String>(
-                                    value: currency,
-                                    child: Text(currency),
+                            Positioned(
+                              right: 12,
+                              bottom: 6,
+                              child: IgnorePointer(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.95),
+                                    border: Border.all(
+                                      color: Colors.grey.shade300,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    '${_initialDescriptionController.text.length}/32',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.black54,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ),
-                              ],
-                              onChanged: (value) async {
-                                if (value == null) return;
-
-                                // Si la moneda es USD, no se necesita tasa.
-                                if (value.toUpperCase() == 'USD') {
-                                  setState(() {
-                                    _selectedCurrency = value;
-                                  });
-                                  return;
-                                }
-
-                                // Para otras monedas, verificar si tienen tasa.
-                                if (!_hasRateForCurrency(value)) {
-                                  final prevCurrency = _selectedCurrency;
-                                  await _showRegisterRateDialog(value);
-                                  // Si después de registrar, sigue sin tasa (usuario canceló), no cambiar.
-                                  if (!_hasRateForCurrency(value)) {
-                                    setState(() {
-                                      _selectedCurrency = prevCurrency;
-                                    });
-                                    return;
-                                  }
-                                }
-
-                                // Si la moneda tiene tasa (o se acaba de registrar), actualizar.
-                                setState(() {
-                                  _selectedCurrency = value;
-                                });
-                              },
-                              dropdownColor: Colors.white,
-                              menuMaxHeight:
-                                  180, // Limita la altura del menú desplegable
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   if (_error != null)
@@ -970,6 +1666,47 @@ class _ToggleTypeButton extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// Modelo adaptador para AzListView
+class _ContactItem extends ISuspensionBean {
+  final Contact contact;
+  final String name;
+  final String phone;
+  String tag;
+  _ContactItem({
+    required this.contact,
+    required this.name,
+    required this.phone,
+    required this.tag,
+  });
+
+  @override
+  String getSuspensionTag() => tag;
+}
+
+// Cabecera visual para cada letra
+class _AzHeader extends StatelessWidget {
+  final String tag;
+  const _AzHeader({required this.tag});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 28,
+      // width: double.infinity, // Eliminar para evitar BoxConstraints infinite width
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      color: Colors.black12,
+      alignment: Alignment.centerLeft,
+      child: Text(
+        tag,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+          color: Colors.black87,
         ),
       ),
     );

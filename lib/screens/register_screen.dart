@@ -28,32 +28,61 @@ class _RegisterScreenState extends State<RegisterScreen> {
       });
       return;
     }
+    // Validar longitud de la contraseña antes de enviar al backend
+    if (_passwordController.text.trim().length < 6) {
+      setState(() {
+        _error = 'La contraseña debe tener al menos 6 caracteres.';
+      });
+      return;
+    }
     _lastRegisterAttempt = now;
     setState(() {
       _loading = true;
       _error = null;
     });
-    final res = await Supabase.instance.client.auth.signUp(
-      email: _emailController.text.trim(),
-      password: _passwordController.text.trim(),
-    );
-    // El siguiente uso de context es seguro porque:
-    // 1. Se verifica 'if (!mounted) return;' antes de usar context tras el async gap.
-    // 2. Este context es el de la clase State, no de un builder externo.
-    // Por lo tanto, el warning puede ser ignorado.
-    // ignore: use_build_context_synchronously
-    if (!mounted) return;
-    if (res.user == null) {
+    try {
+      final res = await Supabase.instance.client.auth.signUp(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+      // El siguiente uso de context es seguro porque:
+      // 1. Se verifica 'if (!mounted) return;' antes de usar context tras el async gap.
+      // 2. Este context es el de la clase State, no de un builder externo.
+      // Por lo tanto, el warning puede ser ignorado.
+      // ignore: use_build_context_synchronously
+      if (!mounted) return;
+      if (res.user == null) {
+        setState(() {
+          _error = 'Registro fallido';
+        });
+      } else {
+        ToastHelper.showToast(context, 'Registro exitoso.');
+        Navigator.of(context).pop();
+      }
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      final msg = e.message;
+      if (msg.contains('Password should be at least 6 characters')) {
+        setState(() {
+          _error = 'La contraseña debe tener al menos 6 caracteres.';
+        });
+      } else {
+        setState(() {
+          _error = msg.isNotEmpty
+              ? msg
+              : 'Ocurrió un error inesperado. Intenta de nuevo.';
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
       setState(() {
-        _error = 'Registro fallido';
+        _error = 'Ocurrió un error inesperado. Intenta de nuevo.';
       });
-    } else {
-      ToastHelper.showToast(context, 'Registro exitoso.');
-      Navigator.of(context).pop();
+    } finally {
+      setState(() {
+        _loading = false;
+      });
     }
-    setState(() {
-      _loading = false;
-    });
   }
 
   @override

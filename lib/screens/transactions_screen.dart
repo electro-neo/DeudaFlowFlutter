@@ -28,6 +28,14 @@ class TransactionsScreen extends StatefulWidget {
 }
 
 class _TransactionsScreenState extends State<TransactionsScreen> {
+  // Compara códigos de moneda ignorando casing
+  bool equalsCurrencyCode(String? a, String? b) {
+    if (a == null || b == null) return false;
+    return a.toLowerCase() == b.toLowerCase();
+  }
+
+  // Guarda el set de monedas conocidas para detectar nuevas
+  Set<String> _prevCurrencies = {'USD'};
   // Estado de mensajes de sincronización por transacción
   final Map<String, SyncMessageStateTX> _txSyncStates = {};
 
@@ -97,34 +105,79 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       });
     }
 
+    // --- Selección automática de nueva moneda ---
+    // Normaliza los códigos de moneda para evitar problemas de casing
+    final currentCurrencies = Set<String>.from(
+      currencyProvider.availableCurrencies.map((c) => c),
+    );
+    // Excluye USD para la lógica de selección automática
+    final prevNoUsd = _prevCurrencies.where((c) => c != 'USD').toSet();
+    final currNoUsd = currentCurrencies.where((c) => c != 'USD').toSet();
+    final newCurrencies = currNoUsd.difference(prevNoUsd);
+    if (newCurrencies.isNotEmpty) {
+      final lastNew = newCurrencies.last;
+      // Compara ignorando casing para robustez
+      if (!equalsCurrencyCode(currencyProvider.currency, lastNew)) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          context.read<CurrencyProvider>().setCurrency(lastNew);
+        });
+      }
+    }
+
+    // Actualiza el set de monedas conocidas
+    _prevCurrencies = currentCurrencies;
+
     final txProvider = Provider.of<TransactionProvider>(context);
     final clientProvider = Provider.of<ClientProvider>(context);
     final filterProvider = Provider.of<TransactionFilterProvider>(context);
-    // Formatea el valor mostrado según la moneda seleccionada.
-    // Para USD, siempre usa anchorUsdValue (o amount si es null).
-    // Para otras monedas, convierte desde anchorUsdValue usando el rate.
+
+    /// Formatea el valor mostrado según la moneda seleccionada.
+    /// - Si la moneda seleccionada es USD, muestra el valor en USD (anchorUsdValue).
+    /// - Si es otra moneda, muestra el valor convertido multiplicando por la tasa registrada.
+    /// - El valor almacenado en anchorUsdValue SIEMPRE está en USD.
+    /// - El label visual debe indicar la moneda mostrada.
     String format(dynamic transactionOrValue) {
+      final selectedCurrency = currencyProvider.currency;
+      final rateForSelected =
+          currencyProvider.getRateFor(selectedCurrency) ?? 1.0;
+
+      // Si es un número crudo, convertir usando la tasa actual
       if (transactionOrValue is num) {
-        if (currencyProvider.currency == 'USD') {
+        if (selectedCurrency == 'USD') {
           return 'USD ${transactionOrValue.toStringAsFixed(2)}';
         } else {
-          final rate = currencyProvider.rate > 0 ? currencyProvider.rate : 1.0;
-          final converted = transactionOrValue.toDouble() * rate;
-          return converted.toStringAsFixed(2);
+          final converted = transactionOrValue.toDouble() * rateForSelected;
+          return '$selectedCurrency ${converted.toStringAsFixed(2)}';
         }
       }
+
       if (transactionOrValue != null) {
-        final anchorUsdValue = (transactionOrValue.anchorUsdValue != null)
-            ? transactionOrValue.anchorUsdValue
-            : (transactionOrValue.amount ?? 0.0);
-        if (currencyProvider.currency == 'USD') {
-          return 'USD ${anchorUsdValue.toStringAsFixed(2)}';
+        // Espera un objeto tipo transacción con amount, currencyCode y anchorUsdValue
+        final tx = transactionOrValue;
+        double anchorUsd;
+        if (tx.anchorUsdValue != null) {
+          anchorUsd = tx.anchorUsdValue;
+        } else if (tx.amount != null &&
+            tx.originalRate != null &&
+            tx.originalRate > 0) {
+          // Si existe la tasa original usada al crear la transacción
+          anchorUsd = tx.amount / tx.originalRate;
+        } else if (tx.amount != null) {
+          // Fallback: mostrar el monto original si no hay tasa
+          anchorUsd = tx.amount;
         } else {
-          final rate = currencyProvider.rate > 0 ? currencyProvider.rate : 1.0;
-          final converted = anchorUsdValue.toDouble() * rate;
-          return converted.toStringAsFixed(2);
+          anchorUsd = 0.0;
+        }
+
+        if (selectedCurrency == 'USD') {
+          return 'USD ${anchorUsd.toStringAsFixed(2)}';
+        } else {
+          final converted = anchorUsd * rateForSelected;
+          return '$selectedCurrency ${converted.toStringAsFixed(2)}';
         }
       }
+
       return '';
     }
 
@@ -168,12 +221,20 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           (c) => c.id == t.clientId,
           orElse: () => Client(id: '', name: '', balance: 0),
         );
+        final clientName = client.name;
         return t.description.toLowerCase().contains(
               _searchQuery.toLowerCase(),
             ) ||
-            client.name.toLowerCase().contains(_searchQuery.toLowerCase());
+            clientName.toLowerCase().contains(_searchQuery.toLowerCase());
       }).toList();
     }
+
+    // Asegurar orden: transacciones más nuevas primero (fecha desc, si empatan usar createdAt)
+    transactions.sort((a, b) {
+      final dateCmp = b.date.compareTo(a.date);
+      if (dateCmp != 0) return dateCmp;
+      return b.createdAt.compareTo(a.createdAt);
+    });
 
     final mediaQuery = MediaQuery.of(context);
     final isMobile = mediaQuery.size.width < 600;
@@ -193,14 +254,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           : ScrollConfiguration(
               behavior: const NoScrollbarBehavior(),
               child: Padding(
-                padding: EdgeInsets.fromLTRB(0, topPadding, 0, 8),
+                padding: EdgeInsets.fromLTRB(0, topPadding, 0, 1),
                 child: Center(
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
                       maxWidth: maxCardWidth ?? 500.0,
                     ),
                     child: Card(
-                      elevation: 8,
+                      elevation: 5,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),
@@ -221,7 +282,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                               effectiveClientId,
                               selectedType,
                             ),
-                            const SizedBox(height: 10),
                             // Lista virtualizada
                             Expanded(
                               child: transactions.isEmpty
@@ -240,9 +300,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                       ),
                                     )
                                   : ListView.separated(
+                                      padding: const EdgeInsets.only(
+                                        top: 6,
+                                        bottom: 20,
+                                      ),
                                       itemCount: transactions.length,
                                       separatorBuilder: (_, __) =>
-                                          const SizedBox(height: 6),
+                                          const SizedBox(height: 5),
                                       itemBuilder: (context, i) {
                                         final t = transactions[i];
                                         final client = clients.firstWhere(
@@ -261,11 +325,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                         SyncMessageStateTX? syncMsg =
                                             _txSyncStates[t.id];
                                         bool clientPendingDelete = false;
-                                        final clientProvider =
-                                            Provider.of<ClientProvider>(
-                                              context,
-                                              listen: false,
-                                            );
+                                        // Deshabilitado: provider local no usado (dejado como referencia por si se necesita en el futuro)
+                                        // final clientProvider =
+                                        //     Provider.of<ClientProvider>(
+                                        //       context,
+                                        //       listen: false,
+                                        //     );
                                         if (client.id.isEmpty) {
                                           try {
                                             final box = Hive.box('clients');
@@ -415,6 +480,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                               );
                                               if (mounted) {
                                                 ScaffoldMessenger.of(
+                                                  // ignore: use_build_context_synchronously
                                                   context,
                                                 ).showSnackBar(
                                                   SnackBar(
@@ -489,15 +555,21 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     String? selectedType,
   ) {
     final currencyProvider = Provider.of<CurrencyProvider>(context);
-    final transactions = Provider.of<TransactionProvider>(
+    final allTransactions = Provider.of<TransactionProvider>(
       context,
     ).transactions.where((t) => t.pendingDelete != true).toList();
     // Ordenar igual que en la lista
-    transactions.sort((a, b) {
+    allTransactions.sort((a, b) {
       final dateCmp = b.date.compareTo(a.date);
       if (dateCmp != 0) return dateCmp;
       return b.createdAt.compareTo(a.createdAt);
     });
+    // Filtrar por cliente si hay uno seleccionado
+    final filteredTransactions =
+        (selectedClientId != null && selectedClientId.isNotEmpty)
+        ? allTransactions.where((t) => t.clientId == selectedClientId).toList()
+        : allTransactions;
+    // --- INICIO PATCH: Stat Deuda muestra deuda real (saldos negativos) ---
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -717,7 +789,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       padding: const EdgeInsets.only(right: 6),
                       child: ChoiceChip(
                         label: Text(currency),
-                        selected: currencyProvider.currency == currency,
+                        selected: equalsCurrencyCode(
+                          currencyProvider.currency,
+                          currency,
+                        ),
                         onSelected: (selected) {
                           if (!selected) return;
                           currencyProvider.setCurrency(currency);
@@ -725,7 +800,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         selectedColor: Colors.blue.shade100,
                         backgroundColor: Colors.grey.shade200,
                         labelStyle: TextStyle(
-                          color: currencyProvider.currency == currency
+                          color:
+                              equalsCurrencyCode(
+                                currencyProvider.currency,
+                                currency,
+                              )
                               ? Colors.blue
                               : Colors.black87,
                           fontWeight: FontWeight.w600,
@@ -741,26 +820,81 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         Builder(
           builder: (context) {
             final selectedCurrency = currencyProvider.currency;
-            final rate = currencyProvider.getRateFor(selectedCurrency) ?? 1.0;
-            double totalAbono = 0;
-            double totalDeuda = 0;
-            for (var tx in transactions) {
-              final valueInUsd = tx.anchorUsdValue ?? tx.amount;
+            final rateForSelected =
+                currencyProvider.getRateFor(selectedCurrency) ?? 1.0;
+
+            // --- Calcular balances por cliente en USD (para lógica interna) ---
+            final rateToSelected = selectedCurrency == 'USD'
+                ? 1.0
+                : (currencyProvider.getRateFor(selectedCurrency) ?? 1.0);
+            double displayAbono = 0.0;
+            double displayDeuda = 0.0;
+            for (var tx in filteredTransactions) {
+              final anchor = tx.anchorUsdValue ?? 0.0;
               if (tx.type == 'payment') {
-                totalAbono += valueInUsd;
+                displayAbono += anchor;
               } else if (tx.type == 'debt') {
-                totalDeuda += valueInUsd;
+                displayDeuda += anchor;
               }
             }
-            final displayAbono = selectedCurrency == 'USD'
-                ? totalAbono
-                : totalAbono * rate;
-            final displayDeuda = selectedCurrency == 'USD'
-                ? totalDeuda
-                : totalDeuda * rate;
+            displayAbono *= rateToSelected;
+            displayDeuda *= rateToSelected;
             final showAbono = selectedType == null || selectedType == 'payment';
             final showDeuda = selectedType == null || selectedType == 'debt';
             if (!showAbono && !showDeuda) return const SizedBox.shrink();
+
+            // --- NUEVO: Mostrar mensaje de balance del cliente si hay cliente filtrado ---
+            Widget? clientBalanceMessage;
+            if (selectedClientId != null && selectedClientId.isNotEmpty) {
+              // Calcular balance neto del cliente filtrado (en USD, convertir a moneda seleccionada)
+              double clientBalance = 0.0;
+              for (var tx in filteredTransactions) {
+                final anchor = tx.anchorUsdValue ?? 0.0;
+                if (tx.type == 'payment') {
+                  clientBalance += anchor;
+                } else if (tx.type == 'debt') {
+                  clientBalance -= anchor;
+                }
+              }
+              final clientBalanceDisplay = clientBalance * rateToSelected;
+              String label;
+              Color color;
+              if (clientBalanceDisplay < -0.009) {
+                label = 'Deuda del cliente';
+                color = Colors.red[700]!;
+              } else if (clientBalanceDisplay > 0.009) {
+                label = 'Saldo a favor del cliente';
+                color = Colors.green[700]!;
+              } else {
+                label = 'Sin movimientos';
+                color = Colors.black87;
+              }
+              clientBalanceMessage = Padding(
+                padding: const EdgeInsets.only(top: 10.0, bottom: 2.0),
+                child: Column(
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: color,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    if (label != 'Sin movimientos')
+                      Text(
+                        CurrencyUtils.formatNumber(clientBalanceDisplay),
+                        style: TextStyle(
+                          color: color,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            }
+
             return Container(
               decoration: BoxDecoration(),
               child: Container(
@@ -886,6 +1020,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           ),
                       ],
                     ),
+                    if (clientBalanceMessage != null) clientBalanceMessage,
                     if (_selectedRange != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 8.0),
@@ -916,6 +1051,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         ),
       ],
     );
+    // --- FIN PATCH ---
   }
 
   // Ejemplo de función para agregar una transacción

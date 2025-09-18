@@ -1,3 +1,5 @@
+import '../utils/currency_utils.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import '../widgets/budgeto_colors.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +8,73 @@ import '../models/client.dart';
 import '../providers/currency_provider.dart';
 import 'package:provider/provider.dart';
 // import '../utils/currency_utils.dart';
+
+// --- Formateador y función de miles a nivel superior ---
+final NumberFormat _numberFormat = NumberFormat.currency(
+  locale: 'es',
+  symbol: '',
+  decimalDigits: 2,
+);
+// Formato solo para agrupación de miles sin forzar decimales
+final NumberFormat _groupFormat = NumberFormat.decimalPattern('es');
+
+String formatThousands(String value) {
+  value = value.replaceAll('.', '').replaceAll(',', '.');
+  final number = double.tryParse(value);
+  if (number == null) return '';
+  return _numberFormat.format(number).replaceAll('\u0000A0', '');
+}
+
+class ThousandsFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // Permitir vacío
+    String raw = newValue.text;
+    if (raw.isEmpty) {
+      return newValue.copyWith(text: '');
+    }
+
+    // Conservar solo dígitos y una coma decimal
+    // Normalizamos removiendo puntos de miles existentes
+    raw = raw.replaceAll('.', '');
+    // Si hay más de una coma, conservar la primera
+    final firstComma = raw.indexOf(',');
+    String intPart;
+    String decPart = '';
+    if (firstComma >= 0) {
+      intPart = raw.substring(0, firstComma).replaceAll(RegExp(r'[^0-9]'), '');
+      decPart = raw.substring(firstComma + 1).replaceAll(RegExp(r'[^0-9]'), '');
+      if (decPart.length > 2) decPart = decPart.substring(0, 2);
+    } else {
+      intPart = raw.replaceAll(RegExp(r'[^0-9]'), '');
+    }
+
+    // Evitar que se quede vacío el entero (permitimos '0' temporalmente)
+    if (intPart.isEmpty) intPart = '0';
+
+    // Formatear miles solo para la parte entera
+    String groupedInt;
+    try {
+      groupedInt = _groupFormat.format(int.parse(intPart));
+    } catch (_) {
+      groupedInt = intPart; // fallback
+    }
+
+    String formatted = groupedInt;
+    if (firstComma >= 0) {
+      // El usuario escribió coma, mantenerla y decimales sin padding
+      formatted = '$groupedInt,' + decPart;
+    }
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
 
 class TransactionForm extends StatefulWidget {
   final void Function(Transaction)? onSave;
@@ -26,8 +95,9 @@ class TransactionForm extends StatefulWidget {
 
 class _TransactionFormState extends State<TransactionForm> {
   final _amountController = TextEditingController();
+  final FocusNode _amountFocusNode = FocusNode();
   final _descriptionController = TextEditingController();
-  static const int _descriptionMaxLength = 30;
+  static const int _descriptionMaxLength = 32;
   String? _type; // No seleccionado por defecto
   String? _currencyCode;
   DateTime _selectedDate = DateTime.now();
@@ -47,6 +117,31 @@ class _TransactionFormState extends State<TransactionForm> {
     super.initState();
     if (widget.initialClient != null) {
       _selectedClient = widget.initialClient;
+    }
+    _amountFocusNode.addListener(_onAmountFocusChange);
+  }
+
+  @override
+  void dispose() {
+    _amountFocusNode.removeListener(_onAmountFocusChange);
+    _amountFocusNode.dispose();
+    _amountController.dispose();
+    super.dispose();
+  }
+
+  void _onAmountFocusChange() {
+    if (!_amountFocusNode.hasFocus) {
+      String text = _amountController.text;
+      if (text.isNotEmpty && !text.contains(',')) {
+        _amountController.text = text + ',00';
+      } else if (text.isNotEmpty) {
+        final parts = text.split(',');
+        if (parts.length == 2 && parts[1].length < 2) {
+          _amountController.text = parts[0] + ',' + parts[1].padRight(2, '0');
+        } else if (parts.length == 2 && parts[1].length > 2) {
+          _amountController.text = parts[0] + ',' + parts[1].substring(0, 2);
+        }
+      }
     }
   }
 
@@ -85,7 +180,10 @@ class _TransactionFormState extends State<TransactionForm> {
       logError('Debes seleccionar una moneda');
       return;
     }
-    final amount = double.tryParse(_amountController.text);
+    final amountText = _amountController.text
+        .replaceAll('.', '')
+        .replaceAll(',', '.');
+    final amount = double.tryParse(amountText);
     if (amount == null || amount <= 0) {
       setState(() {
         _error = 'Monto inválido';
@@ -163,12 +261,12 @@ class _TransactionFormState extends State<TransactionForm> {
             listen: false,
           );
           final codeUC = _currencyCode!.toUpperCase();
-          rate = currencyProvider.exchangeRates[codeUC];
-          if (codeUC == 'USD') {
-            anchorUsdValue = amount;
+          rate = currencyProvider.getRateFor(_currencyCode ?? '');
+          if ((_currencyCode ?? '').toUpperCase() == 'USD') {
+            anchorUsdValue = CurrencyUtils.normalizeAnchorUsd(amount);
             rate = 1.0;
           } else if (rate != null && rate > 0) {
-            anchorUsdValue = amount / rate;
+            anchorUsdValue = CurrencyUtils.normalizeAnchorUsd(amount / rate);
           } else {
             anchorUsdValue = null;
           }
@@ -249,15 +347,15 @@ class _TransactionFormState extends State<TransactionForm> {
     final colorScheme = Theme.of(context).colorScheme;
     final symbol = "";
     final currencyProvider = Provider.of<CurrencyProvider>(context);
-    final allowedCurrencies = CurrencyProvider.allowedCurrencies;
-
-    // NUEVO: Determinar si falta la tasa
+    final availableCurrencies = currencyProvider.availableCurrencies;
     final codeUC = _currencyCode?.toUpperCase();
+    final rate = _currencyCode != null
+        ? currencyProvider.getRateFor(_currencyCode!)
+        : null;
     final rateMissing =
-        codeUC != null &&
-        codeUC != 'USD' &&
-        (currencyProvider.exchangeRates[codeUC] == null ||
-            currencyProvider.exchangeRates[codeUC] == 0);
+        _currencyCode != null &&
+        _currencyCode!.toUpperCase() != 'USD' &&
+        (rate == null || rate == 0);
     _rateFieldVisible = rateMissing;
     final rateValid =
         double.tryParse(_rateController.text.replaceAll(',', '.')) != null &&
@@ -298,7 +396,7 @@ class _TransactionFormState extends State<TransactionForm> {
                         ? Container(
                             margin: const EdgeInsets.only(bottom: 12),
                             padding: const EdgeInsets.symmetric(
-                              vertical: 12,
+                              vertical: 5,
                               horizontal: 8,
                             ),
                             decoration: BoxDecoration(
@@ -353,7 +451,7 @@ class _TransactionFormState extends State<TransactionForm> {
                                       client.name,
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
-                                        fontSize: 24,
+                                        fontSize: 20,
                                       ), // Cambia el tamaño aquí
                                     ),
                                   ),
@@ -371,36 +469,8 @@ class _TransactionFormState extends State<TransactionForm> {
                                   250, // Hace el dropdown scrollable si hay muchos clientes
                             ),
                           ),
-                    // El campo de cliente se elimina aquí porque el cliente ya se selecciona desde el ClientCard
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          _type == 'debt'
-                              ? Icons.trending_down
-                              : _type == 'payment'
-                              ? Icons.trending_up
-                              : Icons.swap_horiz,
-                          color: _type == 'debt'
-                              ? Colors.red
-                              : _type == 'payment'
-                              ? Colors.green
-                              : Colors.grey,
-                          size: 32,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          _type == 'debt'
-                              ? 'Registrar Deuda'
-                              : _type == 'payment'
-                              ? 'Registrar Abono'
-                              : 'Selecciona tipo',
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
+                    // ...eliminada la Row de tipo de transacción (icono + texto)...
+                    const SizedBox(height: 5),
                     // Selector igual al de add_global_transaction_modal.dart
                     Center(
                       child: AnimatedContainer(
@@ -441,64 +511,60 @@ class _TransactionFormState extends State<TransactionForm> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _amountController,
-                            decoration: InputDecoration(
-                              labelText: 'Monto',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              prefixIcon: Padding(
-                                padding: const EdgeInsets.only(
-                                  left: 8,
-                                  right: 4,
-                                ),
-                                child: Text(
-                                  symbol,
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              prefixIconConstraints: const BoxConstraints(
-                                minWidth: 0,
-                                minHeight: 0,
-                              ),
-                              isDense: true,
+                    // Monto (fila propia) seguido de fila de moneda y botón agregar debajo
+                    TextField(
+                      controller: _amountController,
+                      focusNode: _amountFocusNode,
+                      decoration: InputDecoration(
+                        labelText: 'Monto',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        prefixIcon: Padding(
+                          padding: const EdgeInsets.only(left: 8, right: 4),
+                          child: Text(
+                            symbol,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
                             ),
-                            keyboardType: TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            textInputAction: TextInputAction.next,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 110,
+                        prefixIconConstraints: const BoxConstraints(
+                          minWidth: 0,
+                          minHeight: 0,
+                        ),
+                        isDense: true,
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      textInputAction: TextInputAction.next,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                        ThousandsFormatter(),
+                      ],
+                    ),
+                    const SizedBox(height: 7),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
                           child: DropdownButtonFormField<String>(
                             value: _currencyCode,
                             decoration: const InputDecoration(
-                              labelText: 'Moneda',
+                              labelText: 'Tipo de Moneda',
                               border: OutlineInputBorder(),
                               isDense: true,
                             ),
-                            items: [
-                              ...[
-                                'USD',
-                                ...allowedCurrencies.where(
-                                  (code) => code != 'USD',
-                                ),
-                              ].map(
-                                (code) => DropdownMenuItem(
-                                  value: code,
-                                  child: Text(code),
-                                ),
-                              ),
-                            ],
+                            items: availableCurrencies
+                                .map(
+                                  (code) => DropdownMenuItem(
+                                    value: code,
+                                    child: Text(code),
+                                  ),
+                                )
+                                .toList(),
                             onChanged: (code) {
                               setState(() {
                                 _currencyCode = code;
@@ -507,6 +573,117 @@ class _TransactionFormState extends State<TransactionForm> {
                             },
                             dropdownColor: Colors.white,
                             menuMaxHeight: 180,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        SizedBox(
+                          height: 48,
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.add_circle_outline,
+                              color: Colors.indigo,
+                              size: 24,
+                            ),
+                            tooltip: 'Agregar Moneda',
+                            onPressed: () async {
+                              String? newCode = await showDialog<String>(
+                                context: context,
+                                builder: (ctx) {
+                                  final controller = TextEditingController();
+                                  return AlertDialog(
+                                    title: const Text('Agregar Moneda'),
+                                    content: TextField(
+                                      controller: controller,
+                                      decoration: const InputDecoration(
+                                        labelText:
+                                            '(ej: Pesos, Bolivares, Libras)',
+                                        border: OutlineInputBorder(),
+                                        isDense: true,
+                                      ),
+                                      // No forzar mayúsculas al escribir, se normaliza al guardar
+                                      textCapitalization:
+                                          TextCapitalization.sentences,
+                                      maxLength: 11,
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.of(ctx).pop(),
+                                        child: const Text('Cancelar'),
+                                      ),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          String code = controller.text.trim();
+                                          if (code.isEmpty) {
+                                            Navigator.of(ctx).pop();
+                                            return;
+                                          }
+                                          // Normaliza: solo primera letra mayúscula, resto minúscula
+                                          code =
+                                              code
+                                                  .substring(0, 1)
+                                                  .toUpperCase() +
+                                              (code.length > 1
+                                                  ? code
+                                                        .substring(1)
+                                                        .toLowerCase()
+                                                  : '');
+                                          if (code == 'USD' ||
+                                              availableCurrencies.contains(
+                                                code,
+                                              )) {
+                                            Navigator.of(ctx).pop();
+                                            return;
+                                          }
+                                          Navigator.of(ctx).pop(code);
+                                        },
+                                        child: const Text('Agregar'),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                              if (newCode != null && newCode.isNotEmpty) {
+                                // Normaliza: solo primera letra mayúscula, resto minúscula
+                                final normalizedCode =
+                                    newCode.substring(0, 1).toUpperCase() +
+                                    (newCode.length > 1
+                                        ? newCode.substring(1).toLowerCase()
+                                        : '');
+                                // Verifica existencia ignorando mayúsculas/minúsculas
+                                final exists = availableCurrencies.any(
+                                  (c) =>
+                                      c.toLowerCase() ==
+                                      normalizedCode.toLowerCase(),
+                                );
+                                if (normalizedCode == 'USD' || exists) {
+                                  return;
+                                }
+                                try {
+                                  currencyProvider.addManualCurrency(
+                                    normalizedCode,
+                                  );
+                                } catch (e) {
+                                  debugPrint(
+                                    '[TX_FORM] Error al Agregar Moneda manual: $e',
+                                  );
+                                }
+                                // Buscar la versión realmente insertada (el provider podría haber cambiado el casing)
+                                String selectedValue = normalizedCode;
+                                for (final c
+                                    in currencyProvider.availableCurrencies) {
+                                  if (c.toLowerCase() ==
+                                      normalizedCode.toLowerCase()) {
+                                    selectedValue = c;
+                                    break;
+                                  }
+                                }
+                                setState(() {
+                                  _currencyCode = selectedValue;
+                                  _rateController.text = '';
+                                });
+                              }
+                            },
                           ),
                         ),
                       ],
@@ -555,42 +732,67 @@ class _TransactionFormState extends State<TransactionForm> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    TextField(
-                      controller: _descriptionController,
-                      decoration: InputDecoration(
-                        labelText: 'Descripción',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    // Campo descripción con contador interno abajo a la derecha
+                    Stack(
+                      children: [
+                        TextField(
+                          controller: _descriptionController,
+                          maxLines: 2,
+                          maxLength: _descriptionMaxLength,
+                          onChanged: (_) => setState(() {}),
+                          decoration: InputDecoration(
+                            labelText: 'Descripción',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            prefixIcon: const Icon(Icons.description),
+                            isDense: true,
+                            counterText: '', // ocultar counter por defecto
+                            // Espacio extra derecha/abajo para no tapar texto
+                            contentPadding: const EdgeInsets.fromLTRB(
+                              12,
+                              12,
+                              52,
+                              20,
+                            ),
+                          ),
                         ),
-                        prefixIcon: Icon(Icons.description),
-                        isDense: true,
-                        counterText: '',
-                      ),
-                      maxLines: 2,
-                      maxLength: _descriptionMaxLength,
-                      buildCounter:
-                          (
-                            BuildContext context, {
-                            required int currentLength,
-                            required bool isFocused,
-                            required int? maxLength,
-                          }) {
-                            return Padding(
-                              padding: const EdgeInsets.only(
-                                right: 8.0,
-                                top: 2.0,
+                        Positioned(
+                          right: 12,
+                          bottom: 6,
+                          child: IgnorePointer(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 2,
                               ),
-                              child: Text(
-                                '$currentLength/$_descriptionMaxLength',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: currentLength > _descriptionMaxLength
-                                      ? Colors.red
-                                      : Colors.grey,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.85),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: Colors.grey.shade300,
+                                  width: 0.8,
                                 ),
                               ),
-                            );
-                          },
+                              child: Text(
+                                '${_descriptionController.text.length}/$_descriptionMaxLength',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color:
+                                      _descriptionController.text.length >=
+                                          _descriptionMaxLength
+                                      ? Colors.red
+                                      : (_descriptionController.text.length >=
+                                                _descriptionMaxLength - 5
+                                            ? Colors.orange
+                                            : Colors.grey.shade700),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     if (_error != null)
                       Padding(

@@ -1,3 +1,4 @@
+import '../utils/currency_utils.dart';
 // --- INICIO: Código restaurado del último commit y ajustado para layout independiente ---
 
 import 'package:flutter/material.dart';
@@ -49,12 +50,12 @@ class ClientsScreenState extends State<ClientsScreen>
   }) {
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(10),
-      side: BorderSide(color: color.withOpacity(0.5), width: 1),
+      side: BorderSide(color: color.withValues(alpha: 0.5), width: 1),
     );
     Widget button = Tooltip(
       message: tooltip,
       child: Material(
-        color: color.withOpacity(0.09),
+        color: color.withValues(alpha: 0.09),
         shape: shape,
         child: InkWell(
           customBorder: shape,
@@ -189,8 +190,8 @@ class ClientsScreenState extends State<ClientsScreen>
           });
         }
       });
+      // El cierre del modal lo gestiona TransactionForm vía onClose.
       if (!mounted) return;
-      Navigator.of(context).pop();
     }
 
     if (isMobile) {
@@ -403,7 +404,7 @@ class ClientsScreenState extends State<ClientsScreen>
         child: ClientForm(
           initialClient: client,
           userId: widget.userId,
-          onSave: (newClient) async {
+          onSave: (newClient, initialDescription) async {
             final provider = Provider.of<ClientProvider>(
               context,
               listen: false,
@@ -430,9 +431,6 @@ class ClientsScreenState extends State<ClientsScreen>
               await provider.loadClients(widget.userId);
               if (newClient.balance != 0) {
                 final now = DateTime.now();
-                // FIX: Normalizar la fecha de la transacción a medianoche.
-                // La hora del día se captura en `createdAt`. Esto asegura que la
-                // clave de ordenamiento principal (date) sea consistente.
                 final transactionDate = DateTime(now.year, now.month, now.day);
                 final tx = Transaction(
                   id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -440,12 +438,18 @@ class ClientsScreenState extends State<ClientsScreen>
                   userId: widget.userId,
                   type: newClient.balance > 0 ? 'payment' : 'debt',
                   amount: newClient.balance.abs(),
-                  description: 'Saldo inicial',
+                  description: initialDescription?.isNotEmpty == true
+                      ? initialDescription!
+                      : 'Saldo inicial',
                   date: transactionDate,
                   createdAt: now,
                   synced: false,
                   currencyCode: newClient.currencyCode,
-                  anchorUsdValue: newClient.anchorUsdValue,
+                  anchorUsdValue: newClient.anchorUsdValue != null
+                      ? CurrencyUtils.normalizeAnchorUsd(
+                          newClient.anchorUsdValue!,
+                        )
+                      : null,
                 );
                 await txProvider.addTransaction(tx, widget.userId, realId);
                 Future.delayed(const Duration(seconds: 2), () async {
@@ -453,7 +457,6 @@ class ClientsScreenState extends State<ClientsScreen>
                   if (isOnline) {
                     await _syncAll();
                   } else {
-                    // Si no hay internet, limpiar el estado temporal para que la UI muestre el estado persistente
                     setState(() {
                       _clientSyncStates.remove(realId);
                     });
@@ -899,6 +902,56 @@ class ClientsScreenState extends State<ClientsScreen>
                                               ),
                                             );
                                             if (choice == null) return;
+
+                                            // SEGUNDO DIÁLOGO DE CONFIRMACIÓN
+                                            bool confirmed = true;
+                                            if (choice == 'txOnlyAll' ||
+                                                choice == 'clientsAndTxAll') {
+                                              String warningMsg =
+                                                  choice == 'txOnlyAll'
+                                                  ? '¿Estás seguro de que deseas eliminar TODAS las transacciones? Esta acción no se puede deshacer.'
+                                                  : '¿Estás seguro de que deseas eliminar TODOS los clientes y sus transacciones? Esta acción no se puede deshacer.';
+                                              confirmed =
+                                                  await showDialog<bool>(
+                                                    context: context,
+                                                    builder: (ctx) => AlertDialog(
+                                                      shape: RoundedRectangleBorder(
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              16,
+                                                            ),
+                                                      ),
+                                                      title: const Text(
+                                                        'Confirmar eliminación',
+                                                      ),
+                                                      content: Text(warningMsg),
+                                                      actions: [
+                                                        TextButton(
+                                                          onPressed: () =>
+                                                              Navigator.of(
+                                                                ctx,
+                                                              ).pop(false),
+                                                          child: const Text(
+                                                            'Cancelar',
+                                                          ),
+                                                        ),
+                                                        ElevatedButton(
+                                                          style: dangerStyle,
+                                                          onPressed: () =>
+                                                              Navigator.of(
+                                                                ctx,
+                                                              ).pop(true),
+                                                          child: const Text(
+                                                            'Eliminar',
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ) ??
+                                                  false;
+                                              if (!confirmed) return;
+                                            }
+
                                             try {
                                               if (choice == 'txOnlyAll') {
                                                 final allTx = List.of(

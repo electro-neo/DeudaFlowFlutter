@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/client.dart';
 import '../models/transaction.dart';
 import '../utils/pdf_utils.dart';
+import '../services/ad_service.dart';
 
 class ReceiptModal extends StatelessWidget {
   final Client client;
@@ -181,6 +182,22 @@ class ReceiptModal extends StatelessWidget {
                               },
                             )
                             .toList();
+                        // Mostrar rewarded ad antes de exportar/compartir
+                        final allowed = await AdService.instance.showRewardedAd(
+                          context,
+                        );
+                        if (!allowed) {
+                          if (Navigator.of(context).mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Necesitas ver el anuncio completo para exportar el recibo.',
+                                ),
+                              ),
+                            );
+                          }
+                          return;
+                        }
                         if (share) {
                           await exportAndShareClientReceiptPDF(
                             client,

@@ -10,23 +10,7 @@ class CurrencyProvider with ChangeNotifier {
   final _settingsBox = Hive.box('user_settings');
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
 
-  static const List<String> allowedCurrencies = [
-    'USD', 'VES', 'COP', 'EUR', 'BRL', 'ARS', 'CLP', 'MXN', 'PEN', 'BOB',
-    'PYG', 'UYU', 'CRC', 'DOP', 'GTQ', 'HNL', 'NIO', 'PAB', 'BZD', 'JMD',
-    'TTD', 'HTG', 'XCD', 'CAD', 'GBP', 'CHF', 'JPY', 'CNY', 'KRW', 'INR',
-    'RUB', 'TRY', 'ZAR', 'AUD', 'NZD', 'SGD', 'HKD', 'SEK', 'NOK', 'DKK',
-    'PLN', 'CZK', 'HUF', 'RON', 'BGN', 'HRK', 'IDR', 'MYR', 'THB', 'VND',
-    'EGP', 'SAR', 'AED', 'ILS', 'TWD', 'PHP', 'MAD', 'KZT', 'UAH', 'GHS',
-    'NGN', 'PKR', 'BDT', 'LKR', 'MMK', 'KHR', 'LAK', 'MNT', 'MOP', 'BAM',
-    'MKD', 'RSD', 'ISK', 'GEL', 'AZN', 'QAR', 'KWD', 'OMR', 'BHD', 'JOD',
-    'LBP', 'SYP', 'IQD', 'AFN', 'IRR', 'YER', 'SDG', 'DZD', 'TND', 'LYD',
-    'MRU', 'SOS', 'TZS', 'KES', 'UGX', 'RWF', 'BIF', 'MWK', 'ZMW', 'MZN',
-    'SZL', 'LSL', 'NAD', 'BWP', 'ZWL', 'SCR', 'MUR', 'KMF', 'DJF', 'ETB',
-    'ERN', 'SLL', 'GMD', 'GNF', 'CVE', 'XOF', 'XAF', 'XPF', 'WST', 'TOP',
-    'FJD', 'PGK', 'SBD', 'VUV', 'KID', 'TVD', 'BSD', 'BBD', 'KYD', 'BMD',
-    'ANG', 'AWG', 'SRD', 'GYD', 'BND', 'NPR', 'BTN', 'MVR', 'AMD', 'KGS',
-    'UZS', 'TJS', 'TMT', 'BYN', 'MDL',
-  ];
+  // Solo USD es fijo; las demás monedas se agregan manualmente por el usuario.
   String _currency = 'USD';
   Map<String, double> _exchangeRates = {};
   List<String> _availableCurrencies = ['USD'];
@@ -38,8 +22,9 @@ class CurrencyProvider with ChangeNotifier {
   double get rate => _exchangeRates['VES'] ?? 1.0;
 
   CurrencyProvider() {
-    _connectivitySubscription = 
-        Connectivity().onConnectivityChanged.listen(_handleConnectivityChange);
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen(
+      _handleConnectivityChange,
+    );
   }
 
   @override
@@ -51,7 +36,9 @@ class CurrencyProvider with ChangeNotifier {
   void _handleConnectivityChange(List<ConnectivityResult> result) {
     final isOnline = !result.contains(ConnectivityResult.none);
     if (isOnline) {
-      debugPrint('[SYNC][RATES] Conexión detectada. Iniciando sincronización...');
+      debugPrint(
+        '[SYNC][RATES] Conexión detectada. Iniciando sincronización...',
+      );
       syncWithSupabase();
     }
   }
@@ -66,17 +53,25 @@ class CurrencyProvider with ChangeNotifier {
   }
 
   Future<void> syncWithSupabase({bool fetchOnNoSync = false}) async {
-    final isOnline = !(await Connectivity().checkConnectivity()).contains(ConnectivityResult.none);
+    final isOnline = !(await Connectivity().checkConnectivity()).contains(
+      ConnectivityResult.none,
+    );
     if (!isOnline) {
       debugPrint('[SYNC][RATES] No hay conexión. Sincronización omitida.');
       return;
     }
 
     // 1. Sincronizar eliminaciones pendientes
-    final pendingDeletions = _settingsBox.get('rates_to_delete', defaultValue: <String>[])!.cast<String>();
+    final pendingDeletions = _settingsBox
+        .get('rates_to_delete', defaultValue: <String>[])!
+        .cast<String>();
     if (pendingDeletions.isNotEmpty) {
-      debugPrint('[SYNC][RATES] Conectado. Eliminando tasas pendientes: $pendingDeletions');
-      final success = await _supabaseService.deleteExchangeRates(pendingDeletions);
+      debugPrint(
+        '[SYNC][RATES] Conectado. Eliminando tasas pendientes: $pendingDeletions',
+      );
+      final success = await _supabaseService.deleteExchangeRates(
+        pendingDeletions,
+      );
       if (success) {
         await _settingsBox.put('rates_to_delete', <String>[]);
       }
@@ -92,9 +87,12 @@ class CurrencyProvider with ChangeNotifier {
       }
     } else if (fetchOnNoSync) {
       // 3. Si no hay nada que enviar, buscar actualizaciones desde Supabase
-      debugPrint('[SYNC][RATES] Conectado. Buscando actualizaciones de tasas...');
+      debugPrint(
+        '[SYNC][RATES] Conectado. Buscando actualizaciones de tasas...',
+      );
       final supabaseRates = await _supabaseService.getExchangeRates();
-      if (supabaseRates.isNotEmpty && !const MapEquality().equals(supabaseRates, _exchangeRates)) {
+      if (supabaseRates.isNotEmpty &&
+          !const MapEquality().equals(supabaseRates, _exchangeRates)) {
         _updateStateFromRates(supabaseRates);
         await _settingsBox.put('exchange_rates', supabaseRates);
       }
@@ -114,14 +112,18 @@ class CurrencyProvider with ChangeNotifier {
 
   Future<void> _persistRates() async {
     await _settingsBox.put('exchange_rates', _exchangeRates);
-    final isOnline = !(await Connectivity().checkConnectivity()).contains(ConnectivityResult.none);
+    final isOnline = !(await Connectivity().checkConnectivity()).contains(
+      ConnectivityResult.none,
+    );
 
     if (isOnline) {
       debugPrint('[SYNC][RATES] Conectado. Guardando tasas en Supabase...');
       final success = await _supabaseService.saveExchangeRates(_exchangeRates);
       await _settingsBox.put('rates_need_sync', !success);
     } else {
-      debugPrint('[SYNC][RATES] Offline. Marcando tasas como pendientes de sincronización.');
+      debugPrint(
+        '[SYNC][RATES] Offline. Marcando tasas como pendientes de sincronización.',
+      );
       await _settingsBox.put('rates_need_sync', true);
     }
   }
@@ -132,29 +134,42 @@ class CurrencyProvider with ChangeNotifier {
   }
 
   void addManualCurrency(String currency) {
-    final upper = currency.toUpperCase();
-    if (upper == 'USD' || _exchangeRates.containsKey(upper)) return;
-
-    _exchangeRates[upper] = 0.0;
+    String code;
+    final normalized = currency.trim();
+    if (normalized.length > 3) {
+      code =
+          normalized.substring(0, 1).toUpperCase() +
+          (normalized.length > 1 ? normalized.substring(1).toLowerCase() : '');
+    } else {
+      code = normalized.toUpperCase();
+    }
+    if (code == 'USD' || _exchangeRates.containsKey(code)) return;
+    _exchangeRates[code] = 0.0;
     _updateStateFromRates(_exchangeRates);
     _persistRates();
   }
 
   Future<void> removeManualCurrency(String currency) async {
-    final upper = currency.toUpperCase();
-    if (upper == 'USD') return;
-
-    if (_exchangeRates.containsKey(upper)) {
-      _exchangeRates.remove(upper);
+    String code;
+    final normalized = currency.trim();
+    if (normalized.length > 3) {
+      code =
+          normalized.substring(0, 1).toUpperCase() +
+          (normalized.length > 1 ? normalized.substring(1).toLowerCase() : '');
+    } else {
+      code = normalized.toUpperCase();
+    }
+    if (code == 'USD') return;
+    if (_exchangeRates.containsKey(code)) {
+      _exchangeRates.remove(code);
       _updateStateFromRates(_exchangeRates);
-
-      final List<String> pendingDeletions = 
-          _settingsBox.get('rates_to_delete', defaultValue: <String>[])!.cast<String>();
-      if (!pendingDeletions.contains(upper)) {
-        pendingDeletions.add(upper);
+      final List<String> pendingDeletions = _settingsBox
+          .get('rates_to_delete', defaultValue: <String>[])!
+          .cast<String>();
+      if (!pendingDeletions.contains(code)) {
+        pendingDeletions.add(code);
         await _settingsBox.put('rates_to_delete', pendingDeletions);
       }
-
       await _persistRates();
     }
   }
@@ -164,18 +179,35 @@ class CurrencyProvider with ChangeNotifier {
   }
 
   void setRateForCurrency(String currency, double rate) {
-    final upper = currency.toUpperCase();
-    if (upper == 'USD' || !allowedCurrencies.contains(upper)) return;
-
-    _exchangeRates[upper] = rate;
+    String code;
+    final normalized = currency.trim();
+    if (normalized.length > 3) {
+      code =
+          normalized.substring(0, 1).toUpperCase() +
+          (normalized.length > 1 ? normalized.substring(1).toLowerCase() : '');
+    } else {
+      code = normalized.toUpperCase();
+    }
+    if (code == 'USD') return;
+    if (!_exchangeRates.containsKey(code)) return;
+    _exchangeRates[code] = rate;
     notifyListeners();
     _persistRates();
   }
 
   double? getRateFor(String currencyCode) {
-    if (currencyCode == 'USD') {
+    String code;
+    final normalized = currencyCode.trim();
+    if (normalized.length > 3) {
+      code =
+          normalized.substring(0, 1).toUpperCase() +
+          (normalized.length > 1 ? normalized.substring(1).toLowerCase() : '');
+    } else {
+      code = normalized.toUpperCase();
+    }
+    if (code == 'USD') {
       return 1.0;
     }
-    return _exchangeRates[currencyCode];
+    return _exchangeRates[code];
   }
 }

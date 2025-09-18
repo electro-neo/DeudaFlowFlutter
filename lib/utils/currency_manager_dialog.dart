@@ -1,10 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
 import '../providers/currency_provider.dart';
 import '../widgets/scale_on_tap.dart';
 
 class CurrencyManagerDialog extends StatefulWidget {
   const CurrencyManagerDialog({super.key});
+
+  /// Llama a este método para mostrar el modal desde cualquier parte:
+  /// await CurrencyManagerDialog.show(context);
+  static Future<void> show(BuildContext context) async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => const CurrencyManagerDialog(),
+    );
+  }
 
   @override
   State<CurrencyManagerDialog> createState() => _CurrencyManagerDialogState();
@@ -13,9 +25,8 @@ class CurrencyManagerDialog extends StatefulWidget {
 class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
   late List<String> currencies;
   late Map<String, TextEditingController> rates;
-  // Usar el listado de monedas permitidas desde CurrencyProvider
-  List<String> get allPossibleCurrencies => CurrencyProvider.allowedCurrencies;
   String? selectedCurrency;
+  final TextEditingController newCurrencyController = TextEditingController();
   final TextEditingController newRateController = TextEditingController();
   String? addError;
   bool showAddFields = false;
@@ -48,6 +59,10 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
     scrollController.dispose();
     super.dispose();
   }
+
+  final List<TextInputFormatter> _rateInputFormatters = [
+    FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -94,17 +109,7 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
         rates.remove(selectedCurrency);
       }
     }
-    // Para el dropdown, solo mostrar monedas realmente registradas y no la temporal
-    final alreadyRegistered = {
-      ...currencyProvider.availableCurrencies.where((c) => c != 'USD'),
-      'USD',
-    };
-    final availableToAdd = allPossibleCurrencies
-        .where((code) => !alreadyRegistered.contains(code))
-        .toList();
-
     void showCurrencyPickerDialog() async {
-      // String? picked; // Removed unused local variable 'picked'.
       await showDialog(
         context: context,
         builder: (ctx) {
@@ -113,81 +118,73 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
-            title: const Text('Selecciona una moneda'),
+            title: const Text('Agregar Moneda'),
             content: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-              child: SizedBox(
-                width: 160,
-                child: DropdownButtonFormField<String>(
-                  isExpanded: true,
-                  value: null,
-                  items: availableToAdd
-                      .map(
-                        (code) =>
-                            DropdownMenuItem(value: code, child: Text(code)),
-                      )
-                      .toList(),
-                  onChanged: (val) {
-                    if (val != null) {
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: newCurrencyController,
+                    decoration: InputDecoration(
+                      labelText: '(ej: Pesos, Bolivares, Libras)',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
+                    ),
+                    textCapitalization: TextCapitalization.sentences,
+                    maxLength: 11,
+                  ),
+                  const SizedBox(height: 8),
+                  ElevatedButton(
+                    onPressed: () {
+                      String code = newCurrencyController.text.trim();
+                      if (code.isEmpty || code.toUpperCase() == 'USD') {
+                        setState(() {
+                          addError = 'Código inválido.';
+                        });
+                        return;
+                      }
+                      // Solo primera letra mayúscula, resto minúscula
+                      code =
+                          code.substring(0, 1).toUpperCase() +
+                          code.substring(1).toLowerCase();
+                      if (currencyProvider.availableCurrencies.contains(code)) {
+                        setState(() {
+                          addError = 'Ya existe esa moneda.';
+                        });
+                        return;
+                      }
                       Navigator.of(ctx).pop();
                       setState(() {
-                        selectedCurrency = val;
+                        selectedCurrency = code;
                         showAddFields = true;
                         addError = null;
+                        newCurrencyController.clear();
                       });
-                    }
-                  },
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color:
-                            Theme.of(context)
-                                .inputDecorationTheme
-                                .enabledBorder
-                                ?.borderSide
-                                .color ??
-                            theme.colorScheme.primary,
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color:
-                            Theme.of(context)
-                                .inputDecorationTheme
-                                .enabledBorder
-                                ?.borderSide
-                                .color ??
-                            theme.colorScheme.primary,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color:
-                            Theme.of(context)
-                                .inputDecorationTheme
-                                .focusedBorder
-                                ?.borderSide
-                                .color ??
-                            theme.colorScheme.secondary,
-                        width: 2,
-                      ),
-                    ),
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 6,
-                    ),
+                    },
+                    child: const Text('Continuar'),
                   ),
-                  menuMaxHeight: 200, // Más compacto
-                ),
+                ],
               ),
             ),
           );
         },
       );
+    }
+
+    @override
+    void dispose() {
+      newCurrencyController.dispose();
+      // ...existing code...
     }
 
     // Envolver el AlertDialog en un WillPopScope para interceptar el cierre por tap en la sombra
@@ -234,6 +231,10 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
                 ..addAll(current);
             } catch (_) {}
           }
+          // Actualizar el controlador de texto en memoria para mostrar la tasa guardada
+          if (rates.containsKey(selectedCurrency!)) {
+            rates[selectedCurrency!]!.text = val.toString();
+          }
         }
       }
 
@@ -249,249 +250,545 @@ class _CurrencyManagerDialogState extends State<CurrencyManagerDialog> {
       });
     }
 
-    return WillPopScope(
-      onWillPop: () async {
-        // Si el usuario cierra el dialog sin guardar, limpiar la card temporal
-        setState(() {
-          if (showAddFields &&
-              selectedCurrency != null &&
-              !currencyProvider.availableCurrencies.contains(
-                selectedCurrency,
-              )) {
-            if (rates.containsKey(selectedCurrency)) {
-              rates[selectedCurrency!]?.dispose();
-              rates.remove(selectedCurrency);
-            }
-            showAddFields = false;
-            selectedCurrency = null;
-            newRateController.clear();
-            addError = null;
-          }
-        });
-        saveAllRates();
-        return true; // Permitir el cierre
-      },
-      child: StatefulBuilder(
-        builder: (context, setStateDialog) {
-          return AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: Row(
-              children: const [
-                Icon(Icons.attach_money_rounded, color: Colors.indigo),
-                SizedBox(width: 8),
-                Text(
-                  'Gestión de monedas',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            content: LayoutBuilder(
-              builder: (context, constraints) {
-                final maxHeight = constraints.maxHeight * 0.7;
-                return Padding(
-                  padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).viewInsets.bottom,
+    // Modal tipo BottomSheet personalizado
+    return DraggableScrollableSheet(
+      initialChildSize: 0.65,
+      minChildSize: 0.4,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (context, scrollSheetController) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).dialogTheme.backgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            boxShadow: [
+              BoxShadow(
+                color: const Color.fromARGB(
+                  255,
+                  255,
+                  255,
+                  255,
+                ).withValues(alpha: (0.08 * 255).toDouble()),
+                blurRadius: 0,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 12,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 8,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: const [
+                      Icon(Icons.attach_money_rounded, color: Colors.indigo),
+                      SizedBox(width: 8),
+                      Text(
+                        'Gestión de monedas',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ],
                   ),
-                  child: SizedBox(
-                    width: 400, // Aumentado de 340 para más espacio
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Puedes registrar cualquier cantidad de monedas. Aquí puedes fijar la tasa, cambiarla manualmente o eliminar monedas para agregar nuevas.',
+                    style: TextStyle(fontSize: 14, color: Colors.black87),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
                     child: Scrollbar(
                       thumbVisibility: true,
                       controller: scrollController,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(maxHeight: maxHeight),
-                        child: ListView(
-                          controller: scrollController,
-                          shrinkWrap: true,
-                          children: [
-                            const Padding(
-                              padding: EdgeInsets.only(
-                                top: 8,
-                                left: 2,
-                                right: 2,
-                                bottom: 4,
-                              ),
-                              child: Text(
-                                'Puedes registrar cualquier cantidad de monedas. Aquí puedes fijar la tasa, cambiarla manualmente o eliminar monedas para agregar nuevas.',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.black87,
+                      child: ListView(
+                        controller: scrollController,
+                        children: [
+                          ...currencies.where((c) => !_pendingDeletions.contains(c)).map((
+                            c,
+                          ) {
+                            final isNew =
+                                showAddFields && selectedCurrency == c;
+                            return Card(
+                              margin: const EdgeInsets.symmetric(vertical: 6),
+                              elevation: 1,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                  horizontal: 8,
                                 ),
-                              ),
-                            ),
-                            ...currencies.where((c) => !_pendingDeletions.contains(c)).map((
-                              c,
-                            ) {
-                              // Si estamos agregando una moneda y es la seleccionada, usar el newRateController
-                              final isNew =
-                                  showAddFields && selectedCurrency == c;
-                              return Card(
-                                margin: const EdgeInsets.symmetric(vertical: 6),
-                                elevation: 1,
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 8,
-                                    horizontal: 8,
-                                  ),
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Expanded(
-                                        child: Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          children: [
-                                            Flexible(
-                                              flex: 2,
-                                              child: TextField(
-                                                onChanged: (value) {
-                                                  if (!_hasChanges) {
-                                                    setStateDialog(() {
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          Flexible(
+                                            flex: 2,
+                                            child: TextField(
+                                              readOnly: true,
+                                              enableInteractiveSelection: false,
+                                              controller: isNew
+                                                  ? newRateController
+                                                  : rates[c],
+                                              onTap: () async {
+                                                final controller = isNew
+                                                    ? newRateController
+                                                    : rates[c];
+                                                final res = await showDialog<String?>(
+                                                  context: context,
+                                                  builder: (ctx) {
+                                                    final editCtrl =
+                                                        TextEditingController(
+                                                          text:
+                                                              controller
+                                                                  ?.text ??
+                                                              '',
+                                                        );
+                                                    return AlertDialog(
+                                                      title: Text(
+                                                        'Editar tasa $c',
+                                                      ),
+                                                      content: TextField(
+                                                        controller: editCtrl,
+                                                        keyboardType:
+                                                            const TextInputType.numberWithOptions(
+                                                              decimal: true,
+                                                            ),
+                                                        inputFormatters:
+                                                            _rateInputFormatters,
+                                                        decoration:
+                                                            const InputDecoration(
+                                                              labelText:
+                                                                  'Tasa a USD',
+                                                            ),
+                                                      ),
+                                                      actions: [
+                                                        TextButton(
+                                                          onPressed: () =>
+                                                              Navigator.of(
+                                                                ctx,
+                                                              ).pop(null),
+                                                          child: const Text(
+                                                            'Cancelar',
+                                                          ),
+                                                        ),
+                                                        ElevatedButton(
+                                                          onPressed: () {
+                                                            final text =
+                                                                editCtrl.text
+                                                                    .trim();
+                                                            Navigator.of(
+                                                              ctx,
+                                                            ).pop(
+                                                              text.isNotEmpty
+                                                                  ? text
+                                                                  : null,
+                                                            );
+                                                          },
+                                                          child: const Text(
+                                                            'Guardar',
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    );
+                                                  },
+                                                );
+                                                if (res != null &&
+                                                    res.isNotEmpty) {
+                                                  // Actualizar el campo visible
+                                                  if (controller != null) {
+                                                    controller.text = res;
+                                                  }
+
+                                                  // Parsear y persistir inmediatamente en el provider
+                                                  final parsed =
+                                                      double.tryParse(
+                                                        res.replaceAll(
+                                                          ',',
+                                                          '.',
+                                                        ),
+                                                      );
+                                                  final currencyProvider =
+                                                      Provider.of<
+                                                        CurrencyProvider
+                                                      >(context, listen: false);
+                                                  if (parsed != null &&
+                                                      parsed > 0) {
+                                                    if (isNew &&
+                                                        selectedCurrency !=
+                                                            null) {
+                                                      currencyProvider
+                                                          .addManualCurrency(
+                                                            selectedCurrency!,
+                                                          );
+                                                      currencyProvider
+                                                          .setRateForCurrency(
+                                                            selectedCurrency!,
+                                                            parsed,
+                                                          );
+                                                      try {
+                                                        final current =
+                                                            currencyProvider
+                                                                .availableCurrencies
+                                                                .toList();
+                                                        if (current.contains(
+                                                          selectedCurrency!,
+                                                        )) {
+                                                          current.remove(
+                                                            selectedCurrency!,
+                                                          );
+                                                          current.insert(
+                                                            0,
+                                                            selectedCurrency!,
+                                                          );
+                                                          currencyProvider
+                                                              .availableCurrencies
+                                                            ..clear()
+                                                            ..addAll(current);
+                                                        }
+                                                      } catch (_) {}
+
+                                                      setState(() {
+                                                        showAddFields = false;
+                                                        selectedCurrency = null;
+                                                        newRateController
+                                                            .clear();
+                                                        addError = null;
+                                                        _hasChanges = false;
+                                                      });
+                                                    } else {
+                                                      currencyProvider
+                                                          .setRateForCurrency(
+                                                            c,
+                                                            parsed,
+                                                          );
+                                                      setState(() {
+                                                        _hasChanges = false;
+                                                      });
+                                                    }
+                                                  } else {
+                                                    setState(() {
                                                       _hasChanges = true;
                                                     });
                                                   }
-                                                },
-                                                controller: isNew
-                                                    ? newRateController
-                                                    : rates[c],
-                                                decoration: InputDecoration(
-                                                  labelText: 'Tasa $c a USD',
-                                                  border:
-                                                      const OutlineInputBorder(),
-                                                  filled: true,
-                                                  fillColor: Colors.white,
-                                                  isDense: true,
-                                                  contentPadding:
-                                                      const EdgeInsets.symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 8,
-                                                      ),
-                                                  labelStyle: const TextStyle(
-                                                    fontSize: 13,
-                                                  ),
-                                                ),
-                                                style: const TextStyle(
-                                                  fontSize: 15,
-                                                ),
-                                                keyboardType:
-                                                    const TextInputType.numberWithOptions(
-                                                      decimal: true,
+                                                }
+                                              },
+                                              decoration: InputDecoration(
+                                                labelText: 'Tasa $c a USD',
+                                                border:
+                                                    const OutlineInputBorder(),
+                                                filled: true,
+                                                fillColor: Colors.white,
+                                                isDense: true,
+                                                contentPadding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 8,
                                                     ),
+                                                labelStyle: const TextStyle(
+                                                  fontSize: 13,
+                                                ),
+                                              ),
+                                              style: const TextStyle(
+                                                fontSize: 15,
                                               ),
                                             ),
-                                            const SizedBox(width: 6),
-                                            IconButton(
-                                              icon: const Icon(
-                                                Icons.delete,
-                                                color: Colors.red,
-                                                size: 20,
-                                              ),
-                                              tooltip: 'Eliminar moneda',
-                                              onPressed: () {
-                                                if (isNew) {
-                                                  setState(() {
-                                                    selectedCurrency = null;
-                                                    newRateController.clear();
-                                                    addError = null;
-                                                    showAddFields = false;
-                                                  });
+                                          ),
+                                          const SizedBox(width: 6),
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.edit,
+                                              color: Colors.indigo,
+                                              size: 20,
+                                            ),
+                                            tooltip: 'Editar tasa',
+                                            onPressed: () async {
+                                              final controller = isNew
+                                                  ? newRateController
+                                                  : rates[c];
+                                              final res = await showDialog<String?>(
+                                                context: context,
+                                                builder: (ctx) {
+                                                  final editCtrl =
+                                                      TextEditingController(
+                                                        text:
+                                                            controller?.text ??
+                                                            '',
+                                                      );
+                                                  return AlertDialog(
+                                                    title: Text(
+                                                      'Editar tasa $c',
+                                                    ),
+                                                    content: TextField(
+                                                      controller: editCtrl,
+                                                      keyboardType:
+                                                          const TextInputType.numberWithOptions(
+                                                            decimal: true,
+                                                          ),
+                                                      inputFormatters:
+                                                          _rateInputFormatters,
+                                                      decoration:
+                                                          const InputDecoration(
+                                                            labelText:
+                                                                'Tasa a USD',
+                                                          ),
+                                                    ),
+                                                    actions: [
+                                                      TextButton(
+                                                        onPressed: () =>
+                                                            Navigator.of(
+                                                              ctx,
+                                                            ).pop(null),
+                                                        child: const Text(
+                                                          'Cancelar',
+                                                        ),
+                                                      ),
+                                                      ElevatedButton(
+                                                        onPressed: () {
+                                                          final text = editCtrl
+                                                              .text
+                                                              .trim();
+                                                          Navigator.of(ctx).pop(
+                                                            text.isNotEmpty
+                                                                ? text
+                                                                : null,
+                                                          );
+                                                        },
+                                                        child: const Text(
+                                                          'Guardar',
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  );
+                                                },
+                                              );
+                                              if (res != null &&
+                                                  res.isNotEmpty) {
+                                                // Actualizar el campo visible
+                                                final controller = isNew
+                                                    ? newRateController
+                                                    : rates[c];
+                                                if (controller != null) {
+                                                  controller.text = res;
+                                                }
+
+                                                // Parsear y persistir inmediatamente en el provider
+                                                final parsed = double.tryParse(
+                                                  res.replaceAll(',', '.'),
+                                                );
+                                                final currencyProvider =
+                                                    Provider.of<
+                                                      CurrencyProvider
+                                                    >(context, listen: false);
+                                                if (parsed != null &&
+                                                    parsed > 0) {
+                                                  if (isNew &&
+                                                      selectedCurrency !=
+                                                          null) {
+                                                    // Agregar la moneda y asignar la tasa de inmediato
+                                                    currencyProvider
+                                                        .addManualCurrency(
+                                                          selectedCurrency!,
+                                                        );
+                                                    currencyProvider
+                                                        .setRateForCurrency(
+                                                          selectedCurrency!,
+                                                          parsed,
+                                                        );
+                                                    // Reordenar para ponerla al principio (igual que saveAllRates)
+                                                    try {
+                                                      final current =
+                                                          currencyProvider
+                                                              .availableCurrencies
+                                                              .toList();
+                                                      if (current.contains(
+                                                        selectedCurrency!,
+                                                      )) {
+                                                        current.remove(
+                                                          selectedCurrency!,
+                                                        );
+                                                        current.insert(
+                                                          0,
+                                                          selectedCurrency!,
+                                                        );
+                                                        currencyProvider
+                                                            .availableCurrencies
+                                                          ..clear()
+                                                          ..addAll(current);
+                                                      }
+                                                    } catch (_) {}
+
+                                                    // Limpiar estado de "agregar"
+                                                    setState(() {
+                                                      showAddFields = false;
+                                                      selectedCurrency = null;
+                                                      newRateController.clear();
+                                                      addError = null;
+                                                      _hasChanges =
+                                                          false; // ya persistido
+                                                    });
+                                                  } else {
+                                                    // Moneda existente: persistir directamente
+                                                    currencyProvider
+                                                        .setRateForCurrency(
+                                                          c,
+                                                          parsed,
+                                                        );
+                                                    setState(() {
+                                                      _hasChanges =
+                                                          false; // ya persistido
+                                                    });
+                                                  }
                                                 } else {
+                                                  // Valor inválido: marcar cambio en UI pero no persistir
                                                   setState(() {
-                                                    _pendingDeletions.add(c);
                                                     _hasChanges = true;
                                                   });
                                                 }
-                                              },
+                                              }
+                                            },
+                                          ),
+                                          const SizedBox(width: 6),
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.delete,
+                                              color: Colors.red,
+                                              size: 20,
                                             ),
-                                          ],
-                                        ),
+                                            tooltip: 'Eliminar moneda',
+                                            onPressed: () {
+                                              if (isNew) {
+                                                setState(() {
+                                                  selectedCurrency = null;
+                                                  newRateController.clear();
+                                                  addError = null;
+                                                  showAddFields = false;
+                                                });
+                                              } else {
+                                                final currencyProvider =
+                                                    Provider.of<
+                                                      CurrencyProvider
+                                                    >(context, listen: false);
+                                                currencyProvider
+                                                    .removeManualCurrency(c);
+                                                setState(() {
+                                                  rates[c]?.dispose();
+                                                  rates.remove(c);
+                                                  currencies.remove(c);
+                                                  _hasChanges = true;
+                                                });
+                                              }
+                                            },
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            }),
-                            if (addError != null)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 4, left: 2),
-                                child: Text(
-                                  addError!,
-                                  style: const TextStyle(
-                                    color: Colors.red,
-                                    fontSize: 13,
-                                  ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                          ],
-                        ),
+                            );
+                          }),
+                          if (addError != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4, left: 2),
+                              child: Text(
+                                addError!,
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ),
-                );
-              },
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ScaleOnTap(
+                          onTap: showCurrencyPickerDialog,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primary,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'Agregar Moneda',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onPrimary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ScaleOnTap(
+                          onTap: () {
+                            saveAllRates();
+                            Navigator.of(context).pop();
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.secondary,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              (showAddFields && selectedCurrency != null) ||
+                                      _hasChanges
+                                  ? 'Guardar'
+                                  : 'Cerrar',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSecondary,
+                                fontWeight: FontWeight.w600,
+                                fontSize:
+                                    (showAddFields &&
+                                            selectedCurrency != null) ||
+                                        _hasChanges
+                                    ? 13.5
+                                    : 15,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
             ),
-            actions: [
-              // Botón Agregar Moneda
-              ScaleOnTap(
-                onTap: showCurrencyPickerDialog,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    'Agregar Moneda',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onPrimary,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                    ),
-                  ),
-                ),
-              ),
-              // Espacio mínimo
-              const SizedBox(width: 8),
-              // Botón Cerrar/Guardar
-              ScaleOnTap(
-                onTap: () {
-                  saveAllRates();
-                  Navigator.of(context).pop();
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.secondary,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    (showAddFields && selectedCurrency != null) || _hasChanges
-                        ? 'Guardar'
-                        : 'Cerrar',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSecondary,
-                      fontWeight: FontWeight.w600,
-                      fontSize:
-                          (showAddFields && selectedCurrency != null) ||
-                              _hasChanges
-                          ? 13.5
-                          : 15,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }

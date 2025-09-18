@@ -55,7 +55,7 @@ class _AnimatedTapToStartState extends State<AnimatedTapToStart>
             ),
           ),
           SizedBox(width: 12),
-          Icon(Icons.fingerprint, color: Colors.white, size: 28),
+          Icon(Icons.touch_app_rounded, color: Colors.white, size: 30),
         ],
       ),
     );

@@ -2,9 +2,35 @@ import 'package:flutter/material.dart';
 import '_animated_tap_to_start.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:hive/hive.dart';
+import '../models/contact_hive.dart';
 
 // Variable global para almacenar los contactos
 List<Contact> globalContacts = [];
+
+Future<void> saveContactsToHive(
+  List<Contact> contacts, {
+  void Function(int saved, int total)? onProgress,
+}) async {
+  final box = await Hive.openBox<ContactHive>('contacts');
+  final Iterable<Contact> withPhones = contacts.where(
+    (c) => c.phones.isNotEmpty,
+  );
+  final int total = withPhones.length;
+  int saved = 0;
+  for (final c in withPhones) {
+    final phone = c.phones.first.number;
+    final contactHive = ContactHive(
+      id: c.id,
+      name: c.displayName,
+      phone: phone,
+    );
+    await box.put(c.id, contactHive);
+    saved++;
+    if (onProgress != null) onProgress(saved, total);
+  }
+  debugPrint('[CONTACTS] Contactos guardados en Hive: ${box.length}');
+}
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -38,12 +64,43 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   }
 
   Future<void> _initContacts() async {
+    final box = await Hive.openBox<ContactHive>('contacts');
+    if (box.isNotEmpty) {
+      // Cargar desde Hive
+      globalContacts = box.values
+          .map(
+            (c) => Contact(
+              id: c.id,
+              displayName: c.name,
+              phones: [Phone(c.phone)],
+            ),
+          )
+          .toList();
+      debugPrint(
+        '[CONTACTS] Contactos cargados desde Hive: ${globalContacts.length}',
+      );
+      return;
+    }
     final status = await Permission.contacts.status;
     if (status.isGranted || (await Permission.contacts.request()).isGranted) {
-      globalContacts = await FlutterContacts.getContacts(withProperties: true);
+      final contacts = await FlutterContacts.getContacts(withProperties: true);
+      globalContacts = contacts;
       debugPrint(
-        '[CONTACTS] Contactos cargados al iniciar: ${globalContacts.length}',
+        '[CONTACTS] Contactos cargados del sistema: ${contacts.length}',
       );
+      // Guardar en Hive para futuras cargas rápidas
+      for (final c in contacts) {
+        if (c.phones.isNotEmpty) {
+          final phone = c.phones.first.number;
+          final contactHive = ContactHive(
+            id: c.id,
+            name: c.displayName,
+            phone: phone,
+          );
+          box.put(c.id, contactHive);
+        }
+      }
+      debugPrint('[CONTACTS] Contactos guardados en Hive: ${box.length}');
     } else {
       debugPrint('[CONTACTS] Permiso de contactos no concedido al iniciar');
     }

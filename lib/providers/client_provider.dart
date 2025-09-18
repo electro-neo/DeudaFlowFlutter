@@ -11,6 +11,28 @@ import '../main.dart';
 import 'transaction_provider.dart';
 
 class ClientProvider extends ChangeNotifier {
+  /// Actualiza el balance local de un cliente y sincroniza en Hive y Supabase si es posible
+  Future<void> updateClientBalance(String clientId, double newBalance) async {
+    final clientBox = Hive.box<ClientHive>('clients');
+    final c = clientBox.get(clientId);
+    if (c != null) {
+      c.balance = newBalance;
+      await c.save();
+    }
+    // Intentar actualizar en Supabase si hay internet
+    if (await _isOnline()) {
+      try {
+        await _service.updateClientBalance(clientId, newBalance);
+      } catch (e) {
+        debugPrint(
+          '[SYNC][ERROR] No se pudo actualizar balance en Supabase para cliente $clientId: $e',
+        );
+      }
+    }
+    await _refreshClientsFromHive();
+    notifyListeners();
+  }
+
   /// Recalcula el balance de un cliente sumando todas sus transacciones y lo sincroniza en Hive y Supabase
   Future<void> recalculateAndSyncClientBalance(
     String clientId,

@@ -112,9 +112,11 @@ class AdService {
     _currentLoadCompleter = Completer<RewardedAd?>();
     _totalLoads++;
     final start = DateTime.now();
-    debugPrint(
-      '[AdService] Intentando precarga Rewarded ( intento #${_totalLoads} | fallos consecutivos: $_consecutiveFailures )',
-    );
+    if (kDebugMode) {
+      debugPrint(
+        '[AdService] Intentando precarga Rewarded ( intento #${_totalLoads} | fallos consecutivos: $_consecutiveFailures )',
+      );
+    }
 
     try {
       RewardedAd.load(
@@ -127,17 +129,21 @@ class AdService {
             _currentLoadCompleter?.complete(ad);
             _successfulLoads++;
             final ms = DateTime.now().difference(start).inMilliseconds;
-            debugPrint(
-              '[AdService] Rewarded precargado en ${ms}ms (exitos: $_successfulLoads / fallos: $_failedLoads). Reiniciando contador de backoff.',
-            );
+            if (kDebugMode) {
+              debugPrint(
+                '[AdService] Rewarded precargado en ${ms}ms (exitos: $_successfulLoads / fallos: $_failedLoads). Reiniciando contador de backoff.',
+              );
+            }
             _consecutiveFailures = 0;
           },
           onAdFailedToLoad: (error) {
             _failedLoads++;
             final ms = DateTime.now().difference(start).inMilliseconds;
-            debugPrint(
-              '[AdService] preload falló: code=${error.code} domain=${error.domain} message="${error.message}" tras ${ms}ms',
-            );
+            if (kDebugMode) {
+              debugPrint(
+                '[AdService] preload falló: code=${error.code} domain=${error.domain} message="${error.message}" tras ${ms}ms',
+              );
+            }
             _isLoadingRewarded = false;
             _currentLoadCompleter?.complete(null);
             _handleLoadFailure();
@@ -145,7 +151,8 @@ class AdService {
         ),
       );
     } catch (e) {
-      debugPrint('[AdService] Excepción al pre-cargar Rewarded: $e');
+      if (kDebugMode)
+        debugPrint('[AdService] Excepción al pre-cargar Rewarded: $e');
       _isLoadingRewarded = false;
       _currentLoadCompleter?.complete(null);
       _failedLoads++;
@@ -161,7 +168,10 @@ class AdService {
             _isLoadingRewarded = false;
             _currentLoadCompleter!.complete(null);
             _failedLoads++;
-            debugPrint('[AdService] Timeout de precarga ($_loadTimeoutMs ms).');
+            if (kDebugMode)
+              debugPrint(
+                '[AdService] Timeout de precarga ($_loadTimeoutMs ms).',
+              );
             _handleLoadFailure();
           }
           return null;
@@ -187,9 +197,11 @@ class AdService {
     _currentInterstitialLoadCompleter = Completer<InterstitialAd?>();
     _interstitialTotalLoads++;
     final start = DateTime.now();
-    debugPrint(
-      '[AdService] Intentando precarga Interstitial (intento #${_interstitialTotalLoads})',
-    );
+    if (kDebugMode) {
+      debugPrint(
+        '[AdService] Intentando precarga Interstitial (intento #${_interstitialTotalLoads})',
+      );
+    }
 
     try {
       InterstitialAd.load(
@@ -202,15 +214,18 @@ class AdService {
             _currentInterstitialLoadCompleter?.complete(ad);
             _interstitialSuccessfulLoads++;
             final ms = DateTime.now().difference(start).inMilliseconds;
-            debugPrint('[AdService] Interstitial precargado en ${ms}ms');
+            if (kDebugMode)
+              debugPrint('[AdService] Interstitial precargado en ${ms}ms');
             _consecutiveInterstitialFailures = 0;
           },
           onAdFailedToLoad: (error) {
             _interstitialFailedLoads++;
             final ms = DateTime.now().difference(start).inMilliseconds;
-            debugPrint(
-              '[AdService] Interstitial preload falló: ${error.message} tras ${ms}ms',
-            );
+            if (kDebugMode) {
+              debugPrint(
+                '[AdService] Interstitial preload falló: ${error.message} tras ${ms}ms',
+              );
+            }
             _isLoadingInterstitial = false;
             _currentInterstitialLoadCompleter?.complete(null);
             _handleInterstitialLoadFailure();
@@ -218,7 +233,8 @@ class AdService {
         ),
       );
     } catch (e) {
-      debugPrint('[AdService] Excepción al pre-cargar Interstitial: $e');
+      if (kDebugMode)
+        debugPrint('[AdService] Excepción al pre-cargar Interstitial: $e');
       _isLoadingInterstitial = false;
       _currentInterstitialLoadCompleter?.complete(null);
       _interstitialFailedLoads++;
@@ -233,9 +249,10 @@ class AdService {
             _isLoadingInterstitial = false;
             _currentInterstitialLoadCompleter!.complete(null);
             _interstitialFailedLoads++;
-            debugPrint(
-              '[AdService] Timeout de precarga Interstitial ($_loadTimeoutMs ms).',
-            );
+            if (kDebugMode)
+              debugPrint(
+                '[AdService] Timeout de precarga Interstitial ($_loadTimeoutMs ms).',
+              );
             _handleInterstitialLoadFailure();
           }
           return null;
@@ -249,9 +266,10 @@ class AdService {
     final raw =
         _baseBackoffSeconds * (1 << (_consecutiveInterstitialFailures - 1));
     final seconds = raw > _maxBackoffSeconds ? _maxBackoffSeconds : raw;
-    debugPrint(
-      '[AdService] Programando reintento Interstitial en ${seconds}s (fallos: $_consecutiveInterstitialFailures)',
-    );
+    if (kDebugMode)
+      debugPrint(
+        '[AdService] Programando reintento Interstitial en ${seconds}s (fallos: $_consecutiveInterstitialFailures)',
+      );
     _interstitialRetryTimer?.cancel();
     _interstitialRetryTimer = Timer(Duration(seconds: seconds), () {
       if (_cachedInterstitialAd == null && !_isLoadingInterstitial) {
@@ -264,9 +282,10 @@ class AdService {
   void _handleLoadFailure() {
     _consecutiveFailures++;
     final seconds = _calculateBackoffSeconds();
-    debugPrint(
-      '[AdService] Programando reintento en ${seconds}s (fallos consecutivos: $_consecutiveFailures).',
-    );
+    if (kDebugMode)
+      debugPrint(
+        '[AdService] Programando reintento en ${seconds}s (fallos consecutivos: $_consecutiveFailures).',
+      );
     _retryTimer?.cancel();
     _retryTimer = Timer(Duration(seconds: seconds), () {
       if (_cachedRewardedAd == null && !_isLoadingRewarded) {
@@ -319,9 +338,10 @@ class AdService {
     final ad = _cachedRewardedAd;
     if (ad == null) {
       // No se pudo conseguir anuncio → permitir acción
-      debugPrint(
-        '[AdService] No hay Rewarded listo: se permite acción sin anuncio.',
-      );
+      if (kDebugMode)
+        debugPrint(
+          '[AdService] No hay Rewarded listo: se permite acción sin anuncio.',
+        );
       return true;
     }
 
@@ -359,7 +379,7 @@ class AdService {
         },
       );
     } catch (e) {
-      debugPrint('[AdService] Error al mostrar Rewarded: $e');
+      if (kDebugMode) debugPrint('[AdService] Error al mostrar Rewarded: $e');
       if (!resultCompleter.isCompleted) resultCompleter.complete(true);
       _cachedRewardedAd = null;
       unawaited(preloadRewarded());
@@ -451,7 +471,7 @@ class AdService {
   /// Call this from navigation events to maybe show an interstitial.
   /// Default: 20% chance, minInterval 2 minutes between interstitials.
   Future<bool> maybeShowInterstitialOnNavigation({
-    double probability = 0.4, 
+    double probability = 0.4,
     Duration minInterval = const Duration(minutes: 5),
   }) async {
     // Basic guards

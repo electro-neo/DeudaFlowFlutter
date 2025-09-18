@@ -34,7 +34,8 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends State<DashboardScreen>
+    with SingleTickerProviderStateMixin {
   bool _faqShown = false;
   String _capitalizeSafe(String input) {
     final chars = input.characters;
@@ -93,10 +94,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   bool _loading = true;
+  late final AnimationController _syncController;
+  void _syncStatusListener() {
+    try {
+      final sp = Provider.of<SyncProvider>(context, listen: false);
+      if (sp.status.toString().contains('syncing')) {
+        if (!_syncController.isAnimating) _syncController.repeat();
+      } else {
+        if (_syncController.isAnimating) {
+          _syncController.reset();
+        }
+      }
+    } catch (_) {
+      // Context might be unavailable during dispose
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+    _syncController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    );
     _loadData();
     // Inicializa el estado de SyncProvider para que el banner se muestre correctamente
     Future.microtask(() {
@@ -119,8 +139,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
           user.id,
           context,
         );
+        // Añadir listener de SyncProvider para animar el icono de sync
+        final sp = Provider.of<SyncProvider>(context, listen: false);
+        sp.addListener(_syncStatusListener);
       });
     }
+  }
+
+  @override
+  void dispose() {
+    try {
+      final sp = Provider.of<SyncProvider>(context, listen: false);
+      sp.removeListener(_syncStatusListener);
+    } catch (_) {}
+    _syncController.dispose();
+    super.dispose();
   }
 
   Future<void> _showFaqIfFirstTime() async {
@@ -138,59 +171,199 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  // Compara balances locales y remotos y muestra SnackBar si hay diferencias
+  // Compara balances locales y remotos y muestra un diálogo si hay diferencias
   Future<void> _checkBalanceDifferences() async {
-    // El siguiente uso de context es seguro porque:
-    // 1. Se verifica 'if (difference && mounted)' antes de usar context tras el async gap.
-    // 2. Este context es el de la clase State, no de un builder externo.
-    // Por lo tanto, el warning puede ser ignorado.
-    // ignore: use_build_context_synchronously
-    final clientProvider = Provider.of<ClientProvider>(
-      // El siguiente uso de context es seguro porque:
-      // 1. Se verifica 'if (difference && mounted)' antes de usar context tras el async gap.
-      // 2. Este context es el de la clase State, no de un builder externo.
-      // Por lo tanto, el warning puede ser ignorado.
-      // ignore: use_build_context_synchronously
-      context,
-      listen: false,
-    );
+    final clientProvider = Provider.of<ClientProvider>(context, listen: false);
     final localClients = clientProvider.clients;
     try {
-      // Asume que tienes un método en SupabaseService para obtener clientes remotos
       final supabaseService = SupabaseService();
       final remoteClients = await supabaseService.fetchClients(widget.userId);
-      // Mapear por id para comparar
       final localMap = {for (var c in localClients) c.id: c};
       final remoteMap = {for (var c in remoteClients) c.id: c};
-      bool difference = false;
+      // Detectar clientes con conflicto
+      final List<Map<String, dynamic>> conflicts = [];
       for (final id in localMap.keys) {
         if (remoteMap.containsKey(id)) {
           final localBal = localMap[id]!.balance;
           final remoteBal = remoteMap[id]!.balance;
+          debugPrint(
+            '[BALANCE] Cliente: ${localMap[id]!.name} (id: $id) | Local: $localBal | Supabase: $remoteBal',
+          );
           if ((localBal - remoteBal).abs() > 0.01) {
-            difference = true;
-            break;
+            debugPrint(
+              '[CONFLICTO BALANCE] Cliente: ${localMap[id]!.name} (id: $id) | Local: $localBal | Supabase: $remoteBal',
+            );
+            conflicts.add({
+              'id': id,
+              'name': localMap[id]!.name,
+              'local': localBal,
+              'remote': remoteBal,
+            });
           }
         }
       }
-      if (difference && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text(
-              '¡Atención! Hay diferencias entre los balances locales y online.',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            duration: const Duration(minutes: 5),
-            action: SnackBarAction(
-              label: 'X',
-              onPressed: () {
-                ScaffoldMessenger.of(context).hideCurrentSnackBar();
-              },
-              textColor: Colors.white,
-            ),
-            backgroundColor: Colors.deepOrange,
-            behavior: SnackBarBehavior.floating,
-          ),
+      if (conflicts.isNotEmpty && mounted) {
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Text(
+                'Conflicto de balances',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              content: Builder(
+                builder: (ctx) {
+                  final maxHeight = MediaQuery.of(ctx).size.height * 0.6;
+                  return SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: 340,
+                        maxHeight: maxHeight,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Se detectaron diferencias entre los balances locales y online de los siguientes clientes:',
+                            style: TextStyle(fontSize: 15),
+                          ),
+                          const SizedBox(height: 12),
+                          // La lista se envuelve en Flexible para respetar el maxHeight y poder hacer scroll
+                          Flexible(
+                            child: ListView.builder(
+                              shrinkWrap: true,
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              itemCount: conflicts.length,
+                              itemBuilder: (context, i) {
+                                final c = conflicts[i];
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 4.0,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          c['name'] ?? '',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            'Local: ${c['local'].toStringAsFixed(2)}',
+                                            style: const TextStyle(
+                                              color: Colors.blue,
+                                            ),
+                                          ),
+                                          Text(
+                                            'Online: ${c['remote'].toStringAsFixed(2)}',
+                                            style: const TextStyle(
+                                              color: Colors.deepOrange,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          const Text(
+                            '¿Con qué versión deseas quedarte para todos los clientes?',
+                            style: TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+              actionsPadding: const EdgeInsets.symmetric(vertical: 8),
+              actions: [
+                Center(
+                  child: Consumer<SyncProvider>(
+                    builder: (context, syncProvider, _) {
+                      final isSyncing = syncProvider.status.toString().contains(
+                        'syncing',
+                      );
+                      final onlineFuture = Provider.of<TransactionProvider>(
+                        context,
+                        listen: false,
+                      ).isOnline();
+                      return FutureBuilder<bool>(
+                        future: onlineFuture,
+                        builder: (context, snapshot) {
+                          final online = snapshot.data ?? true;
+                          if (!online) return const SizedBox.shrink();
+                          return ElevatedButton(
+                            onPressed: isSyncing
+                                ? () {}
+                                : () {
+                                    // Llamar al SyncProvider para forzar sincronización completa
+                                    try {
+                                      Provider.of<SyncProvider>(
+                                        context,
+                                        listen: false,
+                                      ).startSync(context, widget.userId);
+                                    } catch (_) {}
+                                    if (mounted) Navigator.of(ctx).pop();
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.primary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 12,
+                              ),
+                            ),
+                            child: AnimatedBuilder(
+                              animation: _syncController,
+                              builder: (context, child) {
+                                return Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Transform.rotate(
+                                      angle: isSyncing
+                                          ? -_syncController.value * 6.28319
+                                          : 0,
+                                      child: Icon(
+                                        Icons.sync,
+                                        color: isSyncing
+                                            ? Colors.green
+                                            : Colors.white,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    const Text('Sincronizar Todo'),
+                                  ],
+                                );
+                              },
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
         );
       }
     } catch (e) {
